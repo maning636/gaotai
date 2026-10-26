@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { renderTemplatePreview } from "../../lib/markdown";
 import type { LayoutTemplate } from "../../lib/layout-template";
+import { PREVIEW_SAMPLE } from "../../lib/preview-sample";
 import { PhonePreview } from "./phone-preview";
 import styles from "./templates.module.css";
 
@@ -16,28 +17,6 @@ import styles from "./templates.module.css";
  * 来源徽标跟编辑器里那个下拉的 optgroup 一一对应：
  *   builtin → 内置配色；imported → 随包导入；custom → 自己做的。
  */
-
-/** 与 layout/panel.tsx 保持同一份示例稿，两边预览结果一致。 */
-const SAMPLE = `# 一个标题
-
-这是一段正文，里面有**加粗**和\`行内代码\`，还有[一个链接](https://example.com)。
-
-> 一句引用，引用里也可以有**加粗**。
-
-- 列表第一项
-- 列表第二项
-
-\`\`\`js
-const answer = 42;
-\`\`\`
-
-| 名称 | 数值 |
-| --- | --- |
-| 甲 | 1 |
-| 乙 | 2 |
-
----
-`;
 
 const SOURCE_LABEL: Record<LayoutTemplate["source"], string> = {
   builtin: "内置",
@@ -136,7 +115,7 @@ export function Gallery({ projectId }: GalleryProps) {
    */
   function renderCardPreview(template: LayoutTemplate): string {
     try {
-      return renderTemplatePreview(SAMPLE, template);
+      return renderTemplatePreview(PREVIEW_SAMPLE, template);
     } catch {
       return "";
     }

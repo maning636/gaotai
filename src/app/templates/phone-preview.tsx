@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { renderTemplatePreview } from "../../lib/markdown";
 import type { LayoutTemplate } from "../../lib/layout-template";
+import { PREVIEW_SAMPLE } from "../../lib/preview-sample";
 import styles from "./templates.module.css";
 
 /**
@@ -19,34 +20,19 @@ import styles from "./templates.module.css";
  * 只是多一步 router.push 跳回编辑器。跳过去后编辑器会按新偏好重新拉一次预览。
  */
 
-/** 与 gallery.tsx / layout/panel.tsx 保持同一份示例稿。 */
-const SAMPLE = `# 一个标题
-
-这是一段正文，里面有**加粗**和\`行内代码\`，还有[一个链接](https://example.com)。
-
-> 一句引用，引用里也可以有**加粗**。
-
-- 列表第一项
-- 列表第二项
-
-\`\`\`js
-const answer = 42;
-\`\`\`
-
-| 名称 | 数值 |
-| --- | --- |
-| 甲 | 1 |
-| 乙 | 2 |
-
----
-`;
-
 type PhonePreviewProps = {
   template: LayoutTemplate | undefined;
   /** 稿件标题：显示在顶栏右侧，让用户知道「这套要应用到哪」。 */
   projectTitle?: string;
   /** 稿件 id：有值才允许点「使用这套」。 */
   projectId?: string;
+  /**
+   * 是否显示底部「使用这套」操作条。
+   * 模板管理里手机只负责看效果，点「使用」没有意义，传 false 隐藏。
+   */
+  showApply?: boolean;
+  /** 覆盖手机自适应框的高度（模板管理里要在视口内放下整台手机）。 */
+  fitHeight?: string;
 };
 
 type ApplyState = "idle" | "saving" | "done";
@@ -54,7 +40,7 @@ type ApplyState = "idle" | "saving" | "done";
 const PHONE_W = 456;
 const PHONE_H = 972;
 
-export function PhonePreview({ template, projectTitle, projectId }: PhonePreviewProps) {
+export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight }: PhonePreviewProps) {
   const router = useRouter();
   const fitRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.62);
@@ -94,7 +80,7 @@ export function PhonePreview({ template, projectTitle, projectId }: PhonePreview
   const previewHtml = useMemo(() => {
     if (!template) return "";
     try {
-      return renderTemplatePreview(SAMPLE, template);
+      return renderTemplatePreview(PREVIEW_SAMPLE, template);
     } catch {
       return "";
     }
@@ -129,7 +115,7 @@ export function PhonePreview({ template, projectTitle, projectId }: PhonePreview
 
   return (
     <div className={styles.phoneCol}>
-      <div className={styles.phoneFit} ref={fitRef}>
+      <div className={styles.phoneFit} ref={fitRef} style={fitHeight ? { height: fitHeight } : undefined}>
         <div
           className={styles.phoneWrap}
           style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})` }}
@@ -177,6 +163,7 @@ export function PhonePreview({ template, projectTitle, projectId }: PhonePreview
         </div>
       </div>
 
+      {showApply ? (
       <div className={styles.phoneActions}>
         {projectTitle ? (
           <span className={styles.applyTarget}>
@@ -197,6 +184,7 @@ export function PhonePreview({ template, projectTitle, projectId }: PhonePreview
           {applyState === "saving" ? "应用中…" : "使用这套"}
         </button>
       </div>
+      ) : null}
 
       {error ? <div className="gt-alert gt-alert--error">{error}</div> : null}
       {notice ? <div className="gt-alert gt-alert--ok">{notice}</div> : null}

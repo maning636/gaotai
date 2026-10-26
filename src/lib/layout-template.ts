@@ -820,6 +820,14 @@ function sanitizeAttrs(tag: string, raw: string): string {
     const allowed = ALLOWED_ATTRS[tag];
     if (!allowed || !allowed.has(name)) continue;
     if (name === "src") {
+      // `{{src}}` 是渲染占位符，不是外部地址——模板不知道图从哪来，图是渲染时
+      // 才填进去的。之前这里只放行真实 URL，导入的样式包 `<img src="{{src}}">`
+      // 会被整条丢掉，结果所有导入模板的图片都是空图（真机上表现为「有留白、
+      // 没图」）。现在只放行这一个占位符，其余仍走 URL 白名单。
+      if (value === "{{src}}") {
+        out.push(` src="{{src}}"`);
+        continue;
+      }
       if (!isSafeImageSrc(value)) continue;
       out.push(` src="${escapeHtml(value)}"`);
       continue;

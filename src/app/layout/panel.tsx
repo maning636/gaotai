@@ -9,7 +9,8 @@ import {
   type LayoutPartKey,
   type LayoutTemplate,
 } from "../../lib/layout-template";
-import { renderTemplatePreview } from "../../lib/markdown";
+import { PhonePreview } from "../templates/phone-preview";
+import styles from "./panel.module.css";
 
 /**
  * 排版模板页。
@@ -23,28 +24,6 @@ import { renderTemplatePreview } from "../../lib/markdown";
  *
  * 内置的三套配色是只读样板，要改先「复制一份」。
  */
-
-/** 预览用的示例稿：把稿台会排到的元素都摆一遍。 */
-const SAMPLE = `# 一个标题
-
-这是一段正文，里面有**加粗**和\`行内代码\`，还有[一个链接](https://example.com)。
-
-> 一句引用，引用里也可以有**加粗**。
-
-- 列表第一项
-- 列表第二项
-
-\`\`\`js
-const answer = 42;
-\`\`\`
-
-| 名称 | 数值 |
-| --- | --- |
-| 甲 | 1 |
-| 乙 | 2 |
-
----
-`;
 
 /** 色值的中文名。 */
 const VAR_LABELS: Record<string, string> = {
@@ -136,15 +115,6 @@ export default function LayoutPanel() {
     });
     setDirty(false);
   }, [templates, selectedId]);
-
-  const previewHtml = useMemo(() => {
-    if (!draft) return "";
-    try {
-      return renderTemplatePreview(SAMPLE, draft);
-    } catch {
-      return "";
-    }
-  }, [draft]);
 
   /**
    * 这个模板真正用到的变量。
@@ -391,107 +361,77 @@ export default function LayoutPanel() {
       {error ? <div className="gt-alert gt-alert--error">{error}</div> : null}
       {notice ? <div className="gt-alert gt-alert--ok">{notice}</div> : null}
 
-      <section className="gt-panel gt-panel--flat gt-stack">
-        <div className="gt-panel__head">
-          <div>
-            <h2 className="gt-panel__title">排版也能攒下来</h2>
-            <p className="gt-small gt-muted" style={{ margin: "4px 0 0" }}>
-              一套排版说到底就是「标题长什么样、段落长什么样、结尾要不要一句话」。
-              把这些拆成一个个部件，勾掉你不要的，剩下的存成模板，之后每篇稿子都能选它。
-            </p>
-          </div>
-          <button className="gt-btn gt-btn--primary" type="button" onClick={() => setImportOpen(open => !open)}>
-            {importOpen ? "收起导入" : "导入样式包"}
-          </button>
-        </div>
-
-        {importOpen ? (
-          <div className="gt-stack">
-            <p className="gt-small gt-muted" style={{ margin: 0 }}>
-              把样式包的 JSON 贴进来。稿台只认部件，不认包的来历——
-              包里有的部件会列出来让你勾，不认识的会直接忽略。
-            </p>
-            <textarea
-              className="gt-textarea gt-textarea--mono gt-scroll"
-              rows={10}
-              value={importText}
-              placeholder='{ "name": "包名", "vars": { "text": "#333333" }, "parts": { "paragraph": { "html": "<p style=\"...\"> {{content}} </p>" } } }'
-              onChange={event => {
-                setImportText(event.target.value);
-                setImported(null);
-              }}
-            />
-            <div className="gt-row">
-              <button className="gt-btn" type="button" onClick={() => void onParsePack()} disabled={!importText.trim()}>
-                解析
-              </button>
-              {imported ? (
-                <button className="gt-btn gt-btn--primary" type="button" onClick={() => void onSaveImported()}>
-                  存进模板库
-                </button>
-              ) : null}
-            </div>
-
-            {imported ? (
-              <div className="gt-stack gt-stack--sm">
-                {imported.warnings.map(warning => (
-                  <div className="gt-alert gt-alert--warn" key={warning}>
-                    {warning}
-                  </div>
-                ))}
-                <div className="gt-small gt-muted">
-                  认出 {imported.template.parts.length} 个部件：
-                  {imported.template.parts.map(part => part.name).join("、") || "（无）"}
-                  。存进模板库之后还能逐个取舍。
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
-
-      <div className="gt-grid gt-grid--2">
-        <section className="gt-panel gt-panel--flat">
-          <div className="gt-panel__head">
-            <h2 className="gt-panel__title">模板库</h2>
+      <div className={styles.manage}>
+        <aside className={styles.side}>
+          <div className={styles.sideHead}>
+            <h2 className="gt-panel__title" style={{ margin: 0 }}>模板库</h2>
             <span className="gt-small gt-muted">{state === "loading" ? "读取中…" : `${templates.length} 套`}</span>
+            <button className="gt-btn gt-btn--sm gt-btn--primary" type="button" onClick={() => setImportOpen(open => !open)}>
+              {importOpen ? "收起导入" : "导入样式包"}
+            </button>
           </div>
-          <div className="gt-stack gt-stack--sm">
-            {templateGroups.map(([title, items]) =>
-              items.length ? (
-                <div key={title} className="gt-stack gt-stack--sm">
-                  <div className="gt-label gt-muted">{title}</div>
-                  {items.map(item => (
-                    <div
-                      key={item.id}
-                      className={`gt-card${item.id === selectedId ? " gt-card--active" : ""}`}
-                      style={{ padding: "10px 12px" }}
-                    >
-                      <div className="gt-row gt-row--between">
-                        <button
-                          className="gt-btn gt-btn--flat"
-                          type="button"
-                          onClick={() => setSelectedId(item.id)}
-                          style={{ flex: "1", justifyContent: "flex-start" }}
-                        >
-                          {item.name}
-                        </button>
-                        <span className="gt-tag gt-tag--ink">{item.source === "builtin" ? "内置" : "我的"}</span>
-                      </div>
-                      {/* 内置模板不能删，但**可以复制一份来改**——
-                          想在别人的主题上改几处颜色，就走这条路。 */}
-                      <div className="gt-row gt-row--end">
-                        <button className="gt-btn gt-btn--sm gt-btn--ghost" type="button" onClick={() => void onDuplicate(item)}>
-                          复制
-                        </button>
-                        {item.source !== "builtin" ? (
-                          <button className="gt-btn gt-btn--sm gt-btn--danger" type="button" onClick={() => void onDelete(item.id)}>
-                            删除
-                          </button>
-                        ) : null}
-                      </div>
+
+          {importOpen ? (
+            <section className="gt-panel gt-panel--flat gt-stack gt-stack--sm" style={{ padding: "12px" }}>
+              <p className="gt-small gt-muted" style={{ margin: 0 }}>
+                把样式包的 JSON 贴进来。稿台只认部件，不认包的来历——包里有的部件会列出来让你勾，不认识的会直接忽略。
+              </p>
+              <textarea
+                className="gt-textarea gt-textarea--mono gt-scroll"
+                rows={6}
+                value={importText}
+                placeholder='{ "name": "包名", "vars": { "text": "#333333" }, "parts": { "paragraph": { "html": "<p style=\"...\"> {{content}} </p>" } } }'
+                onChange={event => {
+                  setImportText(event.target.value);
+                  setImported(null);
+                }}
+              />
+              <div className="gt-row">
+                <button className="gt-btn" type="button" onClick={() => void onParsePack()} disabled={!importText.trim()}>
+                  解析
+                </button>
+                {imported ? (
+                  <button className="gt-btn gt-btn--primary" type="button" onClick={() => void onSaveImported()}>
+                    存进模板库
+                  </button>
+                ) : null}
+              </div>
+              {imported ? (
+                <div className="gt-stack gt-stack--sm">
+                  {imported.warnings.map(warning => (
+                    <div className="gt-alert gt-alert--warn" key={warning}>
+                      {warning}
                     </div>
                   ))}
+                  <div className="gt-small gt-muted">
+                    认出 {imported.template.parts.length} 个部件：
+                    {imported.template.parts.map(part => part.name).join("、") || "（无）"}
+                    。存进模板库之后还能逐个取舍。
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          <div className={styles.tiles}>
+            {templateGroups.map(([title, items]) =>
+              items.length ? (
+                <div key={title}>
+                  <div className={styles.groupLabel}>{title}</div>
+                  <div className={styles.tileGrid}>
+                    {items.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        title={item.name}
+                        className={`${styles.tile}${item.id === selectedId ? " " + styles.tileActive : ""}`}
+                        onClick={() => setSelectedId(item.id)}
+                      >
+                        <span className={styles.tileName}>{item.name}</span>
+                        <span className={styles.tileTag}>{item.id.startsWith("builtin:wedraft-") ? "WeDraft" : item.id.startsWith("builtin:rico-") ? "rico" : item.source === "builtin" ? "内置" : "我的"}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : null,
             )}
@@ -502,9 +442,9 @@ export default function LayoutPanel() {
               </div>
             ) : null}
           </div>
-        </section>
+        </aside>
 
-        <section className="gt-panel gt-panel--flat gt-stack">
+        <section className={`gt-panel gt-panel--flat gt-stack ${styles.editorCol}`}>
           {draft ? (
             <>
               <div className="gt-panel__head">
@@ -521,14 +461,23 @@ export default function LayoutPanel() {
                     复制一份来改
                   </button>
                 ) : (
-                  <button
-                    className="gt-btn gt-btn--primary"
-                    type="button"
-                    onClick={() => void onSave()}
-                    disabled={state === "saving" || !dirty}
-                  >
-                    {state === "saving" ? "保存中…" : dirty ? "保存" : "已保存"}
-                  </button>
+                  <div className="gt-row">
+                    <button
+                      className="gt-btn gt-btn--sm gt-btn--danger"
+                      type="button"
+                      onClick={() => void onDelete(draft.id)}
+                    >
+                      删除
+                    </button>
+                    <button
+                      className="gt-btn gt-btn--primary"
+                      type="button"
+                      onClick={() => void onSave()}
+                      disabled={state === "saving" || !dirty}
+                    >
+                      {state === "saving" ? "保存中…" : dirty ? "保存" : "已保存"}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -708,21 +657,18 @@ export default function LayoutPanel() {
             </div>
           )}
         </section>
-      </div>
 
-      {draft ? (
-        <section className="gt-panel gt-panel--flat">
-          <div className="gt-panel__head">
-            <h2 className="gt-panel__title">预览</h2>
-            <span className="gt-small gt-muted">这就是粘进公众号编辑器里的样子</span>
-          </div>
-          <div
-            className="gt-preview__frame"
-            style={{ background: draft.vars.surface ?? "#fff", padding: "16px" }}
-            dangerouslySetInnerHTML={{ __html: previewHtml }}
-          />
-        </section>
-      ) : null}
+        <aside className={styles.phoneCol}>
+          {draft ? (
+            <PhonePreview template={draft} showApply={false} fitHeight="calc(100vh - 250px)" />
+          ) : (
+            <div className="gt-empty" style={{ marginTop: 60 }}>
+              <span className="gt-empty__mark">?</span>
+              选一套模板，右边就是它的样子。
+            </div>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }

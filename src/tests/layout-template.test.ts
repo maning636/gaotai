@@ -509,3 +509,34 @@ suite("排版模板：随包分发的样式包", ({ test }) => {
     assertMatch(html, /style="/);
   });
 });
+
+suite("排版模板：图片占位符", ({ test }) => {
+  test("导入包的 src 占位符不被清洗掉，渲染时能填上图地址", () => {
+    const { template, warnings } = parseLayoutPack(
+      JSON.stringify({
+        name: "图测试",
+        vars: { text: "#333333" },
+        parts: {
+          image: { html: '<img src="{{src}}" alt="{{alt}}" style="max-width: 100%">' },
+        },
+      }),
+    );
+    assertEqual(warnings.length, 0);
+    const image = template.parts.find(part => part.key === "image");
+    assertTrue(Boolean(image), "image 部件要保留");
+    assertTrue((image?.html ?? "").includes('src="{{src}}"'), "src 占位符必须保留，否则导入模板永远没图");
+    const html = markdownToWechatHtml("![示例](https://example.com/a.png)\n", { template });
+    assertTrue(html.includes('src="https://example.com/a.png"'), "渲染时 src 要填上图地址");
+  });
+
+  test("非白名单图片地址仍然被拒绝", () => {
+    const { template } = parseLayoutPack(
+      JSON.stringify({
+        name: "图测试",
+        parts: { image: { html: '<img src="javascript:alert(1)" style="max-width: 100%">' } },
+      }),
+    );
+    const image = template.parts.find(part => part.key === "image");
+    assertTrue(!(image?.html ?? "").includes("javascript:"), "危险地址不能出现在部件里");
+  });
+});
