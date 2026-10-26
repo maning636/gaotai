@@ -343,7 +343,7 @@ export default function LayoutPanel() {
     const packs: LayoutTemplate[] = [];
     const mine: LayoutTemplate[] = [];
     for (const item of templates) {
-      if (item.id.startsWith("builtin:rico-")) packs.push(item);
+      if (item.id.startsWith("builtin:rico-") || item.id.startsWith("builtin:wedraft-")) packs.push(item);
       else if (item.source === "builtin") palettes.push(item);
       else mine.push(item);
     }
@@ -510,7 +510,7 @@ export default function LayoutPanel() {
                 <p className="gt-small gt-muted" style={{ margin: "4px 0 10px" }}>
                   改一个色值，全篇跟着变。部件里的 html 写的是 <code>{"{{变量名}}"}</code>，取值就来自这张表。
                 </p>
-                <div className="gt-grid gt-grid--3">
+                <div className={`gt-grid gt-grid--3 ${styles.varGrid}`}>
                   {standardVars.map(name => (
                     <label className="gt-field" key={name}>
                       <span className="gt-label">
@@ -546,7 +546,7 @@ export default function LayoutPanel() {
                     样式包自己带的变量。部件的 html 里写的是
                     <code>{"{{变量名}}"}</code>，但这张表里没有的那几个，就是包的作者自己加的。
                   </p>
-                  <div className="gt-grid gt-grid--3">
+                  <div className={`gt-grid gt-grid--3 ${styles.varGrid}`}>
                     {extraVars.map(name => (
                       <label className="gt-field" key={name}>
                         <span className="gt-label">
@@ -660,7 +660,7 @@ export default function LayoutPanel() {
 
         <aside className={styles.phoneCol}>
           {draft ? (
-            <PhonePreview template={draft} showApply={false} fitHeight="calc(100vh - 250px)" />
+            <PhonePreview template={draft} showApply={false} fitHeight="calc(100vh - 190px)" />
           ) : (
             <div className="gt-empty" style={{ marginTop: 60 }}>
               <span className="gt-empty__mark">?</span>
