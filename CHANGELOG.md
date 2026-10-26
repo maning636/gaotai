@@ -3,6 +3,16 @@
 本文件记录每个版本的用户可感知变化。格式约定：每条可溯源到 commit；
 禁止编造未实施的功能。
 
+## [未发布]
+
+### Security
+- electron 40.10.6 → 45.0.0，清掉 dev 依赖审计中的 high（GHSA-jr5w-w6x2-84p9 等）。
+  打包产物随之更新，已重跑打包态全链验收。
+
+### Changed
+- ESLint 启用 `eslint-plugin-react-hooks`：`rules-of-hooks` 与 `exhaustive-deps`
+  纳入硬门；`set-state-in-effect` / `purity` 两条编译器优化建议规则暂关（有理由注释）。
+
 ## [0.1.0] - 2026-10-26
 
 首个版本。四道工序写作工作台、本地优先。

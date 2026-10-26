@@ -108,7 +108,7 @@ export function scanDependencyCoverage(root: string): ScanResult {
   // electron/next 等构建工具链入口不算「冗余」：electron 由 npm run desktop
   // 命令行消费、next 由 next 命令消费，不在 import 里出现是正常的。
   // react-dom 由 react/jsx-runtime 在编译产物中隐式引用，同理。
-  const cliOnlyAllow = new Set(["electron", "electron-builder", "next", "tsx", "typescript", "eslint", "@eslint/js", "typescript-eslint", "react-dom"]);
+  const cliOnlyAllow = new Set(["electron", "electron-builder", "next", "tsx", "typescript", "eslint", "@eslint/js", "typescript-eslint", "react-dom", "eslint-plugin-react-hooks"]);
 
   const referenced = new Map<string, string[]>();
   const problems: DepProblem[] = [];

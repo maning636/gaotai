@@ -244,6 +244,7 @@ export function ProjectEditor({
     };
     // 只在进页面时拉一次：这里读到的是初始那份 templateId，
     // 之后用户换模板走的是 onTemplateChange，不该被这里冲掉。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 换了稿件、专题声明的技能不一样时，勾选跟着走。

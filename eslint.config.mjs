@@ -24,10 +24,11 @@
 // 3. no-control-regex —— 只在 src/lib/files.ts 两处行级禁用（清洗 Windows
 //    非法文件名字符，属于有意为之），没有整文件/整目录 disable。
 // 4. 尚未启用、值得后续补的：typescript-eslint type-checked 规则（需要把
-//    electron/scripts 纳入 tsconfig project，见上面「基线」一段的理由）与
-//    eslint-plugin-react-hooks（装上后 login/page.tsx 的依赖数组才有机器检查）。
+//    electron/scripts 纳入 tsconfig project，见上面「基线」一段的理由）。
+//    eslint-plugin-react-hooks 已启用（见文件末尾 gaotai/react-hooks 配置块）。
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
 
 /** Node 运行时全局（electron 主进程 / 打包脚本 / 检查脚本）。 */
 const nodeGlobals = {
@@ -169,5 +170,26 @@ export default tseslint.config(
     name: "gaotai/scripts",
     files: ["scripts/**/*.mjs", "scripts/**/*.mts", "next.config.ts"],
     languageOptions: { sourceType: "module", globals: nodeGlobals },
+  },
+  {
+    // React hooks 规则：rules-of-hooks（调用顺序）+ exhaustive-deps（依赖数组）。
+    // 这是唯一能机器验证「effect 该不该重跑」的检查——login/page.tsx 的
+    // 空依赖数组曾经只能靠注释说明。
+    //
+    // 以下两条 React Compiler 就绪类规则在此关闭（属于「优化建议」而非运行期
+    // 正确性，列入待收紧清单）：
+    // - set-state-in-effect：挂载时同步初始化状态是本项目普遍且正确的模式
+    //   （能力检测 window.gaotai、读 localStorage），改 useSyncExternalStore
+    //   或惰性初始化需要重写组件，不在 lint 层顺手改。
+    // - purity：概览页是 Server Component，渲染期读 Date.now() 合法；
+    //   规则按客户端组件的纯函数假设判定，对本项目是误报。
+    name: "gaotai/react-hooks",
+    files: ["src/**/*.tsx"],
+    plugins: { "react-hooks": reactHooks },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
+    },
   },
 );

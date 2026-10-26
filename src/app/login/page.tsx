@@ -85,6 +85,7 @@ export default function LoginPage() {
     };
     // 空依赖数组是刻意的：自动登录只在挂载时做一次，不该跟着 submit 的
     // 每次重建再跑一遍（那会把用户手动登录的结果覆盖掉）。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function onSubmit(event: React.FormEvent) {
