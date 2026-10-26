@@ -67,7 +67,7 @@ Markdown 正文 → 公众号兼容 HTML（行内样式，无 class）→ 草稿
 | 部件 html | 一段 HTML 模板。`{{content}}` 是内容占位（**最后填**），`{{变量名}}` 取模板变量或渲染上下文 |
 | 变量（vars） | 13 个内置色值（`text` `heading` `muted` `codeBg` `codeText` `border` `quoteBar` `surface` `codeHeader` `codeShadow` `dot1` `dot2` `dot3`）。样式包可自带额外变量 |
 | 内置纯配色 | 三套配色（`builtin:default` / `builtin:paper` / `builtin:mist`）。**只有 vars，parts 为空**，即「所有部件走默认样式、颜色取自这套配色」。只读 |
-| 随包样式包 | `resources/layout-packs/*.json`，21 套。**内置模板**，只读、可复制 |
+| 随包样式包 | `resources/layout-packs/*.json`，28 套（21 套 rico-md 翻译 + 7 套 WeDraft 翻译）。**内置模板**，只读、可复制 |
 | 用户模板 | 存在库里，可改可删。id 形如 `lay_<hex>` |
 
 **标题分三级**：`title`(h1) / `heading`(h2) / `heading3`(h3) / `heading4`(h4)。
@@ -114,7 +114,17 @@ Markdown 正文 → 公众号兼容 HTML（行内样式，无 class）→ 草稿
 
 - 上游是「选择器 → CSS 声明块」，这里按部件模型重新组装 HTML；
 - 去掉 `!important` 与字体栈里的双引号（两者都会被清洗器整条丢弃）；
-- 颜色提取成变量；h2/h3/h4 拆成三个部件。- 上游另有 12 套 AGPL-3.0-or-later 的主题（`gzh-design-skill` 主题体系），**整套不引入**。
+- 颜色提取成变量；h2/h3/h4 拆成三个部件。
+- 上游另有 12 套 AGPL-3.0-or-later 的主题（`gzh-design-skill` 主题体系），**整套不引入**。
+
+### 1.4.2 随包主题（WeDraft）
+
+另有 7 套随包主题是 [pafa/WeDraft](https://github.com/pafa/WeDraft)（MIT，
+Copyright (c) 2026 pafa and WeDraft contributors）的翻译，覆盖 `reading-editions.ts` 的 5 套
+（素笺 / 墨刊 / 青岚 / 蓝图 / 朱砂）+ `default-business.json`（小哈公社）+
+`next-edition.json`（小哈公社 New）。id 命名 `builtin:wedraft-<原 id>`，name 用「WeDraft · <中文名>」；
+MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-wedraft` + `SOURCE-wedraft.json`），
+汇总见根 `NOTICE.txt`。转换方式与已知限制见 §3.6.1。
 
 ---
 
@@ -305,6 +315,36 @@ Markdown 正文 → 公众号兼容 HTML（行内样式，无 class）→ 草稿
 
 `source` 取值：`builtin`（内置，只读）/ `imported`（从样式包导入）/ `custom`（自己改的）。
 
+### 3.6.1 模板库页与 WeDraft 转换
+
+**页面职责**：
+
+- `/templates`（模板库）是**浏览 + 选择**的页面：平铺卡片 + 手机预览，点击卡片只更新手机预览、
+  不立即应用；「使用这套」带 `?project=<id>` 时调 `POST /api/wechat/theme` 把该稿件的 `template_id`
+  改到所选模板，然后跳回 `/projects/<id>`。
+- `/layout` 是**管理**页面：导入样式包（`POST /api/layout-packs`）、取舍部件、编辑色值、
+  存为我的（`POST /api/layout-templates`）、删除（`DELETE /api/layout-templates`）。
+- 两页职责不能混；模板库页头部给一个「管理模板」链接跳 `/layout`。
+
+**接口复用**：模板库页**不新增接口**——清单读 `GET /api/layout-templates`；
+示例稿按所选模板渲染走 `GET /api/wechat/preview`；应用走 `POST /api/wechat/theme`。
+
+**WeDraft 转换（元素→CSS 到 部件→HTML）**：
+
+- 生成物 `resources/layout-packs/wedraft-<id>.json`，schema 与本目录现有包一致
+  （`name` / `description` / `source` / `vars` / `parts`）。
+- 映射规则：`article` / `body` → `root`；`heading2` / `heading3` / `heading4` → `heading` / `heading3` /
+  `heading4`；`paragraph` → `paragraph`；`strong` / `em` / `link` / `inlineCode` / `code` 同名；
+  `quote` / `quoteMark` → `quote`（装饰字符第一版丢弃）；`list` / `listItem` 同名；
+  `table` / `tableHead` / `tableCell` 同名；`image` / `imageCaption` → `image`（图注并入图片块）；
+  `divider` 同名。
+- 已丢弃（记录为已知限制）：`headingNumber` / `headingText`（章节序号层，稿台部件模型无此层）、
+  `referenceTitle` / `referenceNumber` 等参考文献部件、`quoteMark` 的装饰字符、`imageCaption` 作为独立块。
+- 色值收敛：`accent` ← `accentColor`，其余（`text` / `heading` / `muted` / `border` / `surface` /
+  `codeBg` / `codeText`）从对应元素推导；HTML 里用 `{{var}}` 引用，不散落硬编码色值。
+- 生成物必须能通过 `parseLayoutPack()` 且 0 warnings；转换脚本 `scripts/convert-wedraft-templates.mts`
+  可重复运行，参考仓库路径由参数给（默认 `.tmp/refs/WeDraft`），不依赖 `.tmp/` 参与构建。
+
 ### 3.7 素材库与插图
 
 | 方法 | 路径 | 请求 | 响应 |
@@ -348,7 +388,8 @@ src/lib/
   layout-store.ts     排版模板存取 + 稿件用哪套模板的优先级
   files.ts            素材库：存图、读图、地址编码、文件名清洗
 src/app/
-  layout/             排版模板页：导入样式包 → 取舍 → 编辑 → 预览
+  templates/          模板库页：平铺卡片 + 手机预览（浏览与选择）
+  layout/             排版模板管理页：导入样式包 → 取舍 → 编辑 → 预览
   files/              素材库页：上传图片 → 复制引用 → 删除
 resources/
   prompts/                 各阶段提示词（system/brief/angle/outline/article/style-profile/image-prompt）
@@ -358,6 +399,9 @@ resources/
     gaotai-editorial/      成稿后的标题、开头、事实核查规则
     human-writing/         第三方通用中文写作技能（MIT）
   layout-packs/            随包分发的排版样式包（内置模板）+ LICENSE/SOURCE 溯源
+docs/
+  design/                  设计规则（如 template-gallery.md，供子代理按文实现与验收）
+  architecture/decisions/  ADR 决策记录
 <数据根>/                  可写
   .env                     密钥与登录配置
   data/gaotai.sqlite       数据库

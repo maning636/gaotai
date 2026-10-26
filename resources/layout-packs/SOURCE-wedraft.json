@@ -1,0 +1,46 @@
+{
+  "upstream": "github.com/pafa/WeDraft",
+  "title": "WeDraft 排版模板集",
+  "author": "pafa and WeDraft contributors",
+  "license": "MIT",
+  "licenseFile": "LICENSE-wedraft",
+  "copyright": "Copyright (c) 2026 pafa and WeDraft contributors",
+  "repository": "https://github.com/pafa/WeDraft",
+  "commit": "9663ce505c25d48c10ec6426ee1d106b8421ae06",
+  "paths": {
+    "reading": "templates/reading-editions.ts",
+    "business": "templates/default-business.json",
+    "next": "templates/next-edition.json"
+  },
+  "note": "本目录下的 wedraft-*.json 是从上游 WeDraft 排版模板转换而来的衍生作品。MIT 许可要求保留版权声明与许可声明，因此 LICENSE-wedraft 与本文件一并随包分发。",
+  "translation": {
+    "how": "上游模板是「元素选择器 → CSS 声明对象」；稿台的排版模板是「部件 key → HTML 模板」。本目录的每个 JSON 把上游模板的 CSS 声明按稿台的部件模型重新组装，标签与占位符换成稿台自己的（{{content}} 放内容，{{变量名}} 取色值）。转换脚本见 scripts/convert-wedraft-templates.mts，可重复运行、幂等。",
+    "changed": [
+      "颜色提取成变量（accent / text / heading / muted / border / surface / codeBg / codeText），HTML 里用 {{变量名}} 引用；改一个色值全篇跟着变",
+      "去掉稿台清洗器不支持的 CSS 属性与值（例如引号、url(...)、expression、javascript:），并在转换日志里记 warning；本次转换 7 套全部 0 warnings",
+      "heading2 / heading3 分别落成 heading / heading3 两个部件，稿台的部件模板用 {{tag}} 表达「这里是哪一层标题」",
+      "code 元素映射到稿台的 code 部件（<pre>）；WeDraft 未定义 inlineCode，用默认样式补齐",
+      "表格用 table + tableHead + tableCell 三个部件组合：外层 section 负责横向滚动（overflow-x: auto; max-width: 100%），<thead>/<tbody> 走渲染占位符",
+      "表格的 tableWrapper 样式并入 table 部件的外层 section（上游把它当独立 div，稿台用 section 更贴合公众号语义）",
+      "图片 caption 未并入 image 部件：稿台的 image 部件只有 src/alt/style，无 caption 占位符"
+    ],
+    "limitations": [
+      "上游的 headingNumber / headingText 未引入：稿台部件模型无「章节序号」层，标题里的序号由 markdown 语法决定",
+      "上游的 quoteMark 装饰字符未引入：稿台 quote 部件没有独立的标记元素",
+      "上游的 referenceTitle / referenceItem / referenceNumber 无对应部件，忽略",
+      "上游的 tableAltCell 与 tableCell 样式相同，稿台没有单元格斑马纹机制，忽略",
+      "上游图片/章节里的 caption 样式忽略（稿台 image 部件无 caption 占位符）",
+      "上游的 inlineCode 定义忽略（本仓库 7 套模板都未定义它）",
+      "稿台清洗器会丢弃 <img src=\"{{src}}\"> 的 src 属性（占位符不是合法 URL）：这是清洗器既有的行为，与 rico 系列一致"
+    ]
+  },
+  "included": [
+    "wedraft-plain-paper",
+    "wedraft-ink-journal",
+    "wedraft-jade-notes",
+    "wedraft-blueprint",
+    "wedraft-cinnabar",
+    "wedraft-default-business",
+    "wedraft-next-edition"
+  ]
+}

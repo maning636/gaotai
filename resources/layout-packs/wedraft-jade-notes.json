@@ -1,0 +1,68 @@
+{
+  "name": "WeDraft · 青岚",
+  "description": "松青书页 · 适合随笔、人文与知识长文\n源自 WeDraft（MIT，Copyright (c) 2026 pafa and WeDraft contributors）",
+  "source": "imported",
+  "vars": {
+    "accent": "#27675C",
+    "text": "#3D4841",
+    "heading": "#27675C",
+    "muted": "#6D786F",
+    "border": "#DDE7DF",
+    "surface": "#F4F7F4",
+    "codeBg": "#F3F7F4",
+    "codeText": "#3B5548"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 16px; line-height: 1.92; font-weight: 400; letter-spacing: 0; text-align: left; overflow-wrap: break-word; color: {{text}}\">{{content}}</section>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 20px; line-height: 1.6; font-weight: 600; letter-spacing: 0; color: {{heading}}; margin: 0 8px 20px\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 17px; line-height: 1.7; font-weight: 600; letter-spacing: 0; color: {{accent}}; margin: 26px 8px 12px\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 16px; line-height: 1.92; font-weight: 400; letter-spacing: 0; text-align: left; overflow-wrap: break-word; color: {{text}}; margin: 0 8px 25px\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"color: {{text}}; font-weight: 700\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: italic\">{{content}}</em>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{accent}}; text-decoration: underline\">{{content}}</a>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: Menlo, Consolas, monospace; font-size: 0.9em; background-color: {{codeBg}}; color: {{codeText}}; padding: 2px 5px; border-radius: 3px\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"font-family: Menlo,Consolas,monospace; font-size: 13px; line-height: 1.75; color: {{codeText}}; background-color: {{codeBg}}; border: 1px solid {{border}}; padding: 14px 16px; margin: 24px 8px 26px; white-space: pre-wrap; word-break: break-word\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 16px; line-height: 1.9; font-weight: 400; letter-spacing: 0; text-align: left; overflow-wrap: break-word; color: {{text}}; border-left: 0; background-color: #F4F8F5; padding: 14px 16px 14px 32px; text-indent: -16px; margin: 26px 8px\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"padding-left: 1.25em; margin: 18px 8px 25px\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 16px; line-height: 1.92; font-weight: 400; letter-spacing: 0; text-align: left; overflow-wrap: break-word; color: {{text}}; margin: 0 0 6px\">{{content}}</li>"
+    },
+    "table": {
+      "html": "<section style=\"margin: 24px 8px 28px; border-top: 1px solid #B6CCC1; overflow-x: auto; max-width: 100%\"><table style=\"display: table; width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-variant-numeric: tabular-nums\"><thead><tr>{{thead}}</tr></thead><tbody>{{tbody}}</tbody></table></section>"
+    },
+    "tableHead": {
+      "html": "<th style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 13.5px; line-height: 1.65; font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; color: {{accent}}; background-color: {{surface}}; padding: 10px 8px; text-align: left; vertical-align: middle; border-bottom: 1px solid {{border}}; overflow-wrap: anywhere\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"font-family: PingFang SC,Microsoft YaHei,Arial,sans-serif; font-size: 13.5px; line-height: 1.7; font-weight: 400; letter-spacing: 0; font-variant-numeric: tabular-nums; color: {{text}}; background-color: #FFFFFF; padding: 10px 8px; text-align: left; vertical-align: middle; border-bottom: 1px solid {{border}}; overflow-wrap: anywhere\">{{content}}</td>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; height: auto; display: block; width: calc(100% - 16px); margin: 26px 8px 8px\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"border: 0; border-top: 1px solid {{border}}; width: calc(100% - 16px); font-size: 0; line-height: 0; height: 0; margin: 34px auto 16px\" />"
+    }
+  }
+}

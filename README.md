@@ -90,8 +90,9 @@ prepare-resources → electron-builder`。产物在 `release/`：
 | [`docs/file-map.md`](docs/file-map.md) | 文件归属 + 接手指南 + 10 条坑 |
 | [`docs/functional-map.md`](docs/functional-map.md) | 重建对象的功能地图 |
 | [`docs/architecture-review.md`](docs/architecture-review.md) | 架构判断：技能包能撑起多少、要不要调格局 |
+| [`docs/design/template-gallery.md`](docs/design/template-gallery.md) | 模板画廊 + 手机预览 + WeDraft 接入的设计规则（ADR-0004 事实来源） |
 | [`docs/部署与交接方案.md`](docs/部署与交接方案.md) | 全路径 + 建库/出包/分发方案（**含本机路径，勿公开**） |
-| [`docs/architecture/decisions/`](docs/architecture/decisions/) | ADR：0001 四道工序 / 0002 正文阶段无工具 / 0003 私域分发 |
+| [`docs/architecture/decisions/`](docs/architecture/decisions/) | ADR：0001 四道工序 / 0002 正文阶段无工具 / 0003 私域分发 / 0004 模板库与 WeDraft 接入 |
 | [`docs/dev-reports/2026-10-26.md`](docs/dev-reports/2026-10-26.md) | 首推前的工程审计、护栏补齐与第二批完成事项 |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | 提交纪律 + 改动红线 |
 | [`AGENT.md`](AGENT.md) | AI 协作的仓库卫生与推送规则 |
@@ -113,6 +114,13 @@ prepare-resources → electron-builder`。产物在 `release/`：
   （`LICENSE-rico-md` 原文 + `SOURCE.json` 逐条溯源）。
   rico-md 另有 12 套 **AGPL-3.0-or-later** 主题（`gzh-design-skill`），稿台不以 AGPL 分发，
   **那 12 套整套没有引入**。
+- **7 套随包排版样式包（WeDraft）**：从 [pafa/WeDraft](https://github.com/pafa/WeDraft)（MIT，
+  Copyright (c) 2026 pafa and WeDraft contributors）的 7 套模板翻译而来——`reading-editions.ts`
+  的 5 套（素笺 / 墨刊 / 青岚 / 蓝图 / 朱砂）+ `default-business.json`（小哈公社）+
+  `next-edition.json`（小哈公社 New）。上游是「元素 → CSS 声明」，稿台是「部件 → HTML 模板」，
+  按 ADR-0004 的映射表转换，装饰能力（`headingNumber` / `quoteMark` / `imageCaption` / `reference*`）
+  第一版不引入，作为已知限制记录。MIT 版权与许可声明随包保留在 `resources/layout-packs/`
+  （`LICENSE-wedraft` + `SOURCE-wedraft.json`）。
 - **`gaotai-longform` / `gaotai-editorial`**：本仓库自研，随主仓库 MIT 发布。
   `gaotai-longform` 去掉了作者的个人偏好记忆，来路见 `resources/skills/gaotai-longform/NOTICE`。
 - 其余第三方依赖以 npm 依赖引入，各自许可文本保留在安装后的 `node_modules` 内，不随仓库分发。

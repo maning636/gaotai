@@ -1,0 +1,68 @@
+{
+  "name": "WeDraft · 小哈公社",
+  "description": "经典暖色\n源自 WeDraft（MIT，Copyright (c) 2026 pafa and WeDraft contributors）",
+  "source": "imported",
+  "vars": {
+    "accent": "#FFA900",
+    "text": "#000000",
+    "heading": "#FFA900",
+    "muted": "#777777",
+    "border": "#F1E5DE",
+    "surface": "#FFF0E4",
+    "codeBg": "#F6F6F4",
+    "codeText": "#363636"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"font-size: 15px; line-height: 1.75; color: {{text}}; letter-spacing: 0.5px; text-align: justify; margin: 0 8px 24px\">{{content}}</section>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-size: 15px; line-height: 1.75; font-weight: 700; color: {{heading}}; letter-spacing: 0.5px; text-align: justify; margin: 0 8px 24px\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-size: 15px; line-height: 1.75; font-weight: 700; color: {{text}}; letter-spacing: 0.5px; text-align: justify; margin: 32px 8px 24px\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"font-size: 15px; line-height: 1.75; color: {{text}}; letter-spacing: 0.5px; text-align: justify; margin: 0 8px 24px\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"color: {{text}}; font-weight: 700\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: italic\">{{content}}</em>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: #576B95; text-decoration: none\">{{content}}</a>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: Menlo, Consolas, monospace; font-size: 0.9em; background-color: {{codeBg}}; color: {{codeText}}; padding: 2px 5px; border-radius: 3px\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"font-size: 13px; line-height: 1.7; color: {{codeText}}; background: {{codeBg}}; border-left: 3px solid #D8D4CC; padding: 15px 16px; margin: 25px 8px; white-space: pre-wrap; word-break: break-word; font-family: Menlo,Consolas,monospace\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"font-size: 15px; line-height: 1.75; color: #555555; background: #FFF8EE; border-left: 3px solid #F96E57; padding: 14px 16px; margin: 26px 8px\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"padding-left: 1.5em; margin: 20px 8px 24px\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"font-size: 15px; line-height: 1.75; color: {{text}}; letter-spacing: 0.5px; text-align: justify; margin: 0 0 8px\">{{content}}</li>"
+    },
+    "table": {
+      "html": "<section style=\"background: #FFFDF9; border: 1px solid #F0DED5; border-top: 3px solid #F36C21; border-radius: 10px; padding: 3px; margin: 28px 8px 30px; overflow: hidden; overflow-x: auto; max-width: 100%\"><table style=\"display: table; width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-family: PingFang SC,system-ui,sans-serif\"><thead><tr>{{thead}}</tr></thead><tbody>{{tbody}}</tbody></table></section>"
+    },
+    "tableHead": {
+      "html": "<th style=\"font-size: 13px; line-height: 1.55; font-weight: 700; color: #94452F; background: {{surface}}; padding: 10px 8px; text-align: left; vertical-align: middle; border-bottom: 1px solid #EBCDBE; border-right: 1px solid #EBCDBE; overflow-wrap: anywhere\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"font-size: 13px; line-height: 1.65; font-weight: 400; color: #35302D; background: #FFFFFF; padding: 10px 8px; text-align: left; vertical-align: middle; border-bottom: 1px solid {{border}}; border-right: 1px solid {{border}}; overflow-wrap: anywhere\">{{content}}</td>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; height: auto; display: block; width: calc(100% - 16px); margin: 28px 8px 7px\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"border: 0; border-top: 1px solid #F0DED5; margin: 40px auto 18px; width: 36%\" />"
+    }
+  }
+}

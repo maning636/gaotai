@@ -1,0 +1,386 @@
+/* ==========================================================================
+   模板库 · 独立画廊页样式
+
+   设计约定：
+   - 布局只在 <1024px 断点切换一次；宽屏是左右两栏，窄屏堆成上下。
+   - 手机按 456×972 固定尺寸设计，用 transform: scale 缩小到容器里，
+     不改内部字号，避免微信壳子的比例被拉歪。
+   ========================================================================== */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 500px;
+  gap: 24px;
+  align-items: start;
+}
+
+.gridWrap {
+  min-width: 0;
+}
+
+.hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--gt-muted);
+  line-height: 1.5;
+}
+
+/* --- 卡片网格 --------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--gt-surface);
+  border: 1px solid var(--gt-line);
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 var(--gt-line);
+  transition: box-shadow 120ms ease, transform 120ms ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0 var(--gt-line);
+}
+
+.cardPicked {
+  outline: 2px solid var(--gt-blue);
+  outline-offset: -2px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gt-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  flex: none;
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--gt-sunken);
+  color: var(--gt-ink);
+  border-radius: 2px;
+  line-height: 1.4;
+}
+
+.cardDesc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--gt-muted);
+  line-height: 1.4;
+  min-height: 2em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- 卡片缩略图 -------------------------------------------------------
+   固定高度 + 内部缩放：把整段渲染 HTML 塞进一个 200px 高的框，
+   按比例缩到能塞进为止，超出的部分裁掉。
+   -------------------------------------------------------------------- */
+
+.cardThumb {
+  position: relative;
+  height: 200px;
+  border: 1px solid var(--gt-line);
+  border-radius: 3px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.thumbInner {
+  /* 缩放到能塞进 200px 高的框：手机宽 456、稿子内容宽约 400，
+     按高算需要 200/956≈0.21。这里按经验值给一个能完整看到首屏的系数。 */
+  transform: scale(0.22);
+  transform-origin: top left;
+  width: calc(100% / 0.22);
+  padding: 12px 14px;
+  color: var(--gt-ink);
+  font-size: 14px;
+  line-height: 1.7;
+  background: #ffffff;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pickBtn {
+  padding: 5px 10px;
+  font-size: 12px;
+  border: 1px solid var(--gt-line);
+  background: var(--gt-surface);
+  color: var(--gt-ink);
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background 120ms ease;
+}
+
+.pickBtn:hover {
+  background: var(--gt-sunken);
+}
+
+.pickBtnActive {
+  background: var(--gt-blue);
+  color: #ffffff;
+  border-color: var(--gt-blue);
+}
+
+.pickBtnActive:hover {
+  background: var(--gt-blue);
+}
+
+.currentTag {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--gt-yellow);
+  color: var(--gt-ink);
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* --- 右侧手机栏 ------------------------------------------------------- */
+
+.previewCol {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.phoneCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.phoneFit {
+  /* 用这个框量出可用高度，让手机 fit 缩放。
+     外层 previewCol 是 sticky，这里给它一个可测的高度。 */
+  position: relative;
+  width: 100%;
+  height: min(78vh, 720px);
+  min-height: 420px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.phoneWrap {
+  transform-origin: top center;
+  background: #ffffff;
+  flex: none;
+}
+
+.phone {
+  width: 100%;
+  height: 100%;
+  border: 8px solid #191919;
+  border-radius: 62px;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: #ffffff;
+  box-shadow: 0 16px 40px #1c252322;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* --- 状态栏 ----------------------------------------------------------- */
+
+.statusBar {
+  flex: 0 0 44px;
+  height: 44px;
+  padding: 12px 22px 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  color: #10110f;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.statusTime {
+  justify-self: start;
+  line-height: 1;
+}
+
+.statusIsland {
+  display: block;
+  width: 96px;
+  height: 26px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 79% 48%, #141515 0 5px, #080908 5.5px 7px, transparent 7.5px),
+    #050505;
+  margin-top: -2px;
+}
+
+.statusIcons {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.battery {
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 12px;
+  border: 1.4px solid currentColor;
+  border-radius: 3px;
+  margin-left: 2px;
+  padding: 1.5px;
+  box-sizing: border-box;
+}
+
+.batteryInner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: currentColor;
+  border-radius: 1.5px;
+}
+
+.batteryCap {
+  position: absolute;
+  right: -3px;
+  top: 3px;
+  width: 2px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+}
+
+/* --- 微信顶栏 --------------------------------------------------------- */
+
+.wechatBar {
+  flex: 0 0 44px;
+  height: 44px;
+  padding: 0 12px;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  color: #252522;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0ee;
+}
+
+.wechatBar strong {
+  justify-self: center;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wechatBack {
+  justify-self: start;
+  margin-left: 6px;
+}
+
+.wechatBar svg:last-child {
+  justify-self: end;
+  margin-right: 6px;
+}
+
+/* --- 屏幕内容 --------------------------------------------------------- */
+
+.phoneScreen {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px 24px;
+  color: #333333;
+  font-size: 15px;
+  line-height: 1.75;
+  background: #ffffff;
+}
+
+/* --- 底部操作条 ------------------------------------------------------- */
+
+.phoneActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--gt-surface);
+  border: 1px solid var(--gt-line);
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 var(--gt-line);
+}
+
+.applyTarget {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.applyTargetName {
+  font-size: 13px;
+  color: var(--gt-ink);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- 窄屏折叠 ---------------------------------------------------------
+   预览不再 sticky、不再放右侧；卡片列表铺满，手机落到列表下方。
+   -------------------------------------------------------------------- */
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .previewCol {
+    position: static;
+  }
+
+  .phoneFit {
+    height: min(90vh, 780px);
+    min-height: 420px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+}

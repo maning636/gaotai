@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { STAGES, STAGE_LABELS, type Stage, type StageResultRow, type MessageRow } from "../../../lib/stages";
 import { normalizeThemeId } from "../../../lib/wx-theme";
 
@@ -155,6 +156,7 @@ export function ProjectEditor({
   wxTheme,
   wxTemplateId,
 }: ProjectEditorProps) {
+  const router = useRouter();
   const [stage, setStage] = useState<Stage>(project.stage);
   const [state, setState] = useState<Record<Stage, StageState>>(() => initialState(initialStages));
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
@@ -198,6 +200,9 @@ export function ProjectEditor({
   /**
    * 公众号排版模板。
    *
+   * 排版选择已经搬到 /templates 页——这里只需要记住「这篇稿子用的哪套」，
+   * 用来预览、复制、推草稿，不再在正文页里改。
+   *
    * 内置配色是三套只读的模板，用户自己固化的模板也在同一张清单里。
    * 每次预览或推草稿都会把它记回这篇稿子的偏好。
    */
@@ -223,6 +228,7 @@ export function ProjectEditor({
   }, []);
 
   // 排版模板清单：内置配色 + 用户自己固化的模板。进页面时拉一次。
+  // 这份清单现在只用来显示「当前用的哪套」的名字，模板切换走 /templates 页。
   useEffect(() => {
     let alive = true;
     fetch("/api/layout-templates", { cache: "no-store" })
@@ -231,7 +237,7 @@ export function ProjectEditor({
         if (!alive) return;
         const list = Array.isArray(body.templates) ? body.templates : [];
         setTemplates(list);
-        // 记着的那套模板要是被删了，回退到内置默认，别让下拉框空着。
+        // 记着的那套模板要是被删了，回退到内置默认，别让标签上出现空名字。
         if (list.length && !list.some(item => item.id === templateId)) {
           setTemplateId(list[0].id);
         }
@@ -243,7 +249,7 @@ export function ProjectEditor({
       alive = false;
     };
     // 只在进页面时拉一次：这里读到的是初始那份 templateId，
-    // 之后用户换模板走的是 onTemplateChange，不该被这里冲掉。
+    // 之后如果从模板库跳回来，靠重新挂载页面走一遍初始化。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -495,31 +501,22 @@ export function ProjectEditor({
   }
 
   /**
+   * 当前模板在清单里的名字。
+   *
+   * 清单可能还没拉回来（首次挂载）、或者用户从模板库删掉了这套，
+   * 这两种情况下都回退到 templateId 本身——比显示空白强。
+   */
+  const currentTemplateName = templates.find(item => item.id === templateId)?.name ?? templateId;
+
+  /**
    * 换排版模板。
    *
-   * 预览开着的时候跟着换——排版改了就该立刻看到效果，
-   * 不然用户得再点一次预览才知道换没换。
-   * 同时把新模板记成这篇稿子的偏好，推草稿时不用再选。
+   * 排版选择已经搬到 /templates 页——这里不再直接改，
+   * 而是跳到模板库，带上稿件 id 和 from=editor 让那边知道来源。
+   * 模板库应用后会跳回编辑器，届时会重新读一次稿件偏好。
    */
-  async function onTemplateChange(next: string) {
-    setTemplateId(next);
-    setError("");
-    try {
-      await fetch("/api/wechat/theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: project.id, templateId: next }),
-      });
-    } catch {
-      // 记偏好失败不该拦住换模板：预览本身才是用户要的。
-    }
-    if (!preview) return;
-    try {
-      const body = await loadPreview(next);
-      setPreview(body.html ?? "");
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "换排版失败。");
-    }
+  function onChooseTemplate() {
+    router.push(`/templates?project=${encodeURIComponent(project.id)}&from=editor`);
   }
 
   /**
@@ -1019,36 +1016,12 @@ export function ProjectEditor({
               <span className="gt-spacer" />
               {stage === "article" ? (
                 <>
-                  <label className="gt-small gt-muted" htmlFor="gt-wx-template">
-                    排版
-                  </label>
-                  <select
-                    id="gt-wx-template"
-                    className="gt-select"
-                    value={templateId}
-                    onChange={event => void onTemplateChange(event.target.value)}
-                  >
-                    <optgroup label="内置配色">
-                      {templates
-                        .filter(item => item.source === "builtin")
-                        .map(item => (
-                          <option key={item.id} value={item.id}>
-                            {item.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                    {templates.some(item => item.source !== "builtin") ? (
-                      <optgroup label="我的模板">
-                        {templates
-                          .filter(item => item.source !== "builtin")
-                          .map(item => (
-                            <option key={item.id} value={item.id}>
-                              {item.name}
-                            </option>
-                          ))}
-                      </optgroup>
-                    ) : null}
-                  </select>
+                  <span className="gt-small gt-muted">
+                    排版：<strong>{currentTemplateName}</strong>
+                  </span>
+                  <button className="gt-btn gt-btn--sm gt-btn--ghost" type="button" onClick={onChooseTemplate}>
+                    换排版
+                  </button>
                   <button className="gt-btn gt-btn--sm" type="button" onClick={onCopyFormatted} disabled={busy !== ""}>
                     {busy === "copy" ? "复制中…" : "复制排版正文"}
                   </button>

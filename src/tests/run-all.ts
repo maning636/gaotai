@@ -6,6 +6,7 @@ import "./repo.test";
 import "./bootstrap.test";
 import "./markdown.test";
 import "./layout-template.test";
+import "./wedraft-convert.test";
 import "./import-article.test";
 import "./wechat-images.test";
 import "./wechat-api.test";

@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Added
+- **模板库页 `/templates`**：平铺卡片挑模板 + 右侧手机预览，替代编辑器里的排版下拉框；
+  「使用这套」把模板写回当前稿件。窄屏下列表与预览自动折叠。
+- **WeDraft 随包模板 7 套**（MIT，Copyright (c) 2026 pafa and WeDraft contributors）：
+  素笺 / 墨刊 / 青岚 / 蓝图 / 朱砂 / 小哈公社 / 小哈公社New。
+  由 `scripts/convert-wedraft-templates.mts` 从上游「元素 → CSS」转换而来，
+  许可与溯源见 `resources/layout-packs/LICENSE-wedraft` 与 `SOURCE-wedraft.json`。
+
 ### Security
 - electron 40.10.6 → 45.0.0，清掉 dev 依赖审计中的 high（GHSA-jr5w-w6x2-84p9 等）。
   打包产物随之更新，已重跑打包态全链验收。

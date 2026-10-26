@@ -19,7 +19,19 @@ NOTICE —— 第三方组件归属与许可声明
    「部件 key → HTML 模板」模型重新组装为衍生作品；MIT 要求的
    版权与许可声明随包保留，翻译方式与改动清单见同目录 SOURCE.json。
 
-3. 自有技能包
+3. WeDraft 排版模板（衍生转换）
+   位置：resources/layout-packs/wedraft-*.json（7 套）
+   上游：https://github.com/pafa/WeDraft（提交 9663ce505c25d48c10ec6426ee1d106b8421ae06）
+   许可：MIT（原文见 resources/layout-packs/LICENSE-wedraft，
+        Copyright (c) 2026 pafa and WeDraft contributors）
+   说明：上游模板为「元素选择器 → CSS 声明对象」，本仓库按稿台
+   「部件 key → HTML 模板」模型重新组装为衍生作品；颜色提取成
+   变量（accent/text/heading/muted/border/surface/codeBg/codeText），
+   便于「改一个色值全篇跟着变」；转换方式、改动清单与已知限制
+   见同目录 SOURCE-wedraft.json；转换脚本见
+   scripts/convert-wedraft-templates.mts（可重复运行、幂等）。
+
+4. 自有技能包
    resources/skills/gaotai-longform/（含独立 LICENSE 与 NOTICE）
    resources/skills/gaotai-editorial/
    归稿台项目所有，随主仓库 MIT 许可发布。

@@ -31,6 +31,7 @@ const NAV_SECTIONS: { label: string; items: { href: string; label: string }[] }[
     label: "资产",
     items: [
       { href: "/style-memory", label: "风格" },
+      { href: "/templates", label: "模板库" },
       { href: "/layout", label: "排版" },
       { href: "/files", label: "素材" },
     ],
