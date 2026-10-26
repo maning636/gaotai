@@ -1,0 +1,66 @@
+# 打包烟测（软门，#19）。只回答一个问题：一台干净的 Windows 机器能不能从源码出安装包。
+#
+# 为什么是软门：
+#   - 这是「分发链路是否健康」的体检，不是代码正确性门禁。它红了不代表改坏了，
+#     可能是上游（electron 下载源、npmmirror、runner 环境）抖动，不该拦住合并。
+#   - 因此只在 workflow_dispatch 手动触发，且整 job continue-on-error：失败会在
+#     job 上留下红色标注，但不会让这次手动运行判负。
+#   - 硬门只管 lint / typecheck / 单元测试 / deps-gate（ci.yml）
+#     以及密钥扫描 / 生产依赖审计（security.yml）。
+#
+# 这个 job 证明不了什么：
+#   - 安装包能装、能启动、四道工序能跑完——这些得真机验证。完整 E2E 靠本机脚本
+#     （.tmp/gaotai-packaged-verify-new.mjs 等，属临时脚本、不入库）。
+#   - 所以产物只作为 artifact 供人工下载试用，不进 GitHub Release（私域分发，
+#     公众号 → 微信 → 发 exe，正式出包在本机跑 npm run desktop:build）。
+name: E2E (packaged smoke)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-packaged-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: 打包烟测（软门，失败不阻塞）
+    runs-on: windows-latest
+    # 整 job 软门：打包失败是信息，不是拦路虎。
+    continue-on-error: true
+    # 冷缓存下 next build + electron-builder 大概十几到二十几分钟，
+    # 留足余量，超时也算这条信息的一部分。
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # 完整安装：打包要 devDependencies 里的 electron / electron-builder /
+      # typescript / tsx。runner 自带 VS Build Tools 与 Python，万一某个原生模块
+      # 没有预编译产物也能就地编译。
+      # 注意：package-lock.json 里的 resolved 指向 registry.npmmirror.com，
+      # npm ci 会照 lock 去镜像取包（可用，只是比官方源慢一点）。
+      - name: 安装依赖（按 lock 精确安装）
+        run: npm ci
+
+      # 与本地出包同一条命令，保证 CI 验的就是真实发布路径：
+      # next build → 补 standalone 产物 → 准备只读资源 → electron-builder --win
+      # （electron-builder.yml 里 npmRebuild: false，不依赖本机编译工具链）
+      - name: 出包
+        run: npm run desktop:build
+
+      - name: 上传安装包
+        uses: actions/upload-artifact@v7
+        with:
+          name: gaotai-installer-${{ github.run_number }}
+          path: release/*.exe
+          # 没出包也要把 job 跑完：缺文件本身就是结论，不要变成一步崩溃。
+          if-no-files-found: warn
+          retention-days: 7

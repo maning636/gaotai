@@ -1,0 +1,79 @@
+# 安全硬门：密钥泄露扫描 + 生产依赖漏洞审计。红了就是红了——不 skip job、
+# 不注掉步骤、不为了让 CI 变绿放宽规则。
+# 编号接着 ci.yml 的四道硬门往下排（1 lint / 2 typecheck / 3 test / 4 deps-gate），
+# 这里是 5 密钥扫描 / 6 依赖审计；ci.yml 增删门时记得同步改这里的编号。
+# 本地对应：
+#   gitleaks detect --no-banner（或 gitleaks git --no-banner）
+#   npm audit --omit=dev --registry=https://registry.npmjs.org
+# 注意本机 registry 是 npmmirror，它不实现 /-/npm/v1/security/* 端点，本地直接跑
+# npm audit 会报 [NOT_IMPLEMENTED]；所以两处都显式钉官方源，保证本地与 CI 同一结果。
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 硬门 5 —— 密钥泄露扫描。
+  # 用 gitleaks 默认规则集，命中即失败。已确认的误报写进仓库根的
+  # .gitleaksignore（指纹格式：<commit>:<文件>:<规则>:<行号>）。
+  # 账号是个人账号（maning636），不需要 GITLEAKS_LICENSE；组织账号才需要，
+  # 缺了会在 job 里直接 core.error 退出。
+  gitleaks:
+    name: 硬门 5 —— 密钥泄露扫描
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # PR 事件下 action 会用 GITHUB_TOKEN 调 GET /pulls/{n}/commits 取扫描区间，
+    # 而这一步没有 try/catch：少了 pull-requests: read 会 403 直接崩掉 job，
+    # 报出来的是权限错误、不是扫描结论。所以这条不是可选项。
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # 必须全历史：gitleaks 按提交区间扫描，浅克隆会漏掉早期提交里被
+          # 后来「删掉」的密钥——删掉不等于没泄露过，历史里仍然可读。
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          # push 事件用它取仓库信息；PR 事件用它列 commits、写行内评论。
+          # 评论写入失败在 action 内部被 catch 成 warning，不影响门禁结论，
+          # 所以这里只给只读权限，不给 pull-requests: write。
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 硬门 6 —— 生产依赖漏洞审计。
+  # 级别定为 high：本地实测 `npm audit --omit=dev`（官方源）为 0 漏洞，
+  # 没有需要妥协降级的项，所以从最严的档位起步，不需要预留收紧日期。
+  # 一旦上游出现无法修复的 high，按「降规则集严格度但不删 gate」的原则改成
+  # --audit-level=critical，并在本注释里写清原因与待收紧日期。
+  #
+  # 只审生产依赖：electron 目前有 high（GHSA-jr5w-w6x2-84p9 等，electron
+  # <=42.11.15，修复需升到 electron 45 大版本）——它只是开发依赖/宿主运行时，
+  # 不进安装包的 node_modules，所以不在本门范围内；升级另立任务跟进。
+  # 若哪天要把 dev 依赖也纳入，先把 electron 升级到位，否则这道门会一直红。
+  #
+  # 不需要 npm ci：npm audit 只读 package-lock.json，装一遍依赖纯属浪费。
+  audit:
+    name: 硬门 6 —— 生产依赖漏洞审计
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: 审计生产依赖
+        run: npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
