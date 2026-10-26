@@ -660,7 +660,7 @@ export default function LayoutPanel() {
 
         <aside className={styles.phoneCol}>
           {draft ? (
-            <PhonePreview template={draft} showApply={false} fitHeight="calc(100vh - 190px)" />
+            <PhonePreview template={draft} showApply={false} fitHeight="calc(100vh - 270px)" />
           ) : (
             <div className="gt-empty" style={{ marginTop: 60 }}>
               <span className="gt-empty__mark">?</span>
