@@ -1,0 +1,70 @@
+{
+  "name": "素灰·清水",
+  "description": "源自 rico-md 的「素灰·清水」主题（MIT, ricocc/rico-md）。",
+  "source": "imported",
+  "vars": {
+    "text": "#4a4a4a",
+    "heading": "#1a1a1a",
+    "muted": "#2a2a2a",
+    "codeBg": "#e8e8e5"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"max-width: 100%; margin: 0 auto; padding: 20px 20px 50px 20px; font-family: Helvetica Neue, Arial, Noto Sans SC, sans-serif; font-size: 14.5px; line-height: 2; color: {{text}}; background-color: #f2f2f0; word-wrap: break-word; letter-spacing: 0.02em\">{{content}}</section>"
+    },
+    "title": {
+      "html": "<{{tag}} style=\"font-size: 22px; font-weight: 300; color: {{heading}}; line-height: 1.5; margin: 28px 0 18px; padding-bottom: 14px; border-bottom: 1px solid #c0bfb8; letter-spacing: 0.15em\">{{content}}</{{tag}}>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-size: 18px; font-weight: 400; color: {{muted}}; line-height: 1.6; margin: 24px 0 14px; padding: 10px 0; border-top: 1px solid #d5d4ce; border-bottom: 1px solid #d5d4ce; letter-spacing: 0.1em; background-color: rgba(255,255,255,0.5)\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-size: 16px; font-weight: 400; color: {{muted}}; line-height: 1.7; margin: 22px 0 12px; letter-spacing: 0.06em\">{{content}}</{{tag}}>"
+    },
+    "heading4": {
+      "html": "<{{tag}} style=\"font-size: 14.5px; font-weight: 500; color: #5a5a5a; line-height: 1.8; margin: 18px 0 10px; letter-spacing: 0.04em\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"margin: 0 0 16px; line-height: 2; color: {{text}}; text-align: justify\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"font-weight: 600; color: {{heading}}\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: normal; color: #7a7a7a; font-weight: 300\">{{content}}</em>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: Courier New, Courier, monospace; font-size: 13px; padding: 2px 6px; background-color: {{codeBg}}; color: {{text}}; border: 1px solid #d5d4ce\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"margin: 16px 0; padding: 20px; background-color: {{codeBg}}; color: #d5d4ce; border: none; overflow-x: auto; line-height: 1.7; font-size: 12.5px\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"margin: 0 0 16px; padding: 14px 20px; background-color: #fff; border: 1px solid #d5d4ce; color: {{muted}}; font-size: 14px; line-height: 1.8; letter-spacing: 0.03em\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"margin: 0 0 16px; padding-left: 24px; list-style-type: circle\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"margin: 6px 0; line-height: 2; color: {{text}}\">{{content}}</li>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{text}}; text-decoration: none; border-bottom: 1px solid #b0afa8\">{{content}}</a>"
+    },
+    "tableHead": {
+      "html": "<th style=\"background-color: {{codeBg}}; padding: 12px 14px; text-align: left; border: 1px solid #d5d4ce; font-weight: 400; color: {{muted}}; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11.5px\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"padding: 12px 14px; border: 1px solid #e0dfd8; color: {{text}}\">{{content}}</td>"
+    },
+    "table": {
+      "html": "<section style=\"overflow-x: auto; max-width: 100%;\"><table style=\"width: 100%; margin: 16px 0; border-collapse: collapse; font-size: 13px; border: 1px solid #d5d4ce\">{{thead}}{{tbody}}</table></section>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; max-height: 500px; height: auto; display: block; margin: 20px auto; filter: grayscale(20%); opacity: 0.95\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"margin: 28px auto; border: none; width: 48px; height: 1px; background-color: #c0bfb8\">"
+    }
+  }
+}

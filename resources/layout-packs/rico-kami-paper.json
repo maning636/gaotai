@@ -1,0 +1,73 @@
+{
+  "name": "Kami 紙",
+  "description": "源自 rico-md 的「Kami 紙」主题（MIT, ricocc/rico-md）。",
+  "source": "imported",
+  "vars": {
+    "text": "#3d3d3a",
+    "heading": "#141413",
+    "muted": "#5e5d59",
+    "codeBg": "#faf9f5",
+    "codeText": "#1B365D",
+    "surface": "#E4ECF5",
+    "border": "#d7d3c6"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"max-width: 100%; margin: 0 auto; padding: 12px 12px 24px 12px; font-family: PingFang SC, Hiragino Sans GB, Microsoft YaHei, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif; font-size: 15px; line-height: 1.75; color: {{text}}; background-color: #f5f4ed; word-wrap: break-word\">{{content}}</section>"
+    },
+    "title": {
+      "html": "<{{tag}} style=\"margin: 48px 0 24px; padding-bottom: 10px; border-bottom: 2px solid {{codeText}}; font-family: Songti SC, Noto Serif SC, STSong, Georgia, serif; font-size: 28px; line-height: 1.3; font-weight: 600; color: {{heading}}\">{{content}}</{{tag}}>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"margin: 36px 0 18px; padding-left: 10px; border-left: 4px solid {{codeText}}; font-family: Songti SC, Noto Serif SC, STSong, Georgia, serif; font-size: 24px; line-height: 1.35; font-weight: 600; color: {{heading}}\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"margin: 28px 0 14px; font-family: Songti SC, Noto Serif SC, STSong, Georgia, serif; font-size: 20px; line-height: 1.4; font-weight: 600; color: {{codeText}}\">{{content}}</{{tag}}>"
+    },
+    "heading4": {
+      "html": "<{{tag}} style=\"margin: 20px 0 10px; font-size: 18px; line-height: 1.45; font-weight: 600; color: {{heading}}\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"margin: 14px 0; font-size: 15px; line-height: 1.78; color: {{text}}\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"font-weight: 600; color: {{heading}}\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: italic; color: {{muted}}\">{{content}}</em>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: JetBrains Mono, Fira Code, SF Mono, Consolas, Monaco, monospace; font-size: 13px; padding: 2px 6px; border-radius: 4px; background-color: {{codeBg}}; color: {{codeText}}\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"margin: 16px 0; padding: 14px; overflow-x: auto; border: 1px solid #e8e5da; background-color: {{codeBg}}; color: {{codeText}}; line-height: 1.65; border-radius: 6px\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"margin: 24px 0; padding: 10px 14px; border-left: 2px solid {{codeText}}; background-color: {{codeBg}}; color: {{muted}}; line-height: 1.7\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"margin: 16px 0; padding-left: 24px\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"margin: 8px 0; line-height: 1.75; color: {{text}}\">{{content}}</li>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{codeText}}; text-decoration: none; border-bottom: 1px solid {{codeText}}\">{{content}}</a>"
+    },
+    "tableHead": {
+      "html": "<th style=\"padding: 8px 10px; text-align: left; font-weight: 600; color: {{heading}}; background-color: {{surface}}; border: 1px solid #d8d4c9\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"padding: 8px 10px; color: {{text}}; border: 1px solid #d8d4c9; background-color: #FAF9F5\">{{content}}</td>"
+    },
+    "table": {
+      "html": "<section style=\"overflow-x: auto; max-width: 100%;\"><table style=\"width: 100%; margin: 24px 0; border-collapse: collapse; font-size: 14px\">{{thead}}{{tbody}}</table></section>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; max-height: 400px; height: auto; display: block; margin: 16px auto; border-radius: 4px; border: 1px solid #e0ddd2\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"margin: 44px 0; border: none; border-top: 1px solid {{border}}\">"
+    }
+  }
+}

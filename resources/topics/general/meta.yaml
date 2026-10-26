@@ -1,0 +1,7 @@
+id: general
+name: 通用
+description: 没有明确专题时的兜底写法：中肯、清楚、不端着
+audience: 关注某个具体问题、想把它弄清楚的人
+tone: 平实、讲道理、给得出依据
+skills:
+  - gaotai-longform

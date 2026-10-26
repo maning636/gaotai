@@ -1,0 +1,70 @@
+{
+  "name": "Apple 极简",
+  "description": "源自 rico-md 的「Apple 极简」主题（MIT, ricocc/rico-md）。",
+  "source": "imported",
+  "vars": {
+    "text": "#1d1d1f",
+    "codeBg": "#f5f5f7",
+    "codeText": "#43709d",
+    "accent": "#06c"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"max-width: 100%; margin: 0 auto; padding: 20px 12px 48px 12px; font-family: -apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Helvetica Neue, Arial, sans-serif; font-size: 15px; line-height: 1.8; color: {{text}}; background-color: #fff; word-wrap: break-word; letter-spacing: -0.01em\">{{content}}</section>"
+    },
+    "title": {
+      "html": "<{{tag}} style=\"font-size: 28px; font-weight: 700; color: {{text}}; line-height: 1.2; margin: 36px 0 24px; letter-spacing: -0.02em; padding-bottom: 10px; border-bottom: 1px solid #e8e8ed\">{{content}}</{{tag}}>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-size: 22px; font-weight: 700; color: {{text}}; line-height: 1.25; margin: 32px 0 20px; letter-spacing: -0.015em; padding-left: 12px; border-left: 3px solid {{accent}}\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-size: 18px; font-weight: 700; color: {{text}}; line-height: 1.35; margin: 28px 0 16px; letter-spacing: -0.01em\">{{content}}</{{tag}}>"
+    },
+    "heading4": {
+      "html": "<{{tag}} style=\"font-size: 16px; font-weight: 600; color: #6e6e73; line-height: 1.4; margin: 24px 0 14px; text-transform: uppercase; letter-spacing: 0.02em; font-size: 13px\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"margin: 0 0 18px; line-height: 1.8; color: {{text}}; font-size: 15px\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"font-weight: 600; color: {{text}}; background: linear-gradient(to top, rgba(0,124,255,0.08) 40%, transparent 40%)\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: italic; color: #6e6e73\">{{content}}</em>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: SF Mono, Monaco, Menlo, monospace; font-size: 13px; padding: 2px 6px; background-color: {{codeBg}}; color: {{codeText}}; border-radius: 6px\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"margin: 14px 0; padding: 18px; background-color: {{codeBg}}; border-radius: 10px; overflow-x: auto; line-height: 1.55; font-size: 13px; color: {{codeText}}\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"margin: 16px 0; padding: 6px 16px; background-color: {{codeBg}}; border-left: none; color: {{text}}; font-size: 14.5px; line-height: 1.65; border-radius: 10px\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"margin: 32px 0 24px; padding-left: 18px\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"margin: 8px 0; line-height: 1.8; color: {{text}}; font-size: 15px\">{{content}}</li>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{accent}}; text-decoration: none; border-bottom: 1px solid rgba(0,102,204,0.3)\">{{content}}</a>"
+    },
+    "tableHead": {
+      "html": "<th style=\"background-color: {{codeBg}}; padding: 10px 14px; text-align: left; border: none; font-weight: 600; color: {{text}}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"padding: 10px 14px; border: none; border-top: 1px solid #e8e8ed; color: {{text}}\">{{content}}</td>"
+    },
+    "table": {
+      "html": "<section style=\"overflow-x: auto; max-width: 100%;\"><table style=\"width: 100%; margin: 14px 0; border-collapse: collapse; font-size: 13.5px\">{{thead}}{{tbody}}</table></section>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; max-height: 600px; height: auto; display: block; margin: 24px auto 32px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,.1)\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"margin: 40px auto; border: none; height: 1px; background-color: #e8e8ed; max-width: 48px\">"
+    }
+  }
+}

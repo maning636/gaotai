@@ -1,0 +1,71 @@
+{
+  "name": "金融时报",
+  "description": "源自 rico-md 的「金融时报」主题（MIT, ricocc/rico-md）。",
+  "source": "imported",
+  "vars": {
+    "text": "#33302e",
+    "heading": "#1a1a1a",
+    "codeBg": "#fff",
+    "codeText": "#990f3d",
+    "accent": "#0d7680"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"max-width: 100%; margin: 0 auto; padding: 20px 16px 40px 16px; font-family: Georgia, Songti SC, Times New Roman, Times, serif; font-size: 15px; line-height: 1.8; color: {{text}}; background-color: #fff2e8; word-wrap: break-word\">{{content}}</section>"
+    },
+    "title": {
+      "html": "<{{tag}} style=\"font-size: 24px; font-weight: 700; color: {{heading}}; line-height: 1.3; margin: 28px 0 16px; letter-spacing: -0.01em; border-bottom: 3px solid {{codeText}}; padding-bottom: 10px\">{{content}}</{{tag}}>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-size: 20px; font-weight: 700; color: {{heading}}; line-height: 1.35; margin: 24px 0 12px\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-size: 17px; font-weight: 700; color: {{codeText}}; line-height: 1.4; margin: 20px 0 10px\">{{content}}</{{tag}}>"
+    },
+    "heading4": {
+      "html": "<{{tag}} style=\"font-size: 15px; font-weight: 700; color: {{text}}; line-height: 1.45; margin: 18px 0 8px; font-variant: small-caps; letter-spacing: 0.03em\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"margin: 0 0 14px; line-height: 1.8; color: {{text}}; font-size: 15px; text-align: justify\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"font-weight: 700; color: {{heading}}\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: italic; color: {{text}}\">{{content}}</em>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: Courier New, Courier, monospace; font-size: 13px; padding: 2px 5px; background-color: {{codeBg}}; color: {{codeText}}; border-radius: 2px\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"margin: 14px 0; padding: 16px; background-color: {{codeBg}}; border-radius: 4px; overflow-x: auto; line-height: 1.55; font-size: 13px; color: {{codeText}}; border: 1px solid #e0d8ce\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"margin: 0 0 14px; padding: 12px 18px; background-color: rgba(153,15,61,0.04); color: {{text}}; font-size: 14.5px; line-height: 1.7; font-style: italic; border-left: 3px solid {{codeText}}\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"margin: 0 0 14px; padding-left: 22px\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"margin: 4px 0; line-height: 1.8; color: {{text}}; font-size: 15px\">{{content}}</li>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{accent}}; text-decoration: none; border-bottom: 1px solid rgba(13,118,128,0.3)\">{{content}}</a>"
+    },
+    "tableHead": {
+      "html": "<th style=\"background-color: {{codeText}}; color: {{codeBg}}; padding: 9px 14px; text-align: left; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"padding: 9px 14px; border-bottom: 1px solid #e0d8ce; color: {{text}}\">{{content}}</td>"
+    },
+    "table": {
+      "html": "<section style=\"overflow-x: auto; max-width: 100%;\"><table style=\"width: 100%; margin: 14px 0; border-collapse: collapse; font-size: 13.5px\">{{thead}}{{tbody}}</table></section>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; max-height: 600px; height: auto; display: block; margin: 18px auto\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"margin: 28px auto; border: none; height: 1px; background-color: #e0d8ce; max-width: 60px\">"
+    }
+  }
+}

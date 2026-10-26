@@ -1,0 +1,71 @@
+{
+  "name": "纤细极简",
+  "description": "源自 rico-md 的「纤细极简」主题（MIT, ricocc/rico-md）。",
+  "source": "imported",
+  "vars": {
+    "text": "#3e3e42",
+    "heading": "#1d1d1f",
+    "codeBg": "#f5f5f7",
+    "codeText": "#6e6e73",
+    "accent": "#06c"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"max-width: 100%; margin: 0 auto; padding: 16px 24px 40px 24px; font-family: -apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Helvetica Neue, Arial, sans-serif; font-size: 17px; line-height: 1.6; color: {{codeText}}; background-color: #fff; word-wrap: break-word\">{{content}}</section>"
+    },
+    "title": {
+      "html": "<{{tag}} style=\"font-size: 39px; font-weight: 200; color: {{heading}}; line-height: 1.15; margin: 48px 0 24px; letter-spacing: -0.025em\">{{content}}</{{tag}}>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-size: 28px; font-weight: 300; color: {{heading}}; line-height: 1.2; margin: 40px 0 20px; letter-spacing: -0.018em\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-size: 20px; font-weight: 400; color: {{heading}}; line-height: 1.25; margin: 32px 0 24px; letter-spacing: -0.008em\">{{content}}</{{tag}}>"
+    },
+    "heading4": {
+      "html": "<{{tag}} style=\"font-size: 15px; font-weight: 500; color: {{heading}}; line-height: 1.3; margin: 24px 0 12px\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"margin: 20px 0; line-height: 1.8; color: {{text}}; font-weight: 300; letter-spacing: -0.008em\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"font-weight: 500; color: {{heading}}\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: normal; color: {{codeText}}; font-weight: 300\">{{content}}</em>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: SF Mono, Monaco, Menlo, monospace; font-size: 14px; padding: 2px 6px; background-color: {{codeBg}}; color: {{codeText}}; border-radius: 6px; font-weight: 400\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"margin: 28px 0; padding: 20px; background-color: {{codeBg}}; border-radius: 10px; overflow-x: auto; line-height: 1.5\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"margin: 32px auto; padding: 0; background-color: transparent; border-left: none; color: {{heading}}; font-size: 18px; line-height: 1.4; font-weight: 300; text-align: center; max-width: 520px; font-style: normal\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"margin: 20px 0; padding-left: 16px; list-style-type: disc\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"margin: 10px 0; line-height: 1.6; color: {{codeText}}; padding-left: 0px; position: relative; font-weight: 300\">{{content}}</li>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{accent}}; text-decoration: none; font-weight: 400\">{{content}}</a>"
+    },
+    "tableHead": {
+      "html": "<th style=\"background-color: {{codeBg}}; padding: 12px 16px; text-align: left; border: none; font-weight: 500; color: {{heading}}\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"padding: 12px 16px; border: none; border-top: 1px solid #d2d2d7; color: {{codeText}}; font-weight: 300\">{{content}}</td>"
+    },
+    "table": {
+      "html": "<section style=\"overflow-x: auto; max-width: 100%;\"><table style=\"width: 100%; margin: 32px 0; border-collapse: collapse; font-size: 15px\">{{thead}}{{tbody}}</table></section>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; max-height: 600px; height: auto; display: block; margin: 40px auto; border-radius: 10px\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"margin: 56px auto; border: none; height: 1px; background-color: #d2d2d7; max-width: 48px\">"
+    }
+  }
+}

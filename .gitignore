@@ -1,0 +1,20 @@
+# 依赖与构建产物
+node_modules/
+.next/
+out/
+dist/
+release/
+*.tsbuildinfo
+
+# 本地数据目录：数据库、本地专题、登录日志、配图
+/data/
+/images/
+/.tmp/
+
+# 密钥文件。桌面版在用户数据目录生成，这里只忽略本地开发用的。
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db

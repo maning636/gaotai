@@ -1,0 +1,7 @@
+id: tool-review
+name: 工具测评
+description: 实测一个工具值不值得用、适合谁不适合谁，写给正准备掏钱或掏时间的人
+audience: 正在选型、准备付费订阅或准备花一个周末折腾的实践者
+tone: 诚实、具体，先说缺点，不做导购
+skills:
+  - gaotai-longform

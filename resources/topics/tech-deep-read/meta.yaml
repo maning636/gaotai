@@ -1,0 +1,7 @@
+id: tech-deep-read
+name: 技术深读
+description: 拆解一个技术、产品或架构选择的真实代价，写给想自己动手的人
+audience: 天天在写代码、也在给团队做技术决策的工程师
+tone: 冷静、具体、承认取舍，不吹不黑
+skills:
+  - gaotai-longform

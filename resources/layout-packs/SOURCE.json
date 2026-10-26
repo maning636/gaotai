@@ -1,0 +1,32 @@
+{
+  "upstream": "github.com/ricocc/rico-md",
+  "title": "Rico 的公众号排版编辑工具",
+  "author": "Rico (ricoui.com)",
+  "license": "MIT",
+  "licenseFile": "LICENSE-rico-md",
+  "copyright": "Copyright (c) 2024-2026 Rico (ricoui.com)",
+  "path": "assets/styles/themes/",
+  "note": "本目录下的样式包是从上游主题翻译而来的衍生作品。MIT 许可要求保留版权声明与许可声明，因此 LICENSE-rico-md 与本文件一并随包分发。",
+  "translation": {
+    "how": "上游主题是「选择器 → CSS 声明块」；稿台的排版模板是「部件 key → HTML 模板」。本目录的每个 JSON 把上游的一份主题按稿台的部件模型重新组装，标签与占位符换成稿台自己的（{{content}} 放内容，{{变量名}} 取色值）。",
+    "changed": [
+      "去掉 !important（行内样式里没有意义，且 ! 不在稿台清洗器的白名单里，留着会让整条声明被丢掉）",
+      "去掉字体栈里的双引号（双引号同样会被清洗器当成非法字符）",
+      "颜色提取成变量（text / heading / muted / border / codeBg / codeText / surface / accent），所以「改一个色值全篇跟着变」在导入的主题里同样成立",
+      "h2/h3/h4 分成三个部件（上游给每一级标题配的样式差别很大，合并会把层次抹平）"
+    ]
+  },
+  "excluded": {
+    "paths": ["assets/styles/themes/gzh/", "assets/styles/themes/gzh-design-skill.js"],
+    "reason": "这些文件是「gzh-design-skill 主题适配模块」，来自 isjiamu/gzh-design-skill（甲木 × 摸鱼小李），采用 AGPL-3.0-or-later。稿台不以 AGPL 分发，因此整套不引入。",
+    "license": "AGPL-3.0-or-later"
+  },
+  "included": [
+    "rico-ando-concrete", "rico-gaudi-organic", "rico-guardian", "rico-hische-editorial",
+    "rico-kami-paper", "rico-kenya-emptiness", "rico-latepost-depth", "rico-lemonde",
+    "rico-minimalism", "rico-nikkei", "rico-wechat-anthropic", "rico-wechat-apple",
+    "rico-wechat-deepread", "rico-wechat-default", "rico-wechat-elegant", "rico-wechat-ft",
+    "rico-wechat-jonyive", "rico-wechat-medium", "rico-wechat-nyt", "rico-wechat-paperpress",
+    "rico-wechat-tech"
+  ]
+}

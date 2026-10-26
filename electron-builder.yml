@@ -1,0 +1,67 @@
+# 稿台的 Electron 打包配置。
+#
+# 关键约束：
+#   - asarUnpack 必须覆盖原生 .node 与 canvas 的 DLL：这些二进制不能塞进 asar 归档，
+#     否则运行时无法 dlopen。
+#   - .next/standalone/** 也必须解包：后端子进程要用它当工作目录，
+#     而 asar 内部路径在操作系统层面并不存在（spawn 会直接 ENOENT）。
+#   - extraResources 承载 dist/app-resources，通过 GAOTAI_RESOURCE_DIR 传给后端。
+#   - 本机没有代码签名证书，禁止声明 codeSign / publisherName 之类字段（会导致打包失败）。
+appId: com.maning.gaotai
+productName: 稿台
+
+# 跳过 @electron/rebuild：better-sqlite3 与 canvas 均为 N-API 模块（ABI 无关），
+# 预编译二进制已可直接被 Electron 加载；触发 rebuild 反而要求本机安装 Visual Studio
+# 与 node-gyp 工具链，在无编译器的机器上会让打包直接失败。
+npmRebuild: false
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  # Next.js standalone 独立部署产物：server.js + 已精简的 node_modules。
+  # 这里包含 standalone 自己的 node_modules，不要再单独打整棵根 node_modules——
+  # 根目录里还有全部开发依赖，打进去会让安装包体积暴涨且毫无必要。
+  - ".next/standalone/**"
+  # 由 scripts/copy-standalone-assets.mjs 补进 standalone 的静态资源。
+  - ".next/static/**"
+  - "public/**"
+  # Electron 主进程与预加载脚本。
+  - "electron/**"
+  - "package.json"
+  # electron-builder 会无视 files 白名单，把 package.json 里声明的生产依赖整棵复制进
+  # 根 node_modules（实测多打进去 23000+ 个文件，安装包从 60MB 涨到 199MB）。
+  # standalone 已自带完整依赖，根 node_modules 纯属冗余；此处显式排除。
+  # 该模式不会命中 .next/standalone/node_modules（路径不以 node_modules/ 开头）。
+  - "!node_modules/**/*"
+
+# Electron 主进程入口。package.json 的 main 字段未指向它时，Electron 会找不到入口。
+extraMetadata:
+  main: "electron/main.js"
+
+extraResources:
+  # 只读资源：提示词、公开示例专题、写作技能。由 scripts/prepare-resources.mjs 提前组装。
+  - from: "dist/app-resources"
+    to: "app-resources"
+
+# 原生二进制必须解压到文件系统，否则 require 会失败。
+# 路径要匹配产物里的真实位置：依赖位于 .next/standalone/node_modules/ 下。
+asarUnpack:
+  - "**/*.node"
+  - ".next/standalone/node_modules/canvas/build/Release/*.dll"
+  - ".next/standalone/node_modules/better-sqlite3/prebuilds/**"
+  # Next standalone 服务端产物必须以真实文件形式存在：后端子进程要用它当工作目录，
+  # 而 asar 内部路径在操作系统层面并不存在（spawn 的 cwd 会直接 ENOENT 失败）。
+  - ".next/standalone/**"
+
+win:
+  target:
+    - nsis
+    - portable
+
+nsis:
+  # oneClick: false 允许用户选择安装目录，符合「双击即用 + 可自定义路径」的要求。
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: "Gaotai-Setup-${version}.${ext}"

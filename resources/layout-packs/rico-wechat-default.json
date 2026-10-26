@@ -1,0 +1,73 @@
+{
+  "name": "默认公众号风格",
+  "description": "源自 rico-md 的「默认公众号风格」主题（MIT, ricocc/rico-md）。",
+  "source": "imported",
+  "vars": {
+    "text": "#3f3f3f",
+    "heading": "#2c3e50",
+    "codeBg": "#f5f5f5",
+    "codeText": "#1B365D",
+    "surface": "#f0f0f0",
+    "border": "#e0e0e0",
+    "accent": "#3498db"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"max-width: 100%; margin: 0 auto; padding: 10px 10px 20px 10px; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif; font-size: 15px; line-height: 1.8; color: {{text}}; background-color: #fff; word-wrap: break-word\">{{content}}</section>"
+    },
+    "title": {
+      "html": "<{{tag}} style=\"font-size: 22px; font-weight: 600; color: {{heading}}; line-height: 1.4; margin: 40px 0 20px; padding-bottom: 8px; border-bottom: 2px solid {{accent}}\">{{content}}</{{tag}}>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-size: 20px; font-weight: 600; color: {{heading}}; line-height: 1.4; margin: 32px 0 24px; padding-left: 12px; border-left: 4px solid {{accent}}\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-size: 18px; font-weight: 600; color: #34495e; line-height: 1.4; margin: 28px 0 14px\">{{content}}</{{tag}}>"
+    },
+    "heading4": {
+      "html": "<{{tag}} style=\"font-size: 17px; font-weight: 600; color: #34495e; line-height: 1.4; margin: 24px 0 12px\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"margin: 16px 0; line-height: 1.8; color: {{text}}\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"font-weight: 600; color: {{heading}}\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: italic; color: #555\">{{content}}</em>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: Consolas, Monaco, Courier New, monospace; font-size: 13px; padding: 2px 6px; background-color: {{codeBg}}; color: {{codeText}}; border-radius: 3px\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"margin: 24px 0; padding: 16px; background-color: {{codeBg}}; font-size: 13px; border-radius: 8px; overflow-x: auto; line-height: 1.6\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"margin: 20px 0; padding: 2px 16px; background-color: #fafafa; background-color: #e9f3fd; border-left: 3px solid #7fb1d3; line-height: 1.5\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"margin: 24px 0; padding-left: 24px\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"margin: 8px 0; line-height: 1.8\">{{content}}</li>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{accent}}; text-decoration: none; border-bottom: 1px solid {{accent}}\">{{content}}</a>"
+    },
+    "tableHead": {
+      "html": "<th style=\"background-color: {{surface}}; padding: 10px; text-align: left; border: 1px solid {{border}}; font-weight: 600\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"padding: 10px; border: 1px solid {{border}}\">{{content}}</td>"
+    },
+    "table": {
+      "html": "<section style=\"overflow-x: auto; max-width: 100%;\"><table style=\"width: 100%; margin: 16px 0; border-collapse: collapse; font-size: 15px\">{{thead}}{{tbody}}</table></section>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; max-height: 600px; height: auto; display: block; margin: 24px auto 32px; border-radius: 8px\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"margin: 48px 0; border: none; border-top: 1px solid {{border}}\">"
+    }
+  }
+}

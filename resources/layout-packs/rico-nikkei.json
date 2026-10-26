@@ -1,0 +1,72 @@
+{
+  "name": "朱红·日经",
+  "description": "源自 rico-md 的「朱红·日经」主题（MIT, ricocc/rico-md）。",
+  "source": "imported",
+  "vars": {
+    "text": "#1a1a1a",
+    "heading": "#000",
+    "muted": "#333",
+    "codeBg": "#f5f5f5",
+    "codeText": "#C41230",
+    "accent": "#0066cc"
+  },
+  "parts": {
+    "root": {
+      "html": "<section style=\"max-width: 100%; margin: 0 auto; padding: 12px 14px 36px 14px; font-family: Hiragino Kaku Gothic ProN, Yu Gothic, Noto Sans SC, Meiryo, sans-serif; font-size: 14.5px; line-height: 1.78; color: {{text}}; background-color: #fff; word-wrap: break-word\">{{content}}</section>"
+    },
+    "title": {
+      "html": "<{{tag}} style=\"font-size: 22px; font-weight: 700; color: {{heading}}; line-height: 1.35; margin: 22px 0 12px; padding-bottom: 8px; border-bottom: 2px solid {{heading}}\">{{content}}</{{tag}}>"
+    },
+    "heading": {
+      "html": "<{{tag}} style=\"font-size: 18px; font-weight: 700; color: {{codeText}}; line-height: 1.4; margin: 20px 0 10px; padding-left: 10px; border-left: 3px solid {{codeText}}\">{{content}}</{{tag}}>"
+    },
+    "heading3": {
+      "html": "<{{tag}} style=\"font-size: 16px; font-weight: 600; color: {{text}}; line-height: 1.45; margin: 16px 0 8px; padding: 4px 8px; background-color: #f7f7f7\">{{content}}</{{tag}}>"
+    },
+    "heading4": {
+      "html": "<{{tag}} style=\"font-size: 14.5px; font-weight: 600; color: {{muted}}; line-height: 1.5; margin: 14px 0 6px\">{{content}}</{{tag}}>"
+    },
+    "paragraph": {
+      "html": "<p style=\"margin: 0 0 10px; line-height: 1.78; color: {{text}}; text-align: justify\">{{content}}</p>"
+    },
+    "strong": {
+      "html": "<strong style=\"font-weight: 700; color: {{heading}}\">{{content}}</strong>"
+    },
+    "em": {
+      "html": "<em style=\"font-style: normal; color: {{codeText}}; font-weight: 600\">{{content}}</em>"
+    },
+    "inlineCode": {
+      "html": "<code style=\"font-family: Courier New, monospace; font-size: 13px; padding: 2px 4px; background-color: {{codeBg}}; color: {{codeText}}; border-radius: 2px\">{{content}}</code>"
+    },
+    "code": {
+      "html": "<pre style=\"margin: 10px 0; padding: 14px; background-color: {{codeBg}}; border-radius: 3px; overflow-x: auto; line-height: 1.5; font-size: 12.5px; color: {{codeText}}\">{{content}}</pre>"
+    },
+    "quote": {
+      "html": "<blockquote style=\"margin: 0 0 10px; padding: 10px 14px; background-color: transparent; border-left: 2px solid {{codeText}}; border-right: 2px solid {{codeText}}; color: {{muted}}; font-size: 14px; line-height: 1.65\">{{content}}</blockquote>"
+    },
+    "list": {
+      "html": "<{{tag}}{{start}} style=\"margin: 0 0 10px; padding-left: 20px\">{{content}}</{{tag}}>"
+    },
+    "listItem": {
+      "html": "<li style=\"margin: 3px 0; line-height: 1.78; color: {{text}}\">{{content}}</li>"
+    },
+    "link": {
+      "html": "<a href=\"{{href}}\" style=\"color: {{accent}}; text-decoration: none; border-bottom: 1px solid rgba(0,102,204,0.3)\">{{content}}</a>"
+    },
+    "tableHead": {
+      "html": "<th style=\"background-color: {{codeText}}; color: #fff; padding: 7px 10px; text-align: left; font-weight: 700; font-size: 11.5px; letter-spacing: 0.03em\">{{content}}</th>"
+    },
+    "tableCell": {
+      "html": "<td style=\"padding: 7px 10px; border-bottom: 1px solid #e5e5e5; color: {{text}}\">{{content}}</td>"
+    },
+    "table": {
+      "html": "<section style=\"overflow-x: auto; max-width: 100%;\"><table style=\"width: 100%; margin: 10px 0; border-collapse: collapse; font-size: 13px; border-top: 2px solid {{heading}}\">{{thead}}{{tbody}}</table></section>"
+    },
+    "image": {
+      "html": "<img src=\"{{src}}\" alt=\"{{alt}}\" style=\"max-width: 100%; max-height: 480px; height: auto; display: block; margin: 14px auto\" />"
+    },
+    "divider": {
+      "html": "<hr style=\"margin: 20px 0; border: none; height: 1px; background-color: {{heading}}\">"
+    }
+  }
+}

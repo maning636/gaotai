@@ -1,0 +1,28 @@
+# 换行与二进制规范。
+# 文本一律 LF 入库（text=auto 由 git 探测 + eol=lf 强制工作区 LF）；
+# 二进制文件禁止任何转换。首次提交前执行过 git add --renormalize .
+* text=auto eol=lf
+
+# Windows 脚本保留 CRLF（.bat/.cmd 依赖 CRLF 才能正确解析）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制：禁止 git 做换行/编码转换
+*.exe binary
+*.dll binary
+*.node binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg text eol=lf
+*.zip binary
+*.7z binary
+*.asar binary
+*.woff binary
+*.woff2 binary
+*.db binary
+*.sqlite binary

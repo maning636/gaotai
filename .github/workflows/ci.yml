@@ -1,0 +1,35 @@
+# CI：三道硬门。红了就是红了——不 skip job、不注释 gate、不为了让 CI 变绿改规则。
+# 本地对应：npm ci → npm run typecheck → npm test
+# 说明：GitHub windows-latest 自带 VS Build Tools 与 Python，原生模块
+# （better-sqlite3 / canvas）可直接安装；ensure-runtime-deps.mjs 是打包期
+# 脚本（补 .next/standalone 产物），CI 没有构建产物，不在 CI 里跑。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: 安装依赖（按 lock 精确安装）
+        run: npm ci
+
+      - name: 硬门 1 —— 类型检查
+        run: npm run typecheck
+
+      - name: 硬门 2 —— 单元测试（366 条，不需要模型、不联网）
+        run: npm test

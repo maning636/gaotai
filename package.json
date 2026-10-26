@@ -1,0 +1,42 @@
+{
+  "name": "gaotai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "稿台 —— 面向公众号创作者的本地写作工作台（桌面版）",
+  "author": "maning636",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3060",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3060",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx src/tests/run-all.ts",
+    "prepare:resources": "node scripts/prepare-resources.mjs",
+    "desktop": "electron .",
+    "desktop:dev": "node scripts/run-desktop.mjs dev",
+    "desktop:build": "npm run build && node scripts/ensure-runtime-deps.mjs && node scripts/copy-standalone-assets.mjs && node scripts/sanitize-standalone.mjs && node scripts/prepare-resources.mjs && electron-builder --win"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "canvas": "^3.2.3",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-gfm-table": "^2.0.0",
+    "micromark-extension-gfm-table": "^2.1.2",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^24.13.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "electron": "^40.10.6",
+    "electron-builder": "^26.15.3",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,29 @@
+NOTICE —— 第三方组件归属与许可声明
+====================================
+
+本仓库（稿台 / Gaotai）主体以 MIT 许可发布（见 LICENSE）。
+以下第三方组件随包分发，版权与许可归属如下：
+
+1. human-writing 写作技能包
+   位置：resources/skills/human-writing/
+   上游：https://github.com/KKKKhazix/human-writing
+   提交：4fda173f3fef7fb808f3eba991eeb2528ea4b189（版本 1.1.0）
+   许可：MIT（原文见 resources/skills/human-writing/LICENSE）
+   说明：随包原样分发，溯源见同目录 SOURCE.json。
+
+2. rico-md 排版主题（衍生翻译）
+   位置：resources/layout-packs/rico-*.json（21 套）
+   上游：https://github.com/ricocc/rico-md（Rico, ricoui.com）
+   许可：MIT（原文见 resources/layout-packs/LICENSE-rico-md）
+   说明：上游主题为「选择器 → CSS 声明块」，本仓库将其按稿台
+   「部件 key → HTML 模板」模型重新组装为衍生作品；MIT 要求的
+   版权与许可声明随包保留，翻译方式与改动清单见同目录 SOURCE.json。
+
+3. 自有技能包
+   resources/skills/gaotai-longform/（含独立 LICENSE 与 NOTICE）
+   resources/skills/gaotai-editorial/
+   归稿台项目所有，随主仓库 MIT 许可发布。
+
+其余第三方依赖（next / react / electron / better-sqlite3 / canvas /
+zod / yaml / mdast-util-* 等）以 npm 依赖形式引入，各自的许可文本
+保留在安装后的 node_modules 内，不随仓库分发。
