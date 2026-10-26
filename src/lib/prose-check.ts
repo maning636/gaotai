@@ -104,8 +104,6 @@ const ROAD_SIGNS = [
   "从某种意义上说",
 ];
 
-const ROAD_STRIP_CHARS = "。！？!? \n";
-
 const FORBIDDEN_PUNCTUATION: Record<string, string> = {
   "：": "中文冒号",
   ":": "英文冒号",

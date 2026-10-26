@@ -142,7 +142,7 @@ function collectSymlinks(dir, out) {
       continue;
     }
     if (stat.isSymbolicLink()) {
-      let target = "";
+      let target;
       try {
         target = readlinkSync(full);
       } catch {
@@ -176,7 +176,7 @@ for (const item of links) {
   const hashedName = path.basename(item.full);
 
   // 软链指向的是文件而不是目录：直接复制内容，保留原名。
-  let targetIsDir = true;
+  let targetIsDir;
   try {
     targetIsDir = statSync(item.resolved).isDirectory();
   } catch {

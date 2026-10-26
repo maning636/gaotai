@@ -30,11 +30,10 @@ export async function POST(request: Request) {
   let body: z.infer<typeof bodySchema> = {};
   try {
     const text = await request.text();
-    body = text.trim() ? bodySchema.parse(JSON.parse(text)) : {};
+    if (text.trim()) body = bodySchema.parse(JSON.parse(text));
   } catch {
     // 请求体格式不对就按「测已保存的那份」处理，
     // 免得一个手滑的按钮把整条通道卡住。
-    body = {};
   }
 
   const saved = readWechatCredentials();

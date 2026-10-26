@@ -1,6 +1,5 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { envFile } from "./paths";
 
 /**
  * 登录与会话。

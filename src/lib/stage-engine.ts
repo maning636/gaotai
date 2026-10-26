@@ -17,7 +17,7 @@ import {
 } from "./length-target";
 import { reportArticle } from "./article-review";
 import { checkOutlineCoverage } from "./outline-coverage";
-import { planSectionWriting, writeArticleBySections, type SectionPlan } from "./section-writer";
+import { planSectionWriting, writeArticleBySections } from "./section-writer";
 
 /**
  * 阶段引擎。

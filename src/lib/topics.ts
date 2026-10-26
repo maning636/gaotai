@@ -46,7 +46,7 @@ const rulesCache = new Map<string, { mtimeMs: number; text: string }>();
 /** 读 rules.md，按修改时间缓存——用户改了文件要能立刻生效。 */
 function readRules(dir: string): string {
   const file = path.join(dir, "rules.md");
-  let mtimeMs = 0;
+  let mtimeMs: number;
   try {
     mtimeMs = statSync(file).mtimeMs;
   } catch {

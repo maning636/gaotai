@@ -241,7 +241,7 @@ suite("草稿推送幂等", ({ test }) => {
   });
 
   test("微信返回业务错误时抛错，错误信息里不出现 access_token", async () => {
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/cgi-bin/token")) return jsonResponse({ access_token: "SECRET-TOKEN-VALUE", expires_in: 7200 });
       if (url.includes("/cgi-bin/draft/update")) return jsonResponse({ errcode: 84061, errmsg: "草稿不存在" });

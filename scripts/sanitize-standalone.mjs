@@ -91,7 +91,7 @@ function collectSymlinks(dir, out) {
       continue;
     }
     if (stat.isSymbolicLink()) {
-      let target = "";
+      let target;
       try {
         target = readlinkSync(full);
       } catch {

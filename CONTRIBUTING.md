@@ -8,8 +8,11 @@
 npm install            # 依赖；无 Visual Studio 的机器加 --ignore-scripts，
                        # 然后手动跑 node scripts/ensure-runtime-deps.mjs
 npm run dev            # 开发态 http://127.0.0.1:3060
-npm test               # 366 条单测，不需要模型、不联网
+npm run lint           # ESLint
+npm test               # 373 条单测，不需要模型、不联网
 npm run typecheck      # tsc --noEmit
+npm run deps-gate      # 依赖声明闸门
+npm run verify         # 以上四道全跑（提交前必跑）
 npm run desktop:build  # 出包到 release/（先关掉运行中的 稿台.exe）
 ```
 

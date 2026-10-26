@@ -4,7 +4,7 @@ import { requireAuth } from "../../../../../../lib/auth";
 import { STAGES, type Stage } from "../../../../../../lib/db";
 import { loadStageContext } from "../../../../../../lib/stage-context";
 import { runStage } from "../../../../../../lib/stage-engine";
-import { getStageResult, saveStageResult } from "../../../../../../lib/repo";
+import { saveStageResult } from "../../../../../../lib/repo";
 
 export const runtime = "nodejs";
 // 生成一篇正文可能要一两分钟，超过默认的 10 秒限制。

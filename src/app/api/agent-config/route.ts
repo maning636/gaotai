@@ -4,9 +4,8 @@ import { requireAuth } from "../../../lib/auth";
 import {
   readAgentConfig,
   testAgentConnection,
+  toPublic,
   writeAgentConfig,
-  type AgentConfig,
-  type AgentConfigPublic,
 } from "../../../lib/agent-config-store";
 
 export const runtime = "nodejs";
@@ -26,17 +25,12 @@ const bodySchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("save"), config: configSchema }),
 ]);
 
-function mask(config: AgentConfig): AgentConfigPublic {
-  const { apiKey, ...rest } = config;
-  return { ...rest, apiKeyMasked: apiKey ? "••••••••" : "" };
-}
-
-export async function GET(request: Request) {
+export async function GET() {
   const unauthorized = await requireAuth();
   if (unauthorized) return unauthorized;
   try {
     const current = await readAgentConfig();
-    return NextResponse.json({ config: mask(current) });
+    return NextResponse.json({ config: toPublic(current) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "读取 LM 配置失败";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -62,7 +56,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ...result });
     }
     const saved = await writeAgentConfig(body.config);
-    return NextResponse.json({ ok: true, message: "LM 配置已保存。", config: mask(saved) });
+    return NextResponse.json({ ok: true, message: "LM 配置已保存。", config: toPublic(saved) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "保存 LM 配置失败";
     return NextResponse.json({ error: message }, { status: 400 });

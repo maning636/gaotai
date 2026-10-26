@@ -176,8 +176,9 @@ export function safeImageFileName(originalName: string): string {
   const base = originalName.split(/[\\/]/).pop() ?? "";
   const ext = extOf(base);
   const stem = base.slice(0, Math.max(0, base.length - ext.length));
-  // eslint-disable-next-line no-control-regex
   const cleaned = stem
+    // 这里就是要挡掉 \u0000-\u001f：文件名来自外部工具，Windows 不接受控制字符。
+    // eslint-disable-next-line no-control-regex
     .replace(/[<>:"|?*\u0000-\u001f]/g, "_")
     .replace(/\s+/g, " ")
     .trim()
@@ -201,6 +202,8 @@ export async function storeImageAs(bytes: Buffer, fileName: string): Promise<Loc
   if (!name) throw new Error("文件名不能为空。");
   if (/[\\/]/.test(name)) throw new Error("文件名里不能带目录分隔符。");
   if (name === "." || name === ".." || name.includes("..")) throw new Error("文件名不合法。");
+  // 同上：明确要拒绝控制字符，不是手滑写进来的。
+  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f]/.test(name)) throw new Error("文件名里有非法字符。");
   const ext = extOf(name);
   if (!IMAGE_EXT.has(ext)) {

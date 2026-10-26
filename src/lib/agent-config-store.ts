@@ -168,7 +168,7 @@ function normalize(input: AgentConfigInput, fallback: AgentConfig): AgentConfig 
   };
 }
 
-function toPublic(config: AgentConfig): AgentConfigPublic {
+export function toPublic(config: AgentConfig): AgentConfigPublic {
   const { apiKey, ...rest } = config;
   return { ...rest, apiKeyMasked: apiKey ? MASKED_KEY : "" };
 }

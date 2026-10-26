@@ -9,8 +9,11 @@
     "dev": "next dev --hostname 127.0.0.1 --port 3060",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1 --port 3060",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx src/tests/run-all.ts",
+    "deps-gate": "tsx scripts/check-deps-coverage.mts",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run deps-gate",
     "prepare:resources": "node scripts/prepare-resources.mjs",
     "desktop": "electron .",
     "desktop:dev": "node scripts/run-desktop.mjs dev",
@@ -29,6 +32,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/mdast": "^4.0.4",
     "@types/node": "^24.13.5",
@@ -36,7 +40,9 @@
     "@types/react-dom": "^19.3.0",
     "electron": "^40.10.6",
     "electron-builder": "^26.15.3",
+    "eslint": "^10.13.0",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.0"
   }
 }

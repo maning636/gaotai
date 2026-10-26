@@ -249,7 +249,6 @@ export function parseNumberText(text: string): number | null {
   if (!value) return null;
   if (/^\d+$/.test(value)) return Number(value);
 
-  let total = 0;
   let section = 0;
   let current = 0;
   let matched = false;
@@ -272,7 +271,7 @@ export function parseNumberText(text: string): number | null {
     return null;
   }
   if (!matched) return null;
-  return total + section + current;
+  return section + current;
 }
 
 /* ------------------------------------------------------------------ */

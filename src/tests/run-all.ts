@@ -1,7 +1,6 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { suite } from "./harness";
 import "./auth.test";
 import "./repo.test";
 import "./bootstrap.test";
@@ -28,6 +27,7 @@ import "./llm-tools.test";
 import "./agent-config.test";
 import "./fetch-timeout.test";
 import "./draft-idempotency.test";
+import "./deps-gate.test";
 
 /**
  * 测试入口。

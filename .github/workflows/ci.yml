@@ -1,5 +1,6 @@
-# CI：三道硬门。红了就是红了——不 skip job、不注释 gate、不为了让 CI 变绿改规则。
-# 本地对应：npm ci → npm run typecheck → npm test
+# CI：四道硬门。红了就是红了——不 skip job、不注释 gate、不为了让 CI 变绿改规则。
+# 本地对应：npm ci → npm run lint → npm run typecheck → npm test → npm run deps-gate，
+# 等价于 `npm run verify`（除 npm ci 之外的四道门串行执行）。
 # 说明：GitHub windows-latest 自带 VS Build Tools 与 Python，原生模块
 # （better-sqlite3 / canvas）可直接安装；ensure-runtime-deps.mjs 是打包期
 # 脚本（补 .next/standalone 产物），CI 没有构建产物，不在 CI 里跑。
@@ -18,9 +19,9 @@ jobs:
   test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -28,8 +29,14 @@ jobs:
       - name: 安装依赖（按 lock 精确安装）
         run: npm ci
 
-      - name: 硬门 1 —— 类型检查
+      - name: 硬门 1 —— ESLint（未使用变量/导入、明显错误）
+        run: npm run lint
+
+      - name: 硬门 2 —— 类型检查（tsc --noEmit，strict）
         run: npm run typecheck
 
-      - name: 硬门 2 —— 单元测试（366 条，不需要模型、不联网）
+      - name: 硬门 3 —— 单元测试（373 条，不需要模型、不联网）
         run: npm test
+
+      - name: 硬门 4 —— 依赖声明闸门（引用与声明双向对齐）
+        run: npm run deps-gate

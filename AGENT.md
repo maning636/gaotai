@@ -16,7 +16,8 @@
 1. **禁 `git add -A` / `git add .`** —— 显式列路径提交。
 2. **禁 force push**；已推送的历史不改写，出问题用新 commit 修。
 3. **禁 `git commit --no-verify`**、禁注释/跳过 CI 硬门。
-4. push 前本地全绿：`npm test` + `npm run typecheck`。
+4. push 前本地全绿：`npm run verify`（lint + typecheck + test + deps-gate，
+   与 CI 的四道硬门一一对应）。
 5. 远程只有 `origin` = `https://github.com/maning636/gaotai.git`（HTTPS，
    凭据走 Windows 凭据管理器；本机 SSH key 未注册 GitHub，勿走 SSH）。
 6. push 挂死先探网络（直连 / 代理 `127.0.0.1:7897`），别原地重试。

@@ -2,15 +2,6 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { dataStorageDir } from "./paths";
-import type {
-  AssetRow,
-  EditRow,
-  MessageRow,
-  ProjectRow,
-  Stage,
-  StageResultRow,
-  StyleProfileRow,
-} from "./stages";
 
 /**
  * 本地数据层。

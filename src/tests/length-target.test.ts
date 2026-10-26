@@ -1,6 +1,5 @@
 import { assertEqual, assertTrue, suite } from "./harness";
 import {
-  clampToEnvelope,
   DEFAULT_ARTICLE_LENGTH,
   describeLengthRange,
   parseLengthRange,
