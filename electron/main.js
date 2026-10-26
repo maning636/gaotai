@@ -614,6 +614,18 @@ app.whenReady().then(async () => {
     createMainWindow();
     await mainWindow.loadURL(`http://127.0.0.1:${backendPort}`);
   } catch (err) {
+    // 启动瞬间被外部导航打断（自动化/CDP/用户抢先点了链接）会抛 ERR_ABORTED。
+    // 此时窗口已经活着，导航只是被后一次导航顶掉，不是启动失败——
+    // 不能弹致命错误框，更不能把进程退掉。
+    if (
+      mainWindow &&
+      !mainWindow.isDestroyed() &&
+      err &&
+      /ERR_ABORTED/.test(String(err))
+    ) {
+      logLifecycle(`startup navigation superseded: ${String(err)}`);
+      return;
+    }
     logStartupError("startup failed", err);
     dialog.showErrorBox("启动失败", err && err.stack ? err.stack : String(err));
     quitApp(1);

@@ -319,12 +319,14 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 
 **页面职责**：
 
-- `/templates`（模板库）是**浏览 + 选择**的页面：平铺卡片 + 手机预览，点击卡片只更新手机预览、
-  不立即应用；「使用这套」带 `?project=<id>` 时调 `POST /api/wechat/theme` 把该稿件的 `template_id`
-  改到所选模板，然后跳回 `/projects/<id>`。
-- `/layout` 是**管理**页面：导入样式包（`POST /api/layout-packs`）、取舍部件、编辑色值、
-  存为我的（`POST /api/layout-templates`）、删除（`DELETE /api/layout-templates`）。
-- 两页职责不能混；模板库页头部给一个「管理模板」链接跳 `/layout`。
+- `/templates`（模板页）是**同一个页面的两种模式**，顶部两个 Tab：
+  - 「模板库」= 浏览 + 选择：平铺卡片 + 手机预览，点击卡片只更新手机预览、
+    不立即应用；「使用这套」带 `?project=<id>` 时调 `POST /api/wechat/theme` 把该稿件的
+    `template_id` 改到所选模板，然后跳回 `/projects/<id>`。
+  - 「模板管理」= 导入样式包（`POST /api/layout-packs`）、取舍部件、编辑色值、
+    存为我的（`POST /api/layout-templates`）、删除（`DELETE /api/layout-templates`）。
+- `/layout` 重定向到 `/templates?tab=manage`，仅作旧链接兼容。
+- 两种模式共用同一份模板清单；导航只有一个「模板库」入口，不再并列「排版」。
 
 **接口复用**：模板库页**不新增接口**——清单读 `GET /api/layout-templates`；
 示例稿按所选模板渲染走 `GET /api/wechat/preview`；应用走 `POST /api/wechat/theme`。

@@ -1,11 +1,40 @@
 /* ==========================================================================
-   模板库 · 独立画廊页样式
+   模板页 · 模板库 / 模板管理
 
    设计约定：
+   - 一个页面两个 Tab：模板库（浏览）与模板管理（导入/改色）。
    - 布局只在 <1024px 断点切换一次；宽屏是左右两栏，窄屏堆成上下。
    - 手机按 456×972 固定尺寸设计，用 transform: scale 缩小到容器里，
      不改内部字号，避免微信壳子的比例被拉歪。
    ========================================================================== */
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 10px;
+}
+
+.tab {
+  border: 2px solid #1a1a1a;
+  background: #fff;
+  color: #1a1a1a;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
+
+.tab:hover {
+  background: #f5f2e8;
+}
+
+.tabActive {
+  background: #f7d54a;
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
 
 .layout {
   display: grid;

@@ -1,38 +1,35 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "../app-shell";
-import { Gallery } from "./gallery";
+import { TemplatesShell } from "./templates-shell";
 import { readSession } from "../../lib/auth";
 
 /**
- * 模板库：把「选排版」从编辑器里的下拉框搬出来，
- * 让排版能像素材一样一眼看过去。
+ * 模板页：挑模板和管模板在同一个页面里，用 Tab 区分。
  *
- * 这一页只做两件事：确认登录、把客户端画廊套进壳里。
- * 数据、选中、应用全在客户端组件里，服务端不掺业务。
- * `searchParams.project` 是稿件 id；带它进来的画廊右侧「使用这套」才能生效。
+ * - 默认「模板库」：平铺浏览 + 手机预览，点「使用这套」写回当前稿件。
+ * - 「模板管理」：原来的导入 / 取舍 / 改色 / 存模板面板。
+ *
+ * `searchParams.project` 是稿件 id；`searchParams.tab=manage` 直接落在管理面板
+ * （旧 /layout 链接重定向到这里）。
  */
 export default async function TemplatesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string }>;
+  searchParams: Promise<{ project?: string; tab?: string }>;
 }) {
   const session = await readSession();
   if (!session) redirect("/login");
 
   const sp = await searchParams;
   const projectId = sp.project?.trim() ?? "";
+  const initialTab = sp.tab === "manage" ? "manage" : "gallery";
 
   return (
     <AppShell
-      title="模板库"
-      description="左边挑一套，右边看效果。点卡片只是切换预览；要落到稿件上，点右边手机下的「使用这套」。"
-      actions={
-        <a className="gt-btn gt-btn--ghost" href="/layout">
-          管理模板
-        </a>
-      }
+      title="模板"
+      description="挑一套看效果；导入样式包、改色值、存自己的模板，都在「模板管理」里。"
     >
-      <Gallery projectId={projectId} />
+      <TemplatesShell projectId={projectId} initialTab={initialTab} />
     </AppShell>
   );
 }
