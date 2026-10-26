@@ -158,6 +158,10 @@ docs/             规格与说明
 9. **出包会在 `%TEMP%` 留下 `ns*.tmp`**（NSIS 编译临时目录），收尾时清掉。
 10. **Windows 上 Node 调 cmd.exe**：命令串不要额外包外层引号，要开 `windowsVerbatimArguments`；
     否则 cmd 会把整条命令当成**程序名**去找，报「不是内部或外部命令」。
+11. **electron-builder 下载二进制不读系统代理**（实测 2026-10-26）：直连 GitHub 不通时，
+    前五步全正常、最后一步卡死，报 `Timeout awaiting 'request' for 600000ms`。
+    出包时加环境变量 `HTTPS_PROXY=http://127.0.0.1:7897`，或设
+    `ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/`。
 
 ---
 
