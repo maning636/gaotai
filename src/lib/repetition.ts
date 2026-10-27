@@ -902,3 +902,65 @@ function isInsideQuote(text: string, position: number): boolean {
   }
   return false;
 }
+
+/** 模型退化重复：同一行或同一短语连续刷屏。 */
+export type DegenerateRepetition = {
+  kind: "lines" | "unit";
+  /** 重复的内容样例。 */
+  sample: string;
+  /** 重复段总长度（字）。 */
+  span: number;
+};
+
+/**
+ * 找「退化重复」——真模型偶发的采样故障，不是文章里的正常修辞。
+ *
+ * 典型形态（2026-10 真模型实测）：
+ *   - 同一个词一行，连续几十行（「可以」×N，每行一个）
+ *   - 「可以可以可以可以……」这种短单位连续刷屏
+ *
+ * 它和 repetition.ts 里给「查 AI 味」用的重复检查不是一回事：
+ * 那边找的是文章内部的啰嗦（相似句、包裹句），只报警不改；
+ * 这边是生成已经坏了，必须在保存前拦住。
+ */
+export function findDegenerateRepetition(text: string): DegenerateRepetition | null {
+  // 代码块里的重复可能是测试数据，不按退化处理。
+  const withoutCode = text.replace(/```[\s\S]*?```/g, "");
+
+  // 1) 连续相同的非空行：4 行以上，且每行不长（长段落重复更像正常引用）。
+  let previous = "";
+  let count = 0;
+  for (const raw of withoutCode.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) {
+      previous = "";
+      count = 0;
+      continue;
+    }
+    if (line === previous) {
+      count += 1;
+    } else {
+      previous = line;
+      count = 1;
+    }
+    if (count >= 4 && line.length <= 80) {
+      return { kind: "lines", sample: line, span: line.length * count };
+    }
+  }
+
+  // 2) 同一短单位在行内连续重复（2–6 字 × 至少 6 次，总长 ≥ 16）。
+  for (const raw of withoutCode.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line.length < 16) continue;
+    if (line.startsWith("|") || line.startsWith(">")) continue;
+    const match = line.match(/(.{2,6})\1{5,}/);
+    if (!match) continue;
+    const unit = match[1];
+    if (!unit.trim() || /^\s+$/.test(unit)) continue;
+    if (match[0].length >= 16) {
+      return { kind: "unit", sample: unit, span: match[0].length };
+    }
+  }
+
+  return null;
+}

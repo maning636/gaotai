@@ -1,5 +1,6 @@
 import { readAgentConfig } from "./agent-config-store";
 import { ensureLongLivedFetchTimeout } from "./fetch-timeout";
+import { findDegenerateRepetition } from "./repetition";
 
 // Node 的 fetch 默认 300 秒就放弃等响应头，长文请求会被它先掐断。
 // 模块加载时换一次全局 dispatcher 即可，之后实际管事的是我们自己的超时。
@@ -320,7 +321,32 @@ export async function chat(options: ChatOptions): Promise<ChatResult> {
   const label = options.label ?? "模型请求";
   const startedAt = Date.now();
   try {
-    const result = await requestChatWithConfig(options);
+    let result = await requestChatWithConfig(options);
+
+    // 退化重复兜底：真模型偶发「可以可以可以…」刷屏（每行一个、几十行）。
+    // 这是采样故障，不是提示词问题——先抬高温度重抽一次；仍然坏就明确报错，
+    // 绝不能把这种文本当正文存下来。补救指令只在失败后追加，不污染正常路径。
+    if (findDegenerateRepetition(result.content)) {
+      result = await requestChatWithConfig({
+        ...options,
+        temperature: Math.min(1.2, (options.temperature ?? 0.7) + 0.2),
+        retries: 0,
+        messages: [
+          ...options.messages,
+          {
+            role: "user",
+            content:
+              "上一次输出出现了退化重复（同一句或同一个词连续重复）。请完整重新生成这一阶段的产出，不要重复任何句子或词组。",
+          },
+        ],
+      });
+      if (findDegenerateRepetition(result.content)) {
+        throw new LlmError(
+          "模型输出出现了退化重复（同一句连续重复），已停止本次生成。请重试，或换一个模型 / 降低思考强度。",
+        );
+      }
+    }
+
     timings.push({
       label,
       ms: Date.now() - startedAt,

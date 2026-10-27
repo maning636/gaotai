@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { STAGES, STAGE_LABELS, type Stage, type StageResultRow, type MessageRow } from "../../../lib/stages";
 import { normalizeThemeId } from "../../../lib/wx-theme";
+import { insertMarkdownAt } from "../../../lib/editor-insert";
 
 /**
  * 稿件编辑器。
@@ -195,6 +196,10 @@ export function ProjectEditor({
   const [library, setLibrary] = useState<{ path: string; url: string; size: number }[]>([]);
   /** 选本机图片用的隐藏 input。 */
   const imagePicker = useRef<HTMLInputElement>(null);
+  /** 当前阶段正文编辑框：插图要按光标位置落，而不是永远拼到末尾。 */
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  /** 最后一次已知的光标位置。点工具栏按钮会让编辑框失焦，但位置要留住。 */
+  const contentCaret = useRef<number | null>(null);
   /** 生成时服务端量出来的成稿体检摘要。 */
   const [quality, setQuality] = useState<ArticleQuality | null>(null);
   /**
@@ -266,6 +271,10 @@ export function ProjectEditor({
   );
   const current = state[stage];
   const dirty = current.content !== current.baseline;
+
+  useEffect(() => {
+    contentCaret.current = null;
+  }, [stage]);
 
   function updateStageContent(value: string) {
     setState(currentState => ({ ...currentState, [stage]: { ...currentState[stage], content: value } }));
@@ -477,10 +486,13 @@ export function ProjectEditor({
    * 下次打开还是这套排版，推草稿时也按它渲染。
    */
   async function loadPreview(id: string) {
-    const response = await fetch(
-      `/api/wechat/preview?projectId=${project.id}&templateId=${encodeURIComponent(id)}`,
-      { cache: "no-store" },
-    );
+    // POST 带上编辑器里的当前正文：图刚插进去、还没点「保存修改」时，
+    // 预览也应该能看到它。GET 只读数据库，会漏掉未保存的改动。
+    const response = await fetch("/api/wechat/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId: project.id, templateId: id, content: current.content }),
+    });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error ?? "预览失败。");
     return body as { html?: string; text?: string };
@@ -580,25 +592,31 @@ export function ProjectEditor({
   }
 
   /**
-   * 把一张图插进**正文阶段**的末尾。
+   * 把一张图插进正文的光标位置。
    *
    * 图是外面来的（别的工具生图、截图、照片），先传进本机素材库，
    * 正文里引用它的本机地址；推草稿时稿台会逐张换成微信自己的地址。
    *
-   * 插的是正文阶段而不是「当前阶段」：配图是给成稿用的。
+   * 位置来自 contentCaret：点工具栏按钮会让编辑框失焦，但最后一次
+   * 光标位置要留住；从没点过编辑框才退回末尾。
    */
   function insertImage(url: string, alt: string) {
-    setState(currentState => {
-      const target = currentState.article;
-      const base = (target?.content ?? "").trimEnd();
-      const next = `${base}${base ? "\n\n" : ""}![${alt}](${url})\n`;
-      return { ...currentState, article: { ...target, content: next } };
+    const snippet = `![${alt}](${url})`;
+    const base = state.article?.content ?? "";
+    const { content, caret } = insertMarkdownAt(base, contentCaret.current, snippet);
+
+    setState(currentState => ({
+      ...currentState,
+      article: { ...currentState.article, content },
+    }));
+    contentCaret.current = caret;
+    requestAnimationFrame(() => {
+      const el = contentRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(caret, caret);
     });
-    setNotice(
-      stage === "article"
-        ? "图已经插到正文末尾。记得点「保存修改」把它存下来。"
-        : "图已经插到正文阶段。切到「正文」那一步就能看到，记得点「保存修改」。",
-    );
+    setNotice("图已插到光标位置。记得点「保存修改」把它存下来。");
     setShowImages(false);
   }
 
@@ -978,9 +996,19 @@ export function ProjectEditor({
             </div>
             <div className="gt-editor__body">
               <textarea
+                ref={contentRef}
                 className="gt-editor__text"
                 value={current.content}
                 onChange={event => updateStageContent(event.target.value)}
+                onSelect={event => {
+                  contentCaret.current = event.currentTarget.selectionStart;
+                }}
+                onClick={event => {
+                  contentCaret.current = event.currentTarget.selectionStart;
+                }}
+                onKeyUp={event => {
+                  contentCaret.current = event.currentTarget.selectionStart;
+                }}
                 placeholder="这一阶段的产出会显示在这里。生成之后可以随意改。"
               />
             </div>
@@ -1002,14 +1030,16 @@ export function ProjectEditor({
               <button className="gt-btn gt-btn--sm" type="button" onClick={onImagePrompt} disabled={busy !== ""}>
                 {busy === "prompt" ? "生成中…" : "配图提示词"}
               </button>
-              <button
-                className="gt-btn gt-btn--sm"
-                type="button"
-                onClick={() => setShowImages(value => !value)}
-                disabled={busy !== ""}
-              >
-                {showImages ? "收起配图" : "插入图片"}
-              </button>
+              {stage === "article" ? (
+                <button
+                  className="gt-btn gt-btn--sm"
+                  type="button"
+                  onClick={() => setShowImages(value => !value)}
+                  disabled={busy !== ""}
+                >
+                  {showImages ? "收起配图" : "插入图片"}
+                </button>
+              ) : null}
               <button className="gt-btn gt-btn--sm" type="button" onClick={onProseCheck} disabled={busy !== "" || !current.content.trim()}>
                 {busy === "prose" ? "体检中…" : "查 AI 味"}
               </button>
@@ -1033,7 +1063,7 @@ export function ProjectEditor({
             </div>
           </section>
 
-          {showImages ? (
+          {stage === "article" && showImages ? (
             <section className="gt-panel gt-panel--flat">
               <div className="gt-panel__head">
                 <h3 className="gt-panel__title">插入图片</h3>

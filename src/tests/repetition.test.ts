@@ -1,5 +1,5 @@
 import { assertEqual, assertTrue, suite } from "./harness";
-import { containment, dedupeRepeatedSentences, findRepetitions, similarity } from "../lib/repetition";
+import { containment, dedupeRepeatedSentences, findDegenerateRepetition, findRepetitions, similarity } from "../lib/repetition";
 import { checkProse } from "../lib/prose-check";
 
 /**
@@ -229,5 +229,29 @@ suite("机械去重", ({ test }) => {
     const result = dedupeRepeatedSentences(text);
     assertEqual(result.removed.length, 1);
     assertEqual(result.content.trim(), "他抬头看了一眼墙上的钟。", "空段要收掉");
+  });
+});
+
+suite("模型退化重复", ({ test }) => {
+  test("同一行连续四次判为退化", () => {
+    const hit = findDegenerateRepetition(["可以", "可以", "可以", "可以"].join("\n"));
+    assertTrue(Boolean(hit), "应判为退化重复");
+    assertEqual(hit?.kind, "lines");
+  });
+
+  test("短单位连续刷屏判为退化", () => {
+    const hit = findDegenerateRepetition("可以可以可以可以可以可以可以可以");
+    assertTrue(Boolean(hit), "应判为退化重复");
+    assertEqual(hit?.kind, "unit");
+  });
+
+  test("正常语境里的重复不误报", () => {
+    const text = "他说可以。\n\n我也说可以，但得等一等。";
+    assertEqual(findDegenerateRepetition(text), null);
+  });
+
+  test("代码块里的重复不误报", () => {
+    const text = "```\n可以\n可以\n可以\n可以\n```";
+    assertEqual(findDegenerateRepetition(text), null);
   });
 });
