@@ -49,7 +49,13 @@ export async function POST(request: Request) {
 
   const instruction = getPrompt("illustration-plan").trim();
   if (!instruction) {
-    return NextResponse.json({ error: "自动配图提示词缺失（resources/prompts/illustration-plan.md）。" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          "自动配图提示词还没到位。请到「系统 → 授权」点「检查更新」同步资源包后重试。",
+      },
+      { status: 500 },
+    );
   }
 
   const system = [

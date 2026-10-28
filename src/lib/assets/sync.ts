@@ -46,6 +46,8 @@ export type AssetPackState = { version: string; sha256: string };
 export type AssetState = {
   version: string;
   packs: Record<string, AssetPackState>;
+  /** 上次与服务端 manifest 比对的时间（毫秒）。老缓存没有这个字段，当作「很久没查」。 */
+  checkedAt?: number;
 };
 
 /** ensureAssets 的返回值。 */
@@ -58,6 +60,14 @@ export type EnsureAssetsResult =
 /** 服务器 manifest 里单个资产条目的形状（协议 §4.4）。 */
 type ManifestAsset = { name: string; version: string; bytes?: number; sha256?: string; url?: string };
 type ManifestData = { version: string; assets: ManifestAsset[] };
+
+/**
+ * 隔多久回头问一次服务端「有没有新版资源」。
+ *
+ * 不能只在激活时比对：安装包装好后就不再激活了，同一天改的提示词永远到不了
+ * 已经装好的人手里。6 小时一次、一次一个几百字节的 manifest，成本可以忽略。
+ */
+const ASSET_RECHECK_MS = 6 * 60 * 60 * 1000;
 
 /** 资源清单文件路径。 */
 export function assetStateFile(): string {
@@ -80,6 +90,21 @@ export async function readAssetState(): Promise<AssetState | null> {
     return null;
   } catch {
     return null;
+  }
+}
+
+/** 记下「刚和服务端比对过」，避免每次启动都拉 manifest。 */
+async function touchCheckedAt(state: AssetState): Promise<void> {
+  const file = assetStateFile();
+  const next: AssetState = { ...state, checkedAt: Date.now() };
+  const tmp = `${file}.tmp`;
+  try {
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(tmp, JSON.stringify(next, null, 2), "utf8");
+    await rm(file, { force: true });
+    await rename(tmp, file);
+  } catch {
+    // 只是记个时间，写不进去不影响本次就绪判断。
   }
 }
 
@@ -128,10 +153,11 @@ async function run(force: boolean): Promise<EnsureAssetsResult> {
   // 2. 本地缓存命中判断。
   const local = await readAssetState();
   const root = assetRootDir();
-  if (local && (await packsPresent(root, Object.keys(local.packs)))) {
-    if (!force) {
-      return { status: "ready", version: local.version };
-    }
+  const localOk = Boolean(local) && (await packsPresent(root, Object.keys(local!.packs)));
+  const fresh =
+    typeof local?.checkedAt === "number" && Date.now() - local.checkedAt < ASSET_RECHECK_MS;
+  if (localOk && !force && fresh) {
+    return { status: "ready", version: local!.version };
   }
 
   // 3. 取 token（HKDF 派生与 Bearer 头都用它）。
@@ -160,9 +186,10 @@ async function run(force: boolean): Promise<EnsureAssetsResult> {
   if (!manifest) {
     return { status: "failed", error: `拉取资源清单失败：${msg(lastError)}` };
   }
-  // force 且版本一致且目录齐全 → 视为就绪，不下发。
-  if (local && local.version === manifest.version && (await packsPresent(root, Object.keys(local.packs)))) {
-    return { status: "ready", version: local.version };
+  // 版本一致且目录齐全 → 就绪，不下发；顺手把「刚查过」记下来。
+  if (localOk && local!.version === manifest.version) {
+    await touchCheckedAt(local!);
+    return { status: "ready", version: local!.version };
   }
 
   // 5. 逐包下载 + 解密 + 校验。
@@ -424,7 +451,7 @@ async function applyDownload(
 /** 原子写 `<dataDir>/assets/state.json`。 */
 async function writeAssetState(manifest: ManifestData): Promise<void> {
   const file = assetStateFile();
-  const state: AssetState = { version: manifest.version, packs: {} };
+  const state: AssetState = { version: manifest.version, packs: {}, checkedAt: Date.now() };
   for (const a of manifest.assets) {
     state.packs[a.name] = { version: a.version, sha256: a.sha256 ?? "" };
   }

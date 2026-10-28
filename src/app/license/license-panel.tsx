@@ -334,24 +334,24 @@ export function LicensePanel() {
                     {refreshError}
                   </p>
                 ) : null}
-                {/* 资源包：激活后从授权服务器加密下发。已就绪显示版本；未就绪提供手动同步。 */}
+                {/* 资源包：激活后从授权服务器加密下发。
+                    已就绪时也保留一个「检查更新」——提示词改了、技能包加了东西，
+                    用户得有个手动入口能立刻拿到，而不是只能等下次启动。 */}
                 <div className="gt-license__kv">
                   <span className="gt-small gt-muted">资源包</span>
-                  {assets?.ready ? (
-                    <span className="gt-small">v{assets.version} 已就绪</span>
-                  ) : (
-                    <span className="gt-row">
-                      <span className="gt-small gt-muted">未就绪</span>
-                      <button
-                        className="gt-btn gt-btn--sm gt-btn--quiet"
-                        type="button"
-                        onClick={onSyncAssets}
-                        disabled={syncing || !serverConfigured}
-                      >
-                        {syncing ? "同步中…" : "同步"}
-                      </button>
+                  <span className="gt-row">
+                    <span className={assets?.ready ? "gt-small" : "gt-small gt-muted"}>
+                      {assets?.ready ? `v${assets.version} 已就绪` : "未就绪"}
                     </span>
-                  )}
+                    <button
+                      className="gt-btn gt-btn--sm gt-btn--quiet"
+                      type="button"
+                      onClick={onSyncAssets}
+                      disabled={syncing || !serverConfigured}
+                    >
+                      {syncing ? "同步中…" : assets?.ready ? "检查更新" : "同步"}
+                    </button>
+                  </span>
                 </div>
                 {syncError ? (
                   <p className="gt-error" role="alert" aria-live="polite">
