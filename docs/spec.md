@@ -364,6 +364,7 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 | GET | `/api/files` | — | `[{ path, size, mtime, url }]` 素材库列表 |
 | POST | `/api/files` | multipart `file` | `{ ok: true, image: { path, size, mtime, url } }`；超 10MB 或格式不对 400 |
 | DELETE | `/api/files` | `{ path }` | `{ ok: true }` |
+| POST | `/api/illustration` | 一份 ChartSpec（`kind` + 标题 + 数据 + 可选单位/来源） | `{ url, path, size, width, height }`；本地 canvas 渲染 2000px PNG，落在素材库 |
 
 **稿台不生图。** 图从外面来（别的工具生图、截图、照片），流程是：
 

@@ -8,6 +8,8 @@ import "./markdown.test";
 import "./layout-template.test";
 import "./wedraft-convert.test";
 import "./editor-insert.test";
+import "./chart-spec.test";
+import "./chart-renderer.test";
 import "./import-article.test";
 import "./wechat-images.test";
 import "./wechat-api.test";

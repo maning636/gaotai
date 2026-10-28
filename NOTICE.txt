@@ -36,6 +36,14 @@ NOTICE —— 第三方组件归属与许可声明
    resources/skills/gaotai-editorial/
    归稿台项目所有，随主仓库 MIT 许可发布。
 
+4. 借鉴与致谢（非代码依赖，不随包分发其代码/资产）
+
+   - 图表选型与视觉原则参考了 lieflat-charts（作者：躺在废墟里，
+     PolyForm Noncommercial License 1.0.0）。六种图型的数据形状分类与
+     「编辑叙事 / 快读」的取舍思路受其启发；本项目未复制其模板、代码或资产，
+     图解渲染为本项目自研（node-canvas）。
+   - 「用最小视图把逻辑说清楚」的图解原则参考了 show-me（HumanLayer，MIT）。
+
 其余第三方依赖（next / react / electron / better-sqlite3 / canvas /
 zod / yaml / mdast-util-* 等）以 npm 依赖形式引入，各自的许可文本
 保留在安装后的 node_modules 内，不随仓库分发。

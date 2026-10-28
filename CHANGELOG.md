@@ -3,6 +3,18 @@
 本文件记录每个版本的用户可感知变化。格式约定：每条可溯源到 commit；
 禁止编造未实施的功能。
 
+## [0.1.6] - 2026-10-28
+
+### Added
+- **正文「生成图解」**：六种图型（条形排名 / 占比方块 / 时间线 / 前后对比 / 步骤流程 / 关键数字），
+  本地 canvas 渲染成 2000px PNG，按光标插入正文；推草稿时走已有的图片上传链路。
+- 图解 spec（zod 校验）与渲染器（`src/lib/chart-spec.ts` / `chart-renderer.ts`），
+  新增 9 条测试（spec 校验 + 六种图渲染 + 体积上限）。
+
+### Notes
+- 图型选型与视觉原则参考 lieflat-charts（PolyForm Noncommercial 1.0.0）与
+  show-me（MIT）；未复制其代码/模板，详见 `NOTICE.txt`「借鉴与致谢」。
+
 ## [0.1.5] - 2026-10-28
 
 ### Fixed

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { STAGES, STAGE_LABELS, type Stage, type StageResultRow, type MessageRow } from "../../../lib/stages";
 import { normalizeThemeId } from "../../../lib/wx-theme";
 import { insertMarkdownAt } from "../../../lib/editor-insert";
+import { CHART_KIND_HINTS, CHART_KIND_LABELS, chartSpecSchema, type ChartKind } from "../../../lib/chart-spec";
 
 /**
  * 稿件编辑器。
@@ -192,6 +193,16 @@ export function ProjectEditor({
   const [prose, setProse] = useState<ProseResult | null>(null);
   /** 插入图片的面板是否展开。 */
   const [showImages, setShowImages] = useState(false);
+  /** 生成图解的面板。 */
+  const [showIllustration, setShowIllustration] = useState(false);
+  const [illustrationKind, setIllustrationKind] = useState<ChartKind>("bar");
+  const [illustrationTitle, setIllustrationTitle] = useState("");
+  const [illustrationUnit, setIllustrationUnit] = useState("");
+  const [illustrationSource, setIllustrationSource] = useState("");
+  const [illustrationData, setIllustrationData] = useState("");
+  const [illustrationPreview, setIllustrationPreview] = useState<{ url: string; width: number; height: number } | null>(null);
+  const [illustrationBusy, setIllustrationBusy] = useState(false);
+  const [illustrationError, setIllustrationError] = useState("");
   /** 素材库里已有的图片。 */
   const [library, setLibrary] = useState<{ path: string; url: string; size: number }[]>([]);
   /** 选本机图片用的隐藏 input。 */
@@ -589,6 +600,126 @@ export function ProjectEditor({
     } finally {
       setBusy("");
     }
+  }
+
+  /** 把界面上的文本解析成 ChartSpec；格式不对就返回错误。 */
+  function parseIllustrationSpec(): { spec?: unknown; error?: string } {
+    const title = illustrationTitle.trim();
+    if (!title) return { error: "先写一个标题。" };
+    const lines = illustrationData
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (!lines.length) return { error: "数据还没填。" };
+
+    const meta = {
+      title,
+      ...(illustrationUnit.trim() ? { unit: illustrationUnit.trim() } : {}),
+      ...(illustrationSource.trim() ? { source: illustrationSource.trim() } : {}),
+    };
+
+    try {
+      let spec: unknown;
+      if (illustrationKind === "bar" || illustrationKind === "waffle") {
+        const rows = lines.map(line => {
+          const [label, raw] = line.split(/[,\t]/).map(part => part.trim());
+          const value = Number(raw);
+          if (!label || !raw || !Number.isFinite(value)) throw new Error(`这一行不对：${line}`);
+          return { label, value };
+        });
+        spec =
+          illustrationKind === "bar"
+            ? { kind: "bar", ...meta, rows }
+            : { kind: "waffle", ...meta, segments: rows };
+      } else if (illustrationKind === "timeline") {
+        spec = {
+          kind: "timeline",
+          ...meta,
+          items: lines.map(line => {
+            const [date, heading, detail] = line.split("|").map(part => part.trim());
+            if (!date || !heading) throw new Error(`这一行不对：${line}`);
+            return { date, title: heading, ...(detail ? { detail } : {}) };
+          }),
+        };
+      } else if (illustrationKind === "steps") {
+        spec = {
+          kind: "steps",
+          ...meta,
+          steps: lines.map(line => {
+            const [heading, detail] = line.split("|").map(part => part.trim());
+            if (!heading) throw new Error(`这一行不对：${line}`);
+            return { title: heading, ...(detail ? { detail } : {}) };
+          }),
+        };
+      } else if (illustrationKind === "kpi") {
+        spec = {
+          kind: "kpi",
+          ...meta,
+          items: lines.map(line => {
+            const [label, value, delta] = line.split(/[,\t]/).map(part => part.trim());
+            if (!label || !value) throw new Error(`这一行不对：${line}`);
+            return { label, value, ...(delta ? { delta } : {}) };
+          }),
+        };
+      } else {
+        const sep = lines.findIndex(line => line === "---");
+        if (sep < 1 || sep === lines.length - 1) {
+          throw new Error("前后对比要用一行 --- 隔开左右两栏。");
+        }
+        const left = lines.slice(0, sep);
+        const right = lines.slice(sep + 1);
+        if (left.length < 2 || right.length < 2) {
+          throw new Error("左右两栏都要有「标题 + 至少一条要点」。");
+        }
+        spec = {
+          kind: "compare",
+          ...meta,
+          left: { label: left[0], points: left.slice(1) },
+          right: { label: right[0], points: right.slice(1) },
+        };
+      }
+
+      const parsed = chartSpecSchema.safeParse(spec);
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        return { error: `${issue?.path?.join(".") ?? ""} ${issue?.message ?? "参数不对"}`.trim() };
+      }
+      return { spec: parsed.data };
+    } catch (issue) {
+      return { error: issue instanceof Error ? issue.message : "数据格式不对。" };
+    }
+  }
+
+  async function onGenerateIllustration() {
+    if (illustrationBusy) return;
+    const parsed = parseIllustrationSpec();
+    if (!parsed.spec) {
+      setIllustrationError(parsed.error ?? "数据格式不对。");
+      return;
+    }
+    setIllustrationBusy(true);
+    setIllustrationError("");
+    try {
+      const response = await fetch("/api/illustration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.spec),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "生成图解失败。");
+      setIllustrationPreview({ url: body.url, width: body.width, height: body.height });
+    } catch (issue) {
+      setIllustrationError(issue instanceof Error ? issue.message : "生成图解失败。");
+    } finally {
+      setIllustrationBusy(false);
+    }
+  }
+
+  function onInsertIllustration() {
+    if (!illustrationPreview) return;
+    insertImage(illustrationPreview.url, "图解");
+    setIllustrationPreview(null);
+    setShowIllustration(false);
   }
 
   /**
@@ -1040,6 +1171,16 @@ export function ProjectEditor({
                   {showImages ? "收起配图" : "插入图片"}
                 </button>
               ) : null}
+              {stage === "article" ? (
+                <button
+                  className="gt-btn gt-btn--sm"
+                  type="button"
+                  onClick={() => setShowIllustration(value => !value)}
+                  disabled={busy !== ""}
+                >
+                  {showIllustration ? "收起图解" : "生成图解"}
+                </button>
+              ) : null}
               <button className="gt-btn gt-btn--sm" type="button" onClick={onProseCheck} disabled={busy !== "" || !current.content.trim()}>
                 {busy === "prose" ? "体检中…" : "查 AI 味"}
               </button>
@@ -1123,6 +1264,106 @@ export function ProjectEditor({
                     素材库还是空的——先传一张。
                   </p>
                 )}
+              </div>
+            </section>
+          ) : null}
+
+          {stage === "article" && showIllustration ? (
+            <section className="gt-panel gt-panel--flat">
+              <div className="gt-panel__head">
+                <h3 className="gt-panel__title">生成图解</h3>
+                <span className="gt-small gt-muted">
+                  选一种图、填数据，生成 PNG 后按光标插入正文。图会走素材库，推草稿时自动换成微信地址。
+                </span>
+              </div>
+              <div className="gt-stack gt-stack--sm">
+                <div className="gt-row" style={{ gap: "6px", flexWrap: "wrap" }}>
+                  {(Object.keys(CHART_KIND_LABELS) as ChartKind[]).map(kind => (
+                    <button
+                      key={kind}
+                      type="button"
+                      className={`gt-btn gt-btn--sm${illustrationKind === kind ? " gt-btn--primary" : ""}`}
+                      onClick={() => {
+                        setIllustrationKind(kind);
+                        setIllustrationPreview(null);
+                        setIllustrationError("");
+                      }}
+                    >
+                      {CHART_KIND_LABELS[kind]}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="gt-field">
+                  <span className="gt-label">标题</span>
+                  <input
+                    className="gt-input"
+                    value={illustrationTitle}
+                    onChange={event => setIllustrationTitle(event.target.value)}
+                    placeholder="一句话说清这张图"
+                  />
+                </label>
+
+                <div className="gt-row" style={{ gap: "8px" }}>
+                  <label className="gt-field" style={{ flex: 1 }}>
+                    <span className="gt-label">单位（可选）</span>
+                    <input
+                      className="gt-input"
+                      value={illustrationUnit}
+                      onChange={event => setIllustrationUnit(event.target.value)}
+                      placeholder="分钟 / 篇 / %"
+                    />
+                  </label>
+                  <label className="gt-field" style={{ flex: 1 }}>
+                    <span className="gt-label">来源（可选）</span>
+                    <input
+                      className="gt-input"
+                      value={illustrationSource}
+                      onChange={event => setIllustrationSource(event.target.value)}
+                      placeholder="2026-10 内部统计"
+                    />
+                  </label>
+                </div>
+
+                <label className="gt-field">
+                  <span className="gt-label">数据</span>
+                  <textarea
+                    className="gt-textarea gt-textarea--mono"
+                    rows={6}
+                    value={illustrationData}
+                    onChange={event => setIllustrationData(event.target.value)}
+                    placeholder={CHART_KIND_HINTS[illustrationKind]}
+                  />
+                  <span className="gt-small gt-muted" style={{ whiteSpace: "pre-line" }}>
+                    {CHART_KIND_HINTS[illustrationKind]}
+                  </span>
+                </label>
+
+                {illustrationError ? <div className="gt-alert gt-alert--error">{illustrationError}</div> : null}
+
+                <div className="gt-row">
+                  <button
+                    className="gt-btn gt-btn--primary"
+                    type="button"
+                    onClick={() => void onGenerateIllustration()}
+                    disabled={illustrationBusy}
+                  >
+                    {illustrationBusy ? "生成中…" : "生成预览"}
+                  </button>
+                  {illustrationPreview ? (
+                    <button className="gt-btn" type="button" onClick={onInsertIllustration}>
+                      插入到光标
+                    </button>
+                  ) : null}
+                </div>
+
+                {illustrationPreview ? (
+                  <img
+                    src={illustrationPreview.url}
+                    alt="图解预览"
+                    style={{ width: "100%", border: "2px solid #1A1A1A", background: "#fff" }}
+                  />
+                ) : null}
               </div>
             </section>
           ) : null}
