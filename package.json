@@ -17,7 +17,8 @@
     "prepare:resources": "node scripts/prepare-resources.mjs",
     "desktop": "electron .",
     "desktop:dev": "node scripts/run-desktop.mjs dev",
-    "desktop:build": "npm run build && node scripts/ensure-runtime-deps.mjs && node scripts/copy-standalone-assets.mjs && node scripts/sanitize-standalone.mjs && node scripts/prepare-resources.mjs && electron-builder --win"
+    "desktop:build": "npm run build && node scripts/ensure-runtime-deps.mjs && node scripts/copy-standalone-assets.mjs && node scripts/sanitize-standalone.mjs && node scripts/prepare-resources.mjs && electron-builder --win && node scripts/verify-package.mjs",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
