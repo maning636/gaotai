@@ -474,13 +474,13 @@ describe('领码', () => {
     const r = await fetch(base + '/v1/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact: 'wx_redeem_1', channel: 'direct' }),
+      body: JSON.stringify({ contact: 'someone@example.com', channel: 'direct', consent: true }),
     });
     const j = await r.json();
     assert.equal(r.status, 200);
     assert.equal(j.ok, true);
     assert.ok(j.data.code.startsWith('GT-'));
-    assert.equal(j.data.contact, 'wx_redeem_1');
+    assert.equal(j.data.contact, 'someone@example.com');
     assert.ok(j.data.createdAt > 0);
   });
 
@@ -489,34 +489,60 @@ describe('领码', () => {
     const r1 = await fetch(base + '/v1/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact: 'wx_dup', channel: 'direct' }),
+      body: JSON.stringify({ contact: 'dup@example.com', channel: 'direct', consent: true }),
     });
     const j1 = await r1.json();
     const r2 = await fetch(base + '/v1/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact: 'wx_dup', channel: 'direct' }),
+      body: JSON.stringify({ contact: 'DUP@Example.com', channel: 'direct', consent: true }),
     });
     const j2 = await r2.json();
     assert.equal(j1.data.code, j2.data.code);
   });
 
-  test('contact 规范化：手机号小写化、trim', async () => {
+  test('邮箱规范化：trim + 小写，重复领取返回原码', async () => {
     const base = await s.base();
     const r1 = await fetch(base + '/v1/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact: '  13800138000  ' }),
+      body: JSON.stringify({ contact: '  Trim.Me@Example.COM  ', consent: true }),
     });
     const j1 = await r1.json();
-    // 带空格的重复提交应返回原码
     const r2 = await fetch(base + '/v1/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact: '13800138000' }),
+      body: JSON.stringify({ contact: 'trim.me@example.com', consent: true }),
     });
     const j2 = await r2.json();
+    assert.equal(j1.data.contact, 'trim.me@example.com');
     assert.equal(j1.data.code, j2.data.code);
+  });
+
+  test('未同意隐私说明 → 400 consent_required', async () => {
+    const base = await s.base();
+    const r = await fetch(base + '/v1/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contact: 'no-consent@example.com' }),
+    });
+    const j = await r.json();
+    assert.equal(r.status, 400);
+    assert.equal(j.error.code, 'consent_required');
+  });
+
+  test('邮箱格式不对 → 400 bad_contact', async () => {
+    const base = await s.base();
+    for (const bad of ['not-an-email', 'a@b', 'a b@c.com', '']) {
+      const r = await fetch(base + '/v1/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact: bad, consent: true }),
+      });
+      const j = await r.json();
+      assert.equal(r.status, 400, '应拒绝：' + bad);
+      assert.equal(j.error.code, 'bad_contact');
+    }
   });
 
   test('bad_contact → 400', async () => {
@@ -524,21 +550,42 @@ describe('领码', () => {
     const r = await fetch(base + '/v1/redeem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact: 'x' }),
+      body: JSON.stringify({ contact: 'x', consent: true }),
     });
     const j = await r.json();
     assert.equal(r.status, 400);
     assert.equal(j.error.code, 'bad_contact');
   });
 
-  test('GET /redeem 返回 HTML', async () => {
+  test('GET /redeem 返回 HTML（含邮箱字段与隐私同意）', async () => {
     const base = await s.base();
     const r = await fetch(base + '/redeem');
     const text = await r.text();
     assert.equal(r.status, 200);
     assert.ok(text.includes('<!DOCTYPE html>'));
-    assert.ok(text.includes('fetch'));
+    assert.ok(text.includes('type="email"'));
+    assert.ok(text.includes('隐私说明'));
     assert.ok(text.includes('/v1/redeem'));
     assert.ok(text.includes('复制'));
+  });
+
+  test('领码页里不能出现被吞掉反斜杠的残留（模板字符串陷阱）', async () => {
+    const base = await s.base();
+    const text = await (await fetch(base + '/redeem')).text();
+    // 页面由模板字符串拼出，正则里的反斜杠会被当成转义吞掉：
+    // /\/redeem\/?$/ 会变成 //redeem/?$/（JS 里 // 是注释，整段脚本语法错误），
+    // /[^\s@]/ 会变成 [^s@]（把字母 s 当成禁用字符，带 s 的邮箱全被判非法）。
+    assert.ok(!text.includes('replace(//'), '出现了被吞掉反斜杠的正则开头');
+    assert.ok(!text.includes('[^s@]'), '出现了被吞掉反斜杠的字符类');
+  });
+
+  test('GET /privacy 返回隐私说明', async () => {
+    const base = await s.base();
+    const r = await fetch(base + '/privacy');
+    const text = await r.text();
+    assert.equal(r.status, 200);
+    assert.ok(text.includes('隐私说明'));
+    assert.ok(text.includes('邮箱'));
+    assert.ok(text.includes('机器码'));
   });
 });

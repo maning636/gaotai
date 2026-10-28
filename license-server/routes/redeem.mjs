@@ -1,5 +1,5 @@
 import { readJsonBody, failByCode, ok, clientIp, setCORS } from '../lib/http.mjs';
-import { generateCode, normalizeContact, isValidContact } from '../lib/store.mjs';
+import { generateCode, normalizeContact, isValidEmail } from '../lib/store.mjs';
 import { redeemPageHtml } from '../lib/redeem-page.mjs';
 
 // GET /redeem → 自包含 HTML 页
@@ -38,10 +38,19 @@ export async function handle(ctx, req, res) {
   }
 
   const contact = normalizeContact(body.contact);
-  if (!isValidContact(contact)) {
+  if (!isValidEmail(contact)) {
     store.appendAudit({ ip, codePrefix: '', errorCode: 'bad_contact', event: 'redeem' });
     setCORS(res);
-    failByCode(res, 'bad_contact', '联系方式格式不正确');
+    failByCode(res, 'bad_contact', '请填写一个可用的邮箱');
+    return;
+  }
+
+  // 明示同意：不接受「默认勾选」或「提交即视为同意」。
+  // 页面必须显式带 consent:true，否则拒发，避免日后扯不清有没有告知过。
+  if (body.consent !== true) {
+    store.appendAudit({ ip, codePrefix: '', errorCode: 'consent_required', event: 'redeem' });
+    setCORS(res);
+    failByCode(res, 'consent_required', '请先阅读并同意隐私说明');
     return;
   }
 

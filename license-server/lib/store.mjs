@@ -102,6 +102,18 @@ export function isValidContact(raw) {
   return s.length >= 2 && s.length <= 64;
 }
 
+// 邮箱校验。
+//
+// 领码改成收邮箱而非微信号/手机号：ICP 备案的站点收集手机号属于个人信息，
+// 必须有明示同意与隐私说明；邮箱同样受 PIPL 管，但敏感度更低、也更符合
+// 「最小必要」——我们确实需要一个能联系到领取人的方式。
+// 这里只做结构校验，不做 DNS 验证：发信是后续的事，现在只用于发放与找回。
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+export function isValidEmail(raw) {
+  const s = normalizeContact(raw);
+  return s.length >= 6 && s.length <= 254 && EMAIL_RE.test(s);
+}
+
 // 并发串行化：所有写操作排队执行，避免读写交错损坏 JSON
 function createQueue() {
   let tail = Promise.resolve();

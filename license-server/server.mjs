@@ -11,6 +11,7 @@ import { handle as refresh } from './routes/refresh.mjs';
 import { handle as status } from './routes/status.mjs';
 import { handle as assetsRoute } from './routes/assets.mjs';
 import { handle as redeemRoute } from './routes/redeem.mjs';
+import { privacyPageHtml } from './lib/privacy-page.mjs';
 
 // createApp 是测试入口：注入临时目录、临时密钥、独立 store/limiter
 // 返回 { handler, close }
@@ -82,6 +83,12 @@ export function createApp({ config: cfg }) {
         await redeemRoute(ctx, req, res, url);
       } else if (method === 'GET' && pathname === '/redeem') {
         await redeemRoute(ctx, req, res, url);
+      } else if (method === 'GET' && pathname === '/privacy') {
+        const html = privacyPageHtml();
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Content-Length', Buffer.byteLength(html));
+        res.end(html);
       } else {
         failByCode(res, 'not_found', '接口不存在');
       }

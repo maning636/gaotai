@@ -146,11 +146,16 @@ key  = HKDF-SHA256(ikm, salt, info, 32 字节)
 ### 6.1 POST /v1/redeem
 
 ```json
-{ "contact": "微信号或手机号", "channel": "wechat-mp|wechat-oa|direct", "note": "" }
+{ "contact": "name@example.com", "channel": "wechat-mp|wechat-oa|direct", "consent": true, "note": "" }
 ```
 
+- `contact` 是**邮箱**：ICP 备案站点收集手机号属于个人信息处理，需明示告知与同意；
+  邮箱同样受 PIPL 管，但更符合「最小必要」——我们只需要一个能联系到领取人的方式。
+- `consent` 必须为 `true`，否则返回 `consent_required`。不接受「提交即视为同意」，
+  也不接受默认勾选：页面必须有显式勾选框 + 指向 `/privacy` 的隐私说明。
 - 成功：`data = { code, contact, createdAt }`（同 contact 重复提交返回原码，不重复发）
-- 失败：`bad_contact`(400) / `rate_limited`(429)
+- 失败：`bad_contact`(400) / `consent_required`(400) / `rate_limited`(429)
+- `GET /privacy` 返回自包含的隐私说明页（服务端同源渲染，不依赖任何 CDN）。
 
 ### 6.2 GET /redeem
 
