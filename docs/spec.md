@@ -255,6 +255,15 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 | **不给任何工具** | 正文阶段走纯 `chat`，不挂 `check_prose`，也不让模型读技能包。技能包的「怎么写」那一节由服务端注入提示词。「写完自查再改」是程序型指令，会把思考额度吃光、正文一个字没有。 |
 | **上下文只拿骨架** | 只带大纲的结构化部分（推进 / 目的 / ≤40 字的内容 / 素材 / 形式）、大纲开头的三个头、以及材料解读里的硬事实。选题阶段的论证过程不带。 |
 
+### 3.3.2 退化重复兜底
+
+真模型偶发「同一句/同一个词连续刷屏」（例如每行一个「可以」，连续几十行）。
+`chat()` 在返回前检测：连续相同的非空行 ≥4 次，或 2–6 字单位连续 ≥6 次且总长 ≥16 字，
+即判为退化重复（代码块内不计）。
+
+命中后抬高温度、附一句「重新生成」重抽一次；仍然坏就抛出明确错误，**不把文本落库**。
+检测只针对退化刷屏，不碰文章里的正常修辞重复。
+
 ### 3.4 素材与配图
 
 | 方法 | 路径 | 说明 |
@@ -275,7 +284,8 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 | POST | `/api/wechat/test` | `{ appId?, appSecret? }` → 测通道通不通。**只测不存** |
 | GET | `/api/wechat/theme?projectId=` | `{ theme, templateId }` 稿件当前用的配色/模板 |
 | POST | `/api/wechat/theme` | `{ projectId, theme? , templateId? }` 记下稿件用哪套 |
-| GET | `/api/wechat/preview?projectId=&templateId=` | `{ html, text, title, theme, templateId, templateName }` 公众号预览 |
+| GET | `/api/wechat/preview?projectId=&templateId=` | `{ html, text, title, theme, templateId, templateName }` 公众号预览（读数据库里已保存的正文） |
+| POST | `/api/wechat/preview` | `{ projectId, templateId?, theme?, content? }` 同上；`content` 给了就用编辑器里的当前正文，**未保存的插图也能预览** |
 | POST | `/api/wechat/draft` | `{ projectId, title?, digest?, theme?, templateId? }` → 渲染并推草稿箱 |
 | POST | `/api/wechat/upload-local-images` | `{ projectId }` → 上传正文引用的本地图片 |
 | GET | `/api/wechat/statistics` | 已发布文章的阅读/在看/分享数据 |
@@ -329,7 +339,7 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 - 两种模式共用同一份模板清单；导航只有一个「模板库」入口，不再并列「排版」。
 
 **接口复用**：模板库页**不新增接口**——清单读 `GET /api/layout-templates`；
-示例稿按所选模板渲染走 `GET /api/wechat/preview`；应用走 `POST /api/wechat/theme`。
+示例稿按所选模板渲染走 `GET /api/wechat/preview`；编辑器里的预览走 `POST /api/wechat/preview`（带当前正文）；应用走 `POST /api/wechat/theme`。
 
 **WeDraft 转换（元素→CSS 到 部件→HTML）**：
 
@@ -365,7 +375,9 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 | 规则 | 说明 |
 | --- | --- |
 | **图必须插进正文** | 公众号只认微信自己的地址，正文里的外链图会被过滤掉。图只躺在素材库里，复制正文过去仍然没有图 |
-| **插的是正文阶段** | 配图是给成稿用的，不插到简报或大纲里。插完要点「保存修改」才落库 |
+| **插的是正文阶段** | 配图是给成稿用的，「插入图片」入口只在正文阶段出现，不插到简报或大纲里 |
+| **按光标位置插入** | 图落在编辑框最后一次光标处（不是永远拼到末尾）；从没点过编辑框才退回末尾。插完要点「保存修改」才落库 |
+| **预览立即生效** | 未保存时点「公众号预览」，请求会带上编辑器里的当前正文，图能直接看到 |
 | **保留原文件名** | 外部生图工具给的名字就是线索（`2026-10-24_横版_公众号知乎_承受得起_2000x1116.jpg`）。Windows 非法字符换成下划线、目录部分去掉、重名加序号（`…-2.png`），绝不覆盖已有文件 |
 | **地址按段百分号编码** | 文件名带中文时，地址是编码过的。推草稿时要把地址**解码**回文件名才找得到磁盘上的文件——不解码就永远找不到，图会丢 |
 | **宽高都 ≤2000px** | 平台红线。稿台不替用户缩放；超限的图由用户自己压 |
