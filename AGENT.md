@@ -41,3 +41,15 @@
 - `electron/main.js` 只负责窗口、起后端、启动令牌；业务逻辑不进 electron 层。
 - 改 `src/lib/layout-template.ts` 清洗器前后必须跑 `npm test`（历史坑：样式值
   里的 `{{变量}}` 被整条丢弃且不报错）。
+
+## 授权体系
+
+- **目录**：`license-server/`（授权服务器，零依赖）、`src/lib/license/`（客户端授权核心：
+  机器码 / 令牌 / 门禁 / 资产同步）、`src/app/license/`（授权页）、`docs/license-protocol.md`（唯一契约）。
+- **起本地授权服务器**：`cd license-server && node scripts/keygen.mjs && node scripts/bundle-assets.mjs && node server.mjs`（默认 `127.0.0.1:8787`）。
+- **发测试码**：`node license-server/scripts/license-cli.mjs issue --contact <微信号/手机号>`；
+  客户端激活页输入 `GT-XXXX-XXXX-XXXX-XXXX`。测试用 `npm test`（license-server 下 `node --test`）。
+- **`GAOTAI_LICENSE_BYPASS=1`**：门禁放行，仅供本地开发 / 测试。**红线：绝不进打包产物**
+  （打包脚本会剔除该变量）；提交前确认产物里没有它。
+- **改协议先改文档**：客户端与授权服务器分头实现，改字段必须先改 `docs/license-protocol.md`，
+  再同步 `license-server/` 与 `src/lib/license/`。

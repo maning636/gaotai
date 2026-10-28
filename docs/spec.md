@@ -161,15 +161,25 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 | POST | `/api/auth/logout` | — | `{ ok: true }` |
 | GET | `/api/auth/session` | — | `{ authenticated: boolean }` |
 
-**普通用户不面对任何登录界面。**
+**普通用户不面对任何登录界面**（授权页是另一回事，见 §3.1.1 授权）。
 
 桌面客户端每次启动随机生成一个**启动令牌**，只通过环境变量 `GAOTAI_BOOT_TOKEN`
 交给后端子进程（**不落盘、不进 `.env`**），窗口打开前用 `POST /api/auth/session` 换一个会话。
 于是：
 
-- 双击即用，没有口令框、没有激活码；
-- 30 天会话过期对用户不可见——每次启动都自动续上；
+- 双击即用，没有口令框；30 天会话过期对用户不可见——每次启动都自动续上；
 - 浏览器里的网页拿不到启动令牌（后端只认进程环境变量里的那一份），所以这条路依然受保护。
+
+### 3.1.1 授权（注册码激活）
+
+稿台按**专有许可**分发（见根 `LICENSE`），需激活后使用。契约见 `docs/license-protocol.md`：
+
+- **首次启动引导激活**：进入 `src/app/license/` 授权页，输入 `GT-XXXX-XXXX-XXXX-XXXX` 注册码，
+  客户端调授权服务器 `/v1/activate` 绑定机器并换取 30 天有效签名令牌。
+- **AI 功能需有效激活**：材料解读、选题、大纲、正文生成、获取新增 / 更新资产需有效令牌；
+  未激活时本地受限模式只保留本地编辑与已缓存资产。
+- **续期**：令牌剩余不足 7 天自动 `/v1/refresh`；刷新失败不阻塞启动，进入 7 天宽限期。
+- **开发旁路**：`GAOTAI_LICENSE_BYPASS=1` 时门禁放行，仅开发 / 测试用，打包脚本会剔除该变量。
 
 **口令降级为机器内部凭证**：`POST /api/auth/login` 只服务「浏览器直接访问 `127.0.0.1`」这一种场景。
 桌面端的登录页会自动用本机口令进入；安全页的「退出登录」在桌面端换成一句说明
@@ -410,10 +420,13 @@ resources/
   prompts/                 各阶段提示词（system/brief/angle/outline/article/style-profile/image-prompt）
   topics/<id>/             公开专题：meta.yaml + rules.md
   skills/                  写作技能卡
-    gaotai-longform/       稿台自带的公众号长文写作方法（MIT）+ LICENSE/NOTICE
+    gaotai-longform/       稿台自带的公众号长文写作方法（专有许可）+ LICENSE/NOTICE
     gaotai-editorial/      成稿后的标题、开头、事实核查规则
     human-writing/         第三方通用中文写作技能（MIT）
   layout-packs/            随包分发的排版样式包（内置模板）+ LICENSE/SOURCE 溯源
+license-server/            授权服务器（激活 / 刷新 / 状态 / 资产下发 / 领码页，零依赖）
+src/lib/license/           客户端授权核心（机器码 / 令牌 / 门禁 / 资产同步）
+src/app/license/           授权页
 docs/
   design/                  设计规则（如 template-gallery.md，供子代理按文实现与验收）
   architecture/decisions/  ADR 决策记录
