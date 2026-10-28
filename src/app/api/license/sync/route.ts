@@ -19,7 +19,7 @@ export async function POST() {
   const state = await getLicenseState();
   if (state.status !== "activated") {
     return NextResponse.json(
-      { error: "not_activated", code: "not_activated", message: "尚未激活授权，无法同步资源包。" },
+      { error: "尚未激活授权，无法同步资源包。", code: "not_activated", message: "尚未激活授权，无法同步资源包。" },
       { status: 403 },
     );
   }

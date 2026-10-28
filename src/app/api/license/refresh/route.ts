@@ -27,7 +27,7 @@ export async function POST() {
   if (!cache) {
     return NextResponse.json(
       {
-        error: "not_activated",
+        error: "尚未激活授权，无法刷新令牌。",
         code: "not_activated",
         message: "尚未激活授权，无法刷新。请先输入注册码激活。",
       },
@@ -41,7 +41,7 @@ export async function POST() {
   if (!result.ok) {
     const status = httpStatusFor(result.error.code);
     return NextResponse.json(
-      { error: result.error.code, code: result.error.code, message: result.error.message },
+      { error: result.error.message, code: result.error.code, message: result.error.message },
       { status },
     );
   }

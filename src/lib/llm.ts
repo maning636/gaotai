@@ -454,7 +454,11 @@ async function requestChat(
     baseTemperature === undefined ? undefined : baseTemperature + attempt.temperatureDelta;
 
   try {
-    const response = await fetch(url, {
+    // fetch 自己抛的 TypeError 只有一句 "fetch failed"，直接透到界面上等于没说。
+    // 网络不通、代理没开、地址写错，都长这个样子，这里统一换成能照着排查的话。
+    let response: Response;
+    try {
+      response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -476,7 +480,14 @@ async function requestChat(
           : {}),
       }),
       signal,
-    });
+      });
+    } catch (error) {
+      dispose();
+      throw new LlmError(
+        "连不上模型服务：请检查「模型」页面填的地址是否正确、本机网络或代理是否可用。",
+        { detail: error instanceof Error ? error.message : String(error) },
+      );
+    }
 
     const text = await response.text();
 

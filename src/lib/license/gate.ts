@@ -249,9 +249,10 @@ export async function requireLicense(): Promise<Response | null> {
   if (state.status === "activated" || state.status === "bypass") return null;
   return Response.json(
     {
-      error: "not_activated",
+      // error 是给界面直接显示的那一行，必须是中文；机器码放 code。
+      error: "尚未激活授权，请在「系统 → 授权」中输入注册码激活。",
       code: "not_activated",
-      message: "尚未激活授权，请在「设置 → 授权」中输入注册码激活。",
+      message: "尚未激活授权，请在「系统 → 授权」中输入注册码激活。",
     },
     { status: 403 },
   );

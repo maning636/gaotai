@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   if (!result.ok) {
     const status = httpStatusFor(result.error.code);
     return NextResponse.json(
-      { error: result.error.code, code: result.error.code, message: result.error.message },
+      { error: result.error.message, code: result.error.code, message: result.error.message },
       { status },
     );
   }
