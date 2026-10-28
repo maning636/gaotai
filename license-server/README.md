@@ -169,3 +169,41 @@ node --test
 - token 过期即取不到新资产（已缓存的明文包仍可离线用）
 - 限流只计失败，成功不计数
 - 启动自检：私钥缺失/不可读、data 不可写时拒绝启动
+
+## 上线前检查（maning789link.top）
+
+按顺序做完这七项，客户端才能真的激活成功。
+
+1. **域名解析**：`maning789link.top` 的 A 记录指向 `101.43.65.216`。
+2. **备案**：服务器在国内（腾讯云），80/443 对外提供 HTTP 服务需要 ICP 备案；未备案会被拦截，
+   表现是「浏览器能 ping 通但打不开」。备案未完成前可先用非标端口 + 直连 IP 做内部联调。
+3. **证书**：签发后放到 nginx，确认 `https://maning789link.top/redeem` 能打开且证书链完整
+   （`curl -I` 不报 `SSL certificate problem`）。
+4. **生成密钥**（只做一次，做之前先想好备份）：
+   ```bash
+   node scripts/keygen.mjs          # 打印公钥 PEM
+   chmod 600 keys/ed25519-private.pem
+   ```
+   打印出的公钥必须与 `src/lib/license/public-key.ts` 里的常量**逐字节一致**；不一致就说明换了密钥，
+   旧的注册码与 token 全部失效，客户端也要重新打包。
+5. **环境变量**：`TRUST_PROXY=1`（nginx 反代后必须）、`HOST=127.0.0.1`（只让 nginx 访问）、
+   `LICENSE_DATA_DIR=/opt/gaotai/data`、`LICENSE_KEY_DIR=/opt/gaotai/keys`（**不要放在代码目录里**，
+   重新部署会覆盖）。写进 systemd 的 `EnvironmentFile`，不要写进 shell history。
+6. **自检**：
+   ```bash
+   curl -s https://maning789link.top/redeem -o /dev/null -w '%{http_code}\n'   # 200
+   curl -s https://maning789link.top/v1/assets/manifest                          # 401
+   curl -s -X POST https://maning789link.top/v1/activate \
+        -H 'Content-Type: application/json' -d '{}'                            # 400 bad_request
+   ```
+7. **备份**：`keys/ed25519-private.pem` 离线存两份（丢了所有用户都要重新激活）；
+   `data/license.json` 每日备份。
+
+### 上线后第一件事
+
+自己先领一个码、在自己机器上激活一次，确认「发码 → 激活 → 资产下发 → 写作可用」整条链路通，
+再去发注册码给别人。发码命令：
+
+```bash
+node scripts/license-cli.mjs issue --contact <你的微信号> --channel direct
+```
