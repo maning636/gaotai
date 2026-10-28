@@ -65,7 +65,7 @@ a{color:#0071e3;text-decoration:none}
   <p>如果你不同意本说明，请不要领取注册码；不领取也不影响你浏览本页。</p>
 
   <div class="foot">
-    联系方式：<strong>[待填：邮箱地址]</strong><br>
+    联系方式：<a href="mailto:184610138@qq.com">184610138@qq.com</a><br>
     本页面仅用于说明本产品的注册码服务，不构成对其他服务的承诺。
   </div>
 </div>
