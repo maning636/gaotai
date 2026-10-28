@@ -54,13 +54,19 @@ var errMap={
   "internal":"服务暂时不可用，请稍后再试"
 };
 var $=function(id){return document.getElementById(id)};
+// 接口地址按当前位置算，而不是写死 /v1/redeem：
+// 同一个域名会用路径区分产品（/gaotai/redeem、/b/redeem），写死绝对路径会打到根上去。
+// 这里刻意不用正则：页面是模板字符串拼出来的，正则里的反斜杠会被当成转义吞掉，
+// 浏览器拿到的是 //redeem/?$/ —— JS 里 // 是注释，整段脚本直接语法错误。
+var cut=location.pathname.lastIndexOf("/redeem");
+var API=(cut>0?location.pathname.slice(0,cut):"")+"/v1/redeem";
 $("f").addEventListener("submit",function(ev){
   ev.preventDefault();
   var btn=$("b"),err=$("e"),res=$("r");
   err.textContent="";res.style.display="none";btn.disabled=true;btn.textContent="领取中…";
   var contact=$("c").value.trim();
   if(contact.length<2){err.textContent=errMap["bad_contact"];btn.disabled=false;btn.textContent="领取";return}
-  fetch("/v1/redeem",{
+  fetch(API,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({contact:contact,channel:"direct"})
