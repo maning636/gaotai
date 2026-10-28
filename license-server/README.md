@@ -122,7 +122,7 @@ WantedBy=multi-user.target
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name license.example.com;
+    server_name maning789link.top;
 
     ssl_certificate     /etc/ssl/license.crt;
     ssl_certificate_key /etc/ssl/license.key;

@@ -110,9 +110,9 @@ AppID 是公众号的唯一标识，AppSecret 是调接口的密钥。授权服�
 
 > 「设置与开发 → 公众号设置 → 功能设置 → 网页授权域名」
 
-- 点「设置」，填你的**授权域名**（不带 `http://`、不带路径），例如 `redeem.your-domain.com`。
+- 点「设置」，填你的**授权域名**（不带 `http://`、不带路径）：`maning789link.top`。
 - 微信要求在该域名根目录放一个校验文件（如 `MP_xxx.txt`），下载它并上传到你 Web 服务器的对应根目录，
-  让 `https://redeem.your-domain.com/MP_xxx.txt` 能被微信访问到，再点保存。
+  让 `https://maning789link.top/MP_xxx.txt` 能被微信访问到，再点保存。
 - 这个域名就是领码页 `GET /redeem` 所在的域名。协议里 `<授权域名>/redeem` 指向这里。
 
 ### 4.2 JS 接口安全域名（如需在前端调用微信 JS-SDK）
@@ -124,7 +124,7 @@ AppID 是公众号的唯一标识，AppSecret 是调接口的密钥。授权服�
 - 建议现在先把网页授权域名配好，JS 接口安全域名按需再配。
 
 > 校验文件放好后，微信校验偶尔需要几分钟；一直校验失败多半是校验文件路径不对或域名解析未生效，
-> 用浏览器直接访问 `https://<域名>/<校验文件名>` 确认能下载到再回头保存。
+> 用浏览器直接访问 `https://maning789link.top/<校验文件名>` 确认能下载到再回头保存。
 
 ---
 
@@ -138,9 +138,9 @@ AppID 是公众号的唯一标识，AppSecret 是调接口的密钥。授权服�
 2. 菜单名称填「领注册码」或「免费领码」。
 3. 菜单内容选**「跳转网页」**。
    - 服务号菜单跳转网页要求该 URL 的域名已在「网页授权域名」登记（§4.1）。
-4. URL 填领码页地址：`https://<授权域名>/redeem`（与协议 §6.2 一致）。
+4. URL 填领码页地址：`https://maning789link.top/redeem`（与协议 §6.2 一致）。
    - 如果想让用户先经过网页授权拿 openid 再落到表单，URL 可以走微信网页授权中转：
-     `https://open.weixin.qq.com/connect/oauth2/authorize?appid=<AppID>&redirect_uri=<授权域名>/redeem&response_type=code&scope=snsapi_base&state=gt#wechat_redirect`
+     `https://open.weixin.qq.com/connect/oauth2/authorize?appid=<AppID>&redirect_uri=https%3A%2F%2Fmaning789link.top%2Fredeem&response_type=code&scope=snsapi_base&state=gt#wechat_redirect`
      （`scope=snsapi_base` 静默授权，用户无感，只拿 openid 不拿昵称头像）。
 5. 点「保存并发布」。菜单发布后用户需**取关再关注**或在微信里重新进公众号才看到新菜单，
    不是所有用户立即刷新。
@@ -232,7 +232,7 @@ AppID 是公众号的唯一标识，AppSecret 是调接口的密钥。授权服�
 - [ ] **AppID**：`wx...`（可直接发，AppID 不算密钥）
 - [ ] **AppSecret 是否已重置并保存好新值**：是 / 否。AppSecret 请**直接填进服务器 `.env`**，不要发给我明文；
       若由我部署，告诉我「已写入 `.env` 的 `WECHAT_APP_SECRET`」即可。
-- [ ] **授权域名**（网页授权域名，即领码页所在域名，如 `redeem.your-domain.com`）：__________
+- [ ] **授权域名**（网页授权域名，即领码页所在域名）：`maning789link.top`（待你确认是否用根域名）
 - [ ] **服务器 SSH 地址与域名**：__________（用于部署 license-server 与放微信校验文件）
 - [ ] **IP 白名单已配置**，填的出口 IP 是 `__________`（请用 `curl ifconfig.me` 确认实际出口 IP，
       确认与白名单一致）
@@ -243,7 +243,7 @@ AppID 是公众号的唯一标识，AppSecret 是调接口的密钥。授权服�
 - [ ] 服务号**主体已认证**：是 / 否
 - [ ] 「被关注回复」已配置带领码指引：是 / 否
 - [ ] 「关键词回复」已配置（关键词如「领码」）：是 / 否
-- [ ] 自定义菜单已挂「领注册码」→ `https://<授权域名>/redeem`：是 / 否
+- [ ] 自定义菜单已挂「领注册码」→ `https://maning789link.top/redeem`：是 / 否
 - [ ] 模板消息/订阅通知模板已申请并通过（用于领码成功通知 + 到期提醒）：是 / 否；
       通过的 `template_id`：__________（填进服务器 `.env`）
 

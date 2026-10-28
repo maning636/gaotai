@@ -13,7 +13,8 @@
 
 ## 1. 地址与传输
 
-- 客户端读取环境变量 `GAOTAI_LICENSE_SERVER`，例如 `https://license.example.com`，**不带尾斜杠**。
+- 客户端读取环境变量 `GAOTAI_LICENSE_SERVER`；未设置时，生产构建内置 `https://maning789link.top`。
+  地址**不带尾斜杠**。
 - 生产必须 HTTPS。开发可用 `http://127.0.0.1:8787`。
 - 所有请求与响应都是 `application/json; charset=utf-8`。
 - 客户端上报 `User-Agent: gaotai/<version>`，并带 `X-Gaotai-App: <version>`。
