@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { dataDir } from "../paths";
 import { getLicenseState } from "../license/gate";
+import { resolveLicenseServers } from "../license/server-url";
 import { readTokenCache } from "../license/store";
 
 /**
@@ -138,17 +139,26 @@ async function run(force: boolean): Promise<EnsureAssetsResult> {
   if (!cache) {
     return { status: "failed", error: "找不到授权令牌，无法获取资源包，请重新激活。" };
   }
-  const base = serverBase();
-  if (!base) {
+  const bases = serverBases();
+  if (!bases.length) {
     return { status: "failed", error: "未配置授权服务器地址，无法获取资源包。" };
   }
 
-  // 4. 拉 manifest。
-  let manifest: ManifestData;
-  try {
-    manifest = await fetchManifest(base, cache.token);
-  } catch (error) {
-    return { status: "failed", error: `拉取资源清单失败：${msg(error)}` };
+  // 4. 拉 manifest。主地址连不上就换备用地址；哪条通了，后面整轮都用它。
+  let manifest: ManifestData | null = null;
+  let base = "";
+  let lastError: unknown = null;
+  for (const candidate of bases) {
+    try {
+      manifest = await fetchManifest(candidate, cache.token);
+      base = candidate;
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!manifest) {
+    return { status: "failed", error: `拉取资源清单失败：${msg(lastError)}` };
   }
   // force 且版本一致且目录齐全 → 视为就绪，不下发。
   if (local && local.version === manifest.version && (await packsPresent(root, Object.keys(local.packs)))) {
@@ -176,11 +186,9 @@ async function run(force: boolean): Promise<EnsureAssetsResult> {
   return { status: "updated", version: manifest.version };
 }
 
-/** 授权服务器地址（去尾斜杠），未配置返回 null。 */
-function serverBase(): string | null {
-  const v = process.env.GAOTAI_LICENSE_SERVER?.trim();
-  if (!v) return null;
-  return v.replace(/\/+$/, "");
+/** 授权服务器地址列表（去尾斜杠），按优先级排列。 */
+function serverBases(): string[] {
+  return resolveLicenseServers();
 }
 
 /** 从 package.json 读版本（读不到用 0.0.0 兜底），只用于 User-Agent。 */

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { ActivationData, ClientResult, ErrorCode, StatusData } from "./types";
-import { resolveLicenseServer } from "./server-url";
+import { resolveLicenseServers } from "./server-url";
 
 /**
  * 与授权服务器通信（协议 §1 / §4）。
@@ -61,9 +61,37 @@ function appVersion(): string {
  * 生产必须 HTTPS；开发可用 `http://127.0.0.1:8787`——这里不做 scheme 校验，
  * 协议说「生产必须 HTTPS」是部署约束，不是客户端运行时校验。
  */
-function serverBase(): string | null {
-  // 环境变量优先，其次用编译期内置地址（打包后的客户端没有 .env）。
-  return resolveLicenseServer();
+/**
+ * 按优先级逐个尝试授权服务器，返回第一个「通了」的响应。
+ *
+ * 只有 `server_unreachable`（DNS 失败/连不上/超时）才换下一个：
+ * 服务器明确回了业务错误，说明这条通路是通的，再换地址只会拿到同样的答案，
+ * 还会把「码被别人用了」误报成「连不上服务器」。
+ */
+async function postV1(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<ClientResult<Record<string, unknown>>> {
+  const servers = resolveLicenseServers();
+  if (!servers.length) {
+    return {
+      ok: false,
+      error: {
+        code: "server_not_configured",
+        message: "未配置授权服务器地址，请在设置中填写 GAOTAI_LICENSE_SERVER。",
+      },
+    };
+  }
+  let last: ClientResult<Record<string, unknown>> | null = null;
+  for (const base of servers) {
+    const result = await requestJson(`${base}${path}`, body);
+    if (result.ok || result.error.code !== "server_unreachable") return result;
+    last = result;
+  }
+  return last ?? {
+    ok: false,
+    error: { code: "server_unreachable", message: "连不上授权服务器，请检查网络或稍后再试。" },
+  };
 }
 
 /**
@@ -184,23 +212,13 @@ export async function activate(req: {
   code: string;
   machine: string;
 }): Promise<ClientResult<ActivationData>> {
-  const base = serverBase();
-  if (!base) {
-    return {
-      ok: false,
-      error: {
-        code: "server_not_configured",
-        message: "未配置授权服务器地址，请在设置中填写 GAOTAI_LICENSE_SERVER。",
-      },
-    };
-  }
   const body: ActivateRequestBody = {
     code: req.code,
     machine: req.machine,
     appVersion: appVersion(),
     os: `${process.platform} ${process.version}`.trim(),
   };
-  const result = await requestJson(`${base}/v1/activate`, body);
+  const result = await postV1("/v1/activate", body);
   if (!result.ok) return result;
   const data = result.data as Partial<ActivationData>;
   if (
@@ -231,22 +249,12 @@ export async function refresh(req: {
   code: string;
   machine: string;
 }): Promise<ClientResult<ActivationData>> {
-  const base = serverBase();
-  if (!base) {
-    return {
-      ok: false,
-      error: {
-        code: "server_not_configured",
-        message: "未配置授权服务器地址，请在设置中填写 GAOTAI_LICENSE_SERVER。",
-      },
-    };
-  }
   const body: RefreshRequestBody = {
     code: req.code,
     machine: req.machine,
     appVersion: appVersion(),
   };
-  const result = await requestJson(`${base}/v1/refresh`, body);
+  const result = await postV1("/v1/refresh", body);
   if (!result.ok) return result;
   const data = result.data as Partial<ActivationData>;
   if (
@@ -277,21 +285,11 @@ export async function status(req: {
   code: string;
   machine: string;
 }): Promise<ClientResult<StatusData>> {
-  const base = serverBase();
-  if (!base) {
-    return {
-      ok: false,
-      error: {
-        code: "server_not_configured",
-        message: "未配置授权服务器地址，请在设置中填写 GAOTAI_LICENSE_SERVER。",
-      },
-    };
-  }
   const body: StatusRequestBody = {
     code: req.code,
     machine: req.machine,
   };
-  const result = await requestJson(`${base}/v1/status`, body);
+  const result = await postV1("/v1/status", body);
   if (!result.ok) return result;
   const data = result.data as Partial<StatusData>;
   if (
