@@ -1,0 +1,17 @@
+{
+  "name": "gaotai-license-server",
+  "version": "1.0.0",
+  "description": "高台本地优先写作工作台的授权服务器（零运行时依赖，纯 Node 内置模块）",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test",
+    "keygen": "node scripts/keygen.mjs",
+    "cli": "node scripts/license-cli.mjs",
+    "bundle-assets": "node scripts/bundle-assets.mjs"
+  }
+}
