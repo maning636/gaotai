@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import { createProject, listProjects } from "../../../lib/repo";
 
 export const runtime = "nodejs";
@@ -12,8 +12,8 @@ const createSchema = z.object({
 
 /** 稿件列表。 */
 export async function GET() {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     return NextResponse.json({ projects: listProjects() });
   } catch (error) {
@@ -26,8 +26,8 @@ export async function GET() {
 
 /** 新建稿件。 */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     const body = createSchema.parse(await request.json());
     const project = createProject({ title: body.title ?? "", topicId: body.topicId });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import { getEditCount, getStyleProfile, refreshStyleProfile } from "../../../lib/style-memory";
 
 export const runtime = "nodejs";
@@ -11,8 +11,8 @@ const bodySchema = z.object({
 
 /** 读某个专题的风格画像与修改次数。 */
 export async function GET(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   const topicId = new URL(request.url).searchParams.get("topicId")?.trim();
   if (!topicId) return NextResponse.json({ error: "缺少 topicId" }, { status: 400 });
   try {
@@ -28,8 +28,8 @@ export async function GET(request: Request) {
 
 /** 重新分析并保存风格画像。 */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     const body = bodySchema.parse(await request.json());
     const analysis = await refreshStyleProfile(body.topicId);

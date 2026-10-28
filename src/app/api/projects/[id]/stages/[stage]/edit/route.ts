@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../../../../lib/auth";
+import { guard } from "../../../../../../../lib/license/guard";
 import { STAGES, type Stage } from "../../../../../../../lib/db";
 import { recordEdit } from "../../../../../../../lib/repo";
 
@@ -18,8 +18,8 @@ const bodySchema = z.object({
  * 风格分析需要看到真实笔迹，包括标点。
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string; stage: string }> }) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   const { id, stage } = await params;
   if (!STAGES.includes(stage as Stage)) {

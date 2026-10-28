@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { LicenseBanner } from "./license/banner";
 
 /**
  * 应用外壳：左侧导航 + 右侧主区。
@@ -40,6 +41,13 @@ const NAV_SECTIONS: { label: string; items: { href: string; label: string }[] }[
     items: [
       { href: "/wechat", label: "公众号" },
       { href: "/agent-config", label: "模型" },
+    ],
+  },
+  {
+    label: "系统",
+    items: [
+      { href: "/license", label: "授权" },
+      { href: "/security", label: "安全" },
     ],
   },
 ];
@@ -82,14 +90,12 @@ export function AppShell({ title, description, actions, children }: AppShellProp
         </nav>
 
         <div className="gt-sidebar__foot">
-          <Link href="/security" className="gt-nav__item" prefetch={false}>
-            安全
-          </Link>
-          <span className="gt-mono">v0.1.0 · 本地运行</span>
+          <span className="gt-mono">v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0"} · 本地运行</span>
         </div>
       </aside>
 
       <div className="gt-main">
+        <LicenseBanner />
         <header className="gt-main__header">
           <div>
             <h1 className="gt-main__title">{title}</h1>

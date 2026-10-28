@@ -21,4 +21,18 @@ export async function register() {
   } catch (error) {
     console.error("[gaotai] 运行时配置准备失败：", error);
   }
+
+  // 激活后从授权服务器加密下发四类只读资产（skills/prompts/topics/layout-packs）。
+  // 非阻塞：失败只记日志，绝不影响启动。未激活时 ensureAssets 内部直接返回 skipped。
+  try {
+    const { ensureAssets } = await import("./lib/assets/sync");
+    const assetResult = await ensureAssets();
+    if (assetResult.status === "failed") {
+      console.warn("[gaotai] 资产同步未完成：", assetResult.error);
+    } else if (assetResult.status === "updated" || assetResult.status === "ready") {
+      console.log("[gaotai] 资产同步就绪：", assetResult.status, assetResult.version);
+    }
+  } catch (error) {
+    console.warn("[gaotai] 资产同步异常（不影响启动）：", error);
+  }
 }

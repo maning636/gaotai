@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { resolveTemplateForProject, templateIdForTheme } from "../../../../lib/layout-store";
 import { getWxPreference, saveWxPreference } from "../../../../lib/repo";
 import { normalizeThemeId } from "../../../../lib/wx-theme";
@@ -16,8 +16,8 @@ export const runtime = "nodejs";
  * 读的时候回退 default：没选过就是默认那套，不是错误。
  */
 export async function GET(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   const projectId = new URL(request.url).searchParams.get("projectId")?.trim();
   if (!projectId) return NextResponse.json({ error: "缺少 projectId" }, { status: 400 });
@@ -37,8 +37,8 @@ export async function GET(request: Request) {
 
 /** 记下这篇稿子用哪套排版。 */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   try {
     const body = (await request.json()) as { projectId?: string; theme?: string; templateId?: string };

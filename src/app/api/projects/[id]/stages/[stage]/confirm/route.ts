@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../../../../lib/auth";
+import { guard } from "../../../../../../../lib/license/guard";
 import { STAGES, STAGE_LABELS, type Stage } from "../../../../../../../lib/db";
 import { getProject, getStageResult, saveStageResult, updateProject } from "../../../../../../../lib/repo";
 
@@ -32,8 +32,8 @@ export function resolveConfirmedContent(
  * 稿件的当前阶段也会相应推进。
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string; stage: string }> }) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   const { id, stage } = await params;
   if (!STAGES.includes(stage as Stage)) {

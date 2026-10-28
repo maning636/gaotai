@@ -1,10 +1,17 @@
 // 把运行时需要的「只读资源」集中到 dist/app-resources，供 Electron 打包进 extraResources。
+//
 // 四个子目录的用途（与 src/lib/paths.ts 的路径契约一一对应）：
 //   - prompts      —— 各阶段提示词，写作流程直接读取。
 //   - topics       —— 公开示例专题，用户开箱即可试用。
 //   - skills       —— 写作技能，供后端 API 拉取。
 //   - layout-packs —— 随包分发的排版样式包，作为内置模板开箱即用。
-// 四者都是「随安装包分发、用户不改写」的只读资产，与用户自己的数据目录严格分离。
+//
+// 资产分发策略（授权体系核心）：
+//   默认**不再**把这四类资产同步进安装包——它们改为「激活后从授权服务器加密下发、
+//   本机缓存」（见 src/lib/assets/sync.ts），别人拆包看不到技能包与提示词。
+//   传 `--with-assets` 才重新同步（仅本地开发/自测用，生产打包不要带）。
+//   注意：开发态（无 GAOTAI_DATA_DIR）下 `<项目根>/assets/root` 不存在，
+//   paths.ts 的 assetRoot() 会自动退回 resources/，行为与现在一致。
 import {
   cpSync,
   existsSync,
@@ -19,19 +26,25 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, "..");
-// 目标目录可通过参数指定，便于 CI 或本地脚本传入自定义路径。
-const targetDir = process.argv[2]
-  ? path.resolve(process.argv[2])
+// 是否随包携带四类资产。默认剥离（安装包里不该有）；--with-assets 才同步。
+const WITH_ASSETS = process.argv.includes("--with-assets");
+// 目标目录通过第一个非 flag 参数指定，便于 CI 或本地脚本传入自定义路径。
+const positional = process.argv.slice(2).filter(arg => !arg.startsWith("--"));
+const targetDir = positional[0]
+  ? path.resolve(positional[0])
   : path.join(projectRoot, "dist", "app-resources");
 
 // 源目录 -> 目标目录名。目标名保持扁平：app-resources/prompts、app-resources/topics……
 // 与 paths.ts 里的 promptDir()/publicTopicsDir()/skillsDir()/layoutPacksDir() 严格对应。
-const SOURCES = [
-  { from: "resources/prompts", to: "prompts" },
-  { from: "resources/topics", to: "topics" },
-  { from: "resources/skills", to: "skills" },
-  { from: "resources/layout-packs", to: "layout-packs" },
-];
+// 四类资产（skills/prompts/topics/layout-packs）仅在 --with-assets 时同步。
+const SOURCES = WITH_ASSETS
+  ? [
+      { from: "resources/prompts", to: "prompts" },
+      { from: "resources/topics", to: "topics" },
+      { from: "resources/skills", to: "skills" },
+      { from: "resources/layout-packs", to: "layout-packs" },
+    ]
+  : [];
 
 /**
  * 判断「源是否比目标新或不同」：比较 mtime 与 size 即可，足以应付打包场景。

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import { parseLayoutPack } from "../../../lib/layout-template";
 
 export const runtime = "nodejs";
@@ -21,8 +21,8 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   try {
     const body = bodySchema.parse(await request.json());

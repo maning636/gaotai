@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { STAGES, type Stage } from "../../../../lib/db";
 import {
   deleteProject,
@@ -21,8 +21,8 @@ const patchSchema = z.object({
 
 /** 取一篇稿件的完整状态。 */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   const { id } = await params;
   const project = getProject(id);
   if (!project) return NextResponse.json({ error: "稿件不存在" }, { status: 404 });
@@ -45,8 +45,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 /** 改稿件信息。 */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   const { id } = await params;
   try {
     const body = patchSchema.parse(await request.json());
@@ -61,8 +61,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 /** 删除稿件。 */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   const { id } = await params;
   const ok = deleteProject(id);
   if (!ok) return NextResponse.json({ error: "稿件不存在" }, { status: 404 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { getStageResult } from "../../../../lib/repo";
 import { cdnizeLocalImages } from "../../../../lib/wechat-images";
 
@@ -24,8 +24,8 @@ const bodySchema = z.object({
  * 是为了「复制到剪贴板」这类需要先拿到成品 HTML 的场景。
  */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   let body: z.infer<typeof bodySchema>;
   try {

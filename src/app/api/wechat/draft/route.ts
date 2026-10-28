@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { getProject, getStageResult, getWxPreference, saveWxPreference } from "../../../../lib/repo";
 import { extractSummary, extractTitle, markdownToWechatHtml, type ThemeId } from "../../../../lib/markdown";
 import { resolveTemplateForProject } from "../../../../lib/layout-store";
@@ -221,8 +221,8 @@ function draftFingerprint(title: string, html: string): string {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   let body: Body;
   try {

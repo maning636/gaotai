@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { resolveTemplateForProject } from "../../../../lib/layout-store";
 import { getProject, getStageResult, saveWxPreference } from "../../../../lib/repo";
 import { markdownToPlainText, markdownToWechatHtml } from "../../../../lib/markdown";
@@ -88,8 +88,8 @@ function buildPreview(input: PreviewInput) {
 }
 
 export async function GET(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   const params = new URL(request.url).searchParams;
   const templateId = params.get("templateId") ?? undefined;
@@ -103,8 +103,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   let body: {
     projectId?: string;

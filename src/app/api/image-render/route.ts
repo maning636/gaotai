@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { renderCard } from "../../../lib/image-renderer";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -17,8 +17,8 @@ const renderSchema = z.object({
 
 // 把视觉提示词程序化渲染成 PNG 卡片，落到 .tmp/images/ 目录，返回 URL 供文章引用。
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     const spec = renderSchema.parse(await request.json());
     const result = await renderCard(spec);

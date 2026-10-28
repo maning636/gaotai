@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import { chartSpecSchema } from "../../../lib/chart-spec";
 import { renderChart } from "../../../lib/chart-renderer";
 
@@ -15,8 +15,8 @@ export const runtime = "nodejs";
  * 复杂 SVG 在部分客户端也会被吃掉。PNG 走已有的图片上传链路最稳。
  */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   let payload: unknown;
   try {

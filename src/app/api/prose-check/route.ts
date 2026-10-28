@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import { checkProse, renderProseReport } from "../../../lib/prose-check";
 
 export const runtime = "nodejs";
@@ -17,8 +17,8 @@ const bodySchema = z.object({
  * 与「像模型写出来的」形状信号。只报警，不改文。
  */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   let content: string;
   try {

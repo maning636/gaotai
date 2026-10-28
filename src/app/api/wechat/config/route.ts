@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { maskAppId, readWechatCredentials, readWechatCover, saveWechatCredentials } from "../../../../lib/wechat-config";
 
 export const runtime = "nodejs";
@@ -12,8 +12,8 @@ const bodySchema = z.object({
 
 /** 公众号配置状态。AppSecret 永远不会返回。 */
 export async function GET() {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   const { appId, appSecret } = readWechatCredentials();
   const cover = readWechatCover();
   return NextResponse.json({
@@ -25,8 +25,8 @@ export async function GET() {
 
 /** 保存公众号配置（写进 .env）。 */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     const body = bodySchema.parse(await request.json());
     await saveWechatCredentials({ appId: body.appId, appSecret: body.appSecret });

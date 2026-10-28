@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { maskAppId, readWechatCredentials } from "../../../../lib/wechat-config";
 import { checkWechatConnection } from "../../../../lib/wechat-check";
 
@@ -24,8 +24,8 @@ const bodySchema = z.object({
  * 「测试不通过」是一个有效结果，不是请求出错，所以不用 4xx。
  */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   let body: z.infer<typeof bodySchema> = {};
   try {

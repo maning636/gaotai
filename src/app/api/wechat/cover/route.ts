@@ -1,6 +1,6 @@
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { imageDir, storeImageBytes } from "../../../../lib/files";
 import { clearCover, getCoverState, setCoverFromFile, setCoverFromLibrary } from "../../../../lib/wechat-cover";
 
@@ -17,8 +17,8 @@ const MAX_COVER_BYTES = 10 * 1024 * 1024;
  * 所以不返回，只返回「有没有配好」和本机那张封面长什么样。
  */
 export async function GET() {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   const state = getCoverState();
   return NextResponse.json({
     configured: state.configured,
@@ -37,8 +37,8 @@ export async function GET() {
  * 两条路最终都会往微信永久素材库传一次，拿到 thumb_media_id 存进 .env。
  */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   try {
     const contentType = request.headers.get("content-type") ?? "";
@@ -87,8 +87,8 @@ export async function POST(request: Request) {
 
 /** 清空封面。 */
 export async function DELETE() {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     const state = await clearCover();
     return NextResponse.json({ ok: true, configured: state.configured });

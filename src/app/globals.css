@@ -1281,3 +1281,147 @@ img {
     box-shadow: none;
   }
 }
+
+/* --- 授权页 ---------------------------------------------------------- */
+
+/* 两栏：左栏内容宽、右栏窄；窄屏收成单栏（同 gt-grid 的断点行为）。 */
+.gt-license {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gt-license__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.gt-license__col {
+  min-width: 0;
+}
+
+/* 状态徽章：未激活红 / 已激活绿 / 已过期黄 / 开发模式灰。 */
+.gt-license__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border: 2px solid var(--gt-line);
+  border-radius: var(--gt-radius);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: #0f0f0f;
+}
+
+.gt-license__badge--red {
+  background: var(--gt-red);
+  color: #ffffff;
+}
+
+.gt-license__badge--green {
+  background: var(--gt-green);
+}
+
+.gt-license__badge--yellow {
+  background: var(--gt-yellow);
+}
+
+.gt-license__badge--gray {
+  background: var(--gt-sunken);
+  color: var(--gt-muted);
+}
+
+/* 键值行：标签左、值右（机器码/注册码/到期日）。 */
+.gt-license__kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gt-license__machine {
+  display: flex;
+  flex: 1 1 260px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 机器码是 64 位连续十六进制，不设 min-width:0 撑不回来：flex 子项的
+   min-width 默认是 auto，会以「整串不可断」为最小宽度把卡片顶破。 */
+.gt-license__machine .gt-mono {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* 剩余比例进度条：只有已激活时出现。 */
+.gt-license__bar {
+  height: 6px;
+  border: 2px solid var(--gt-line);
+  background: var(--gt-sunken);
+  overflow: hidden;
+}
+
+.gt-license__bar-fill {
+  height: 100%;
+  background: var(--gt-green);
+  transition: width 300ms ease;
+}
+
+/* 功能条目：灰化 + 右侧「需激活」小签。 */
+.gt-license__feature {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gt-license__feature-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+/* 激活成功的一行绿字。 */
+.gt-license__ok {
+  color: var(--gt-green);
+  font-weight: 700;
+}
+
+/* 全局横幅：硬边框黄条，挂在 header 上方。 */
+.gt-license-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 28px;
+  background: var(--gt-yellow);
+  border-bottom: var(--gt-border);
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f0f0f;
+}
+
+.gt-license-banner__text {
+  margin: 0;
+}
+
+.gt-license-banner__link {
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .gt-license__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import { deleteTemplate, listTemplates, saveTemplate } from "../../../lib/layout-store";
 import { normalizeLayoutTemplate, type LayoutTemplate } from "../../../lib/layout-template";
 
@@ -34,8 +34,8 @@ const templateSchema = z.object({
 });
 
 export async function GET() {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   try {
     return NextResponse.json({ templates: listTemplates() });
@@ -48,8 +48,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   try {
     const body = templateSchema.parse(await request.json());
@@ -73,8 +73,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   const id = new URL(request.url).searchParams.get("id")?.trim();
   if (!id) return NextResponse.json({ error: "缺少 id" }, { status: 400 });

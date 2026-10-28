@@ -41,7 +41,10 @@ extraMetadata:
   main: "electron/main.js"
 
 extraResources:
-  # 只读资源：提示词、公开示例专题、写作技能。由 scripts/prepare-resources.mjs 提前组装。
+  # 只读资源：由 scripts/prepare-resources.mjs 组装。
+  # 四类核心资产（skills/prompts/topics/layout-packs）默认**不**随包——
+  # 改为激活后从授权服务器加密下发、缓存到 <dataDir>/assets/root，
+  # 见 src/lib/assets/sync.ts 与 scripts/prepare-resources.mjs 顶部注释。
   - from: "dist/app-resources"
     to: "app-resources"
 

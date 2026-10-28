@@ -32,6 +32,11 @@ import "./agent-config.test";
 import "./fetch-timeout.test";
 import "./draft-idempotency.test";
 import "./deps-gate.test";
+import "./license-token.test";
+import "./license-machine.test";
+import "./license-client.test";
+import "./license-gate.test";
+import "./assets-sync.test";
 
 /**
  * 测试入口。

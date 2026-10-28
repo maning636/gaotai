@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../lib/auth";
+import { guard } from "../../../../lib/license/guard";
 import { createProject, saveStageResult, updateProject } from "../../../../lib/repo";
 import { countHtmlTags, guessTitle, htmlToMarkdown } from "../../../../lib/html-to-md";
 
@@ -26,8 +26,8 @@ const bodySchema = z.object({
  * 会转义成文字，用户从公众号后台复制来的文章直接贴会变成一堆 `&lt;p&gt;`。
  */
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   let body: z.infer<typeof bodySchema>;
   try {

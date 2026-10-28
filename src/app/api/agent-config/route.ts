@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import {
   readAgentConfig,
   testAgentConnection,
@@ -26,8 +26,8 @@ const bodySchema = z.discriminatedUnion("action", [
 ]);
 
 export async function GET() {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     const current = await readAgentConfig();
     return NextResponse.json({ config: toPublic(current) });
@@ -38,8 +38,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   let body: z.infer<typeof bodySchema>;
   try {
     body = bodySchema.parse(await request.json());

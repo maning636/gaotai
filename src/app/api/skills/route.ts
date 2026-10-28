@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "../../../lib/auth";
+import { guard } from "../../../lib/license/guard";
 import { listInstalledSkills } from "../../../lib/skills";
 
 export const runtime = "nodejs";
@@ -11,8 +11,8 @@ export const runtime = "nodejs";
  * 让「这次启用哪些」变成一个用户看得懂的选择，而不是藏在配置里的开关。
  */
 export async function GET() {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
   try {
     return NextResponse.json({ skills: await listInstalledSkills() });
   } catch (error) {

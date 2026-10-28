@@ -6,6 +6,8 @@ import { existsSync } from "node:fs";
  *
  * 稿台把「随安装包分发的只读资源」和「用户自己的可写数据」彻底分开：
  * - 只读资源：提示词、公开示例专题、写作技能、public 静态资源。打包后位于 resources 目录。
+ *   激活后，四类核心资产（skills/prompts/topics/layout-packs）改为从授权服务器加密下发，
+ *   落在 `<dataDir>/assets/root`，由 `assetRoot()` 判定优先使用（见 lib/assets/sync.ts）。
  * - 可写数据：.env、SQLite 库、本地专题、登录失败日志、生成的配图。打包后位于用户数据目录。
  *
  * 开发态两个根目录都退回 process.cwd()，因此本地开发与安装后的行为完全一致。
@@ -27,24 +29,40 @@ export function resourceDir(): string {
   return resourceRoot();
 }
 
+/**
+ * 激活后下发的资产根目录；存在就用它，否则退回随包资源目录。
+ *
+ * 四类资产（skills / prompts / topics / layout-packs）由授权体系在激活后从
+ * 授权服务器加密下发到 `<dataDir>/assets/root`，见 `lib/assets/sync.ts`。
+ * 判定标准：`<dataDir>/assets/root` 下至少存在 `skills` 或 `prompts` 之一 →
+ * 说明资产已下发，优先使用；否则退回 `resourceDir()`（本地开发/降级场景）。
+ */
+export function assetRoot(): string {
+  const downloaded = path.join(dataRoot(), "assets", "root");
+  const hasSkills = existsSync(path.join(downloaded, "skills"));
+  const hasPrompts = existsSync(path.join(downloaded, "prompts"));
+  if (hasSkills || hasPrompts) return downloaded;
+  return resourceRoot();
+}
+
 /** 可写数据根目录：数据库、密钥、本地素材与日志都落在这里。 */
 export function dataDir(): string {
   return dataRoot();
 }
 
-/** 只读资源：各阶段提示词。 */
+/** 只读资源：各阶段提示词。激活后优先从下发资产读，否则退回随包。 */
 export function promptDir(): string {
-  return path.join(resourceRoot(), "prompts");
+  return path.join(assetRoot(), "prompts");
 }
 
-/** 只读资源：公开示例专题。 */
+/** 只读资源：公开示例专题。激活后优先从下发资产读，否则退回随包。 */
 export function publicTopicsDir(): string {
-  return path.join(resourceRoot(), "topics");
+  return path.join(assetRoot(), "topics");
 }
 
-/** 只读资源：写作技能。 */
+/** 只读资源：写作技能。激活后优先从下发资产读，否则退回随包。 */
 export function skillsDir(): string {
-  return path.join(resourceRoot(), "skills");
+  return path.join(assetRoot(), "skills");
 }
 
 /**
@@ -52,9 +70,10 @@ export function skillsDir(): string {
  *
  * 这些是一份份 JSON，描述「我这几个部件长什么样」。
  * 它们是**内置模板**：开箱即用、只读，想改就复制一份变成自己的。
+ * 激活后优先从下发资产读，否则退回随包。
  */
 export function layoutPacksDir(): string {
-  return path.join(resourceRoot(), "layout-packs");
+  return path.join(assetRoot(), "layout-packs");
 }
 
 /** 可写数据：SQLite 等本地数据的存放目录。 */

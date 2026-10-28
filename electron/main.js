@@ -434,6 +434,11 @@ async function startBackend() {
     NODE_ENV: "production",
   };
 
+  // 授权旁路开关绝不能随打包产物分发：万一宿主环境被设了 GAOTAI_LICENSE_BYPASS，
+  // 它会通过上面的 ...process.env 静默透传给后端子进程，等于把授权门禁整个关掉。
+  // 这里显式剔除，保证安装包里的后端永远走真实校验。
+  delete baseEnv.GAOTAI_LICENSE_BYPASS;
+
   let args;
   if (MODE === "dev") {
     baseEnv.NODE_ENV = "development";

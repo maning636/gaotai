@@ -1,4 +1,12 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import type { NextConfig } from "next";
+
+// 版本号只从 package.json 读一份，注入 NEXT_PUBLIC_APP_VERSION 给前端用，
+// 避免「侧栏写死 v0.1.0」这种硬编码——升版本时忘了改 UI 就会显示旧号。
+const pkg = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as {
+  version?: string;
+};
 
 // 稿台的构建配置。
 //
@@ -18,6 +26,9 @@ const config: NextConfig = {
   output: "standalone",
   turbopack: { root: process.cwd() },
   serverExternalPackages: ["better-sqlite3", "canvas"],
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version ?? "0.0.0",
+  },
   outputFileTracingExcludes: {
     "/**": [
       "./.env",

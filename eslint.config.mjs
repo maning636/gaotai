@@ -168,7 +168,7 @@ export default tseslint.config(
     // 打包/检查脚本与 next.config.ts：ESM + 纯 Node 运行时，
     // 不注入浏览器全局，避免脚本里误写 window 却能过 lint。
     name: "gaotai/scripts",
-    files: ["scripts/**/*.mjs", "scripts/**/*.mts", "next.config.ts"],
+    files: ["scripts/**/*.mjs", "scripts/**/*.mts", "license-server/**/*.mjs", "next.config.ts"],
     languageOptions: { sourceType: "module", globals: nodeGlobals },
   },
   {

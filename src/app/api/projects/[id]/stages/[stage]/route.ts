@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "../../../../../../lib/auth";
+import { guard } from "../../../../../../lib/license/guard";
 import { STAGES, type Stage } from "../../../../../../lib/db";
 import { loadStageContext } from "../../../../../../lib/stage-context";
 import { runStage } from "../../../../../../lib/stage-engine";
@@ -43,8 +43,8 @@ const patchSchema = z.object({
  * 因为用户可能生成完先改，改完再签。
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string; stage: string }> }) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   const { id, stage } = await params;
   if (!STAGES.includes(stage as Stage)) {
@@ -105,8 +105,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
  * 只存草稿态，不签字——签字是另一件事，用户可能改完还想再让 AI 润一遍。
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string; stage: string }> }) {
-  const unauthorized = await requireAuth();
-  if (unauthorized) return unauthorized;
+  const blocked = await guard();
+  if (blocked) return blocked;
 
   const { id, stage } = await params;
   if (!STAGES.includes(stage as Stage)) {
