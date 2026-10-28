@@ -37,7 +37,6 @@ jobs:
     # 报出来的是权限错误、不是扫描结论。所以这条不是可选项。
     permissions:
       contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -45,12 +44,15 @@ jobs:
           # 后来「删掉」的密钥——删掉不等于没泄露过，历史里仍然可读。
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v3
-        env:
-          # push 事件用它取仓库信息；PR 事件用它列 commits、写行内评论。
-          # 评论写入失败在 action 内部被 catch 成 warning，不影响门禁结论，
-          # 所以这里只给只读权限，不给 pull-requests: write。
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 直接用 gitleaks 二进制，不用 gitleaks-action：
+      # 该 action 会把 SARIF 结果作为 artifact 上传，artifact 配额用尽时，
+      # 即使扫描本身「no leaks found」也会让 job 失败（2026-10-28 实际踩到：
+      # "Artifact storage quota has been hit"）。直接跑二进制没有这个副作用。
+      - name: 安装并运行 gitleaks（全历史）
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tgz
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks git --redact --exit-code=2 --no-banner
 
   # 硬门 6 —— 生产依赖漏洞审计。
   # 级别定为 high：本地实测 `npm audit --omit=dev`（官方源）为 0 漏洞，
