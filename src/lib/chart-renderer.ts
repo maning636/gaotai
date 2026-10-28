@@ -23,9 +23,34 @@ const MUTED = "#6B6459";
 const LINE = "#D9D2C3";
 const SURFACE = "#F5F2E8";
 const DEFAULT_ACCENT = "#F7D54A";
-const WIDTH = 1000; // CSS 宽；输出 2x = 2000px，卡在公众号 2000px 红线内
-const SCALE = 2;
+const DEFAULT_WIDTH = 1000; // CSS 宽；输出 2x = 2000px，卡在公众号 2000px 红线内
+const DEFAULT_SCALE = 2;
 const PAD = 56;
+
+/**
+ * 渲染参数。
+ *
+ * 正文出图走默认值（1000 CSS 宽 × 2 = 2000px，与历史行为一致）；
+ * 图例缩略图用更小尺寸（见 `/api/illustration/samples`），
+ * 但所有绘制逻辑都以 CSS 像素为单位，靠 scale 放大输出，
+ * 因此换尺寸不会改变版式比例。
+ */
+export type ChartRenderOptions = {
+  /** CSS 逻辑宽度。缺省 1000（保持既有出图尺寸）。 */
+  width?: number;
+  /** 输出倍率。缺省 2（保持既有出图尺寸）。 */
+  scale?: number;
+};
+
+/** 画布 CSS 逻辑宽度。 */
+function cssWidth(options: ChartRenderOptions): number {
+  return options.width ?? DEFAULT_WIDTH;
+}
+
+/** 输出倍率。 */
+function outputScale(options: ChartRenderOptions): number {
+  return options.scale ?? DEFAULT_SCALE;
+}
 
 const WAFFLE_SHADES = ["#1A1A1A", "#F7D54A", "#2F6F5E", "#C4553B", "#3D7BFF", "#8B6BB1"];
 
@@ -78,13 +103,13 @@ function compareCardHeight(spec: Extract<ChartSpec, { kind: "compare" }>): numbe
 }
 
 /** 统一页头：强调色条、标题、副标题；返回正文起始 y。 */
-function drawHeader(ctx: CanvasRenderingContext2D, spec: ChartSpec): number {
+function drawHeader(ctx: CanvasRenderingContext2D, spec: ChartSpec, width: number): number {
   const accent = accentOf(spec);
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, WIDTH, heightOf(spec));
+  ctx.fillRect(0, 0, width, heightOf(spec));
 
   ctx.fillStyle = accent;
-  ctx.fillRect(0, 0, WIDTH, 10);
+  ctx.fillRect(0, 0, width, 10);
 
   setFont(ctx, 700, 38);
   ctx.fillStyle = INK;
@@ -108,20 +133,20 @@ function drawHeader(ctx: CanvasRenderingContext2D, spec: ChartSpec): number {
   return y + 34;
 }
 
-function drawFooter(ctx: CanvasRenderingContext2D, spec: ChartSpec, h: number) {
+function drawFooter(ctx: CanvasRenderingContext2D, spec: ChartSpec, h: number, width: number) {
   if (!spec.source) return;
   setFont(ctx, 400, 14);
   ctx.fillStyle = MUTED;
   ctx.textAlign = "right";
   ctx.textBaseline = "bottom";
-  ctx.fillText(`来源：${spec.source}`, WIDTH - PAD, h - 24);
+  ctx.fillText(`来源：${spec.source}`, width - PAD, h - 24);
 }
 
-function drawBar(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind: "bar" }>, top: number, h: number) {
+function drawBar(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind: "bar" }>, top: number, h: number, width: number) {
   const accent = accentOf(spec);
   const labelWidth = 210;
   const trackX = PAD + labelWidth;
-  const trackWidth = WIDTH - PAD * 2 - labelWidth - 110;
+  const trackWidth = width - PAD * 2 - labelWidth - 110;
   const max = Math.max(...spec.rows.map((row) => row.value), 1);
   const rowH = 58;
   const barH = 26;
@@ -148,10 +173,10 @@ function drawBar(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind:
     ctx.fillText(valueText, trackX + Math.max(4, (row.value / max) * trackWidth) + 12, y + barH / 2 + 1);
   });
 
-  drawFooter(ctx, spec, h);
+  drawFooter(ctx, spec, h, width);
 }
 
-function drawWaffle(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind: "waffle" }>, top: number, h: number) {
+function drawWaffle(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind: "waffle" }>, top: number, h: number, width: number) {
   const total = spec.segments.reduce((sum, item) => sum + item.value, 0);
   const counts = spec.segments.map((item) => Math.round((item.value / total) * 100));
   // 四舍五入可能差 1–2 格，补到第一段，保证正好 100。
@@ -161,7 +186,7 @@ function drawWaffle(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { ki
   const cell = 30;
   const gap = 6;
   const gridW = cell * 10 + gap * 9;
-  const gridX = (WIDTH - gridW) / 2;
+  const gridX = (width - gridW) / 2;
   const gridY = top + 10;
   let index = 0;
 
@@ -190,7 +215,7 @@ function drawWaffle(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { ki
     x += 22 + ctx.measureText(text).width + 28;
   });
 
-  drawFooter(ctx, spec, h);
+  drawFooter(ctx, spec, h, width);
 }
 
 function drawTimeline(
@@ -198,6 +223,7 @@ function drawTimeline(
   spec: Extract<ChartSpec, { kind: "timeline" }>,
   top: number,
   h: number,
+  width: number,
 ) {
   const accent = accentOf(spec);
   const lineX = PAD + 96;
@@ -239,7 +265,7 @@ function drawTimeline(
     }
   });
 
-  drawFooter(ctx, spec, h);
+  drawFooter(ctx, spec, h, width);
 }
 
 function drawCompare(
@@ -247,9 +273,10 @@ function drawCompare(
   spec: Extract<ChartSpec, { kind: "compare" }>,
   top: number,
   h: number,
+  width: number,
 ) {
   const accent = accentOf(spec);
-  const cardW = (WIDTH - PAD * 2 - 40) / 2;
+  const cardW = (width - PAD * 2 - 40) / 2;
   const cardH = compareCardHeight(spec);
   const drawCard = (x: number, side: typeof spec.left, filled: boolean) => {
     ctx.fillStyle = filled ? accent : "#FFFFFF";
@@ -282,9 +309,9 @@ function drawCompare(
   ctx.fillStyle = MUTED;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("VS", WIDTH / 2, top + cardH / 2);
+  ctx.fillText("VS", width / 2, top + cardH / 2);
 
-  drawFooter(ctx, spec, h);
+  drawFooter(ctx, spec, h, width);
 }
 
 function drawSteps(
@@ -292,6 +319,7 @@ function drawSteps(
   spec: Extract<ChartSpec, { kind: "steps" }>,
   top: number,
   h: number,
+  width: number,
 ) {
   const accent = accentOf(spec);
   const dotX = PAD + 28;
@@ -333,13 +361,13 @@ function drawSteps(
     }
   });
 
-  drawFooter(ctx, spec, h);
+  drawFooter(ctx, spec, h, width);
 }
 
-function drawKpi(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind: "kpi" }>, top: number, h: number) {
+function drawKpi(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind: "kpi" }>, top: number, h: number, width: number) {
   const accent = accentOf(spec);
   const cols = spec.items.length === 1 ? 1 : 2;
-  const cardW = (WIDTH - PAD * 2 - (cols - 1) * 24) / cols;
+  const cardW = (width - PAD * 2 - (cols - 1) * 24) / cols;
   const cardH = 150;
 
   spec.items.forEach((item, index) => {
@@ -371,46 +399,61 @@ function drawKpi(ctx: CanvasRenderingContext2D, spec: Extract<ChartSpec, { kind:
     }
   });
 
-  drawFooter(ctx, spec, h);
+  drawFooter(ctx, spec, h, width);
 }
 
-export async function buildChartPng(spec: ChartSpec): Promise<{ buffer: Buffer; width: number; height: number }> {
+/**
+ * 把 ChartSpec 画成 PNG，纯函数：不落盘、不依赖 imagesDir。
+ *
+ * 返回的是输出像素尺寸（CSS 宽 × 输出倍率）。默认参数与既有行为一致
+ * （1000 CSS 宽 × 2 = 2000px），图例缩略图传更小的 width/scale 即可。
+ */
+export function renderChartPng(
+  spec: ChartSpec,
+  options: ChartRenderOptions = {},
+): { buffer: Buffer; width: number; height: number } {
+  const width = cssWidth(options);
+  const scale = outputScale(options);
   const cssHeight = heightOf(spec);
-  const canvas = createCanvas(WIDTH * SCALE, cssHeight * SCALE);
+  const canvas = createCanvas(width * scale, cssHeight * scale);
   const ctx = canvas.getContext("2d");
-  ctx.scale(SCALE, SCALE);
+  ctx.scale(scale, scale);
 
-  const top = drawHeader(ctx, spec);
+  const top = drawHeader(ctx, spec, width);
   switch (spec.kind) {
     case "bar":
-      drawBar(ctx, spec, top, cssHeight);
+      drawBar(ctx, spec, top, cssHeight, width);
       break;
     case "waffle":
-      drawWaffle(ctx, spec, top, cssHeight);
+      drawWaffle(ctx, spec, top, cssHeight, width);
       break;
     case "timeline":
-      drawTimeline(ctx, spec, top, cssHeight);
+      drawTimeline(ctx, spec, top, cssHeight, width);
       break;
     case "compare":
-      drawCompare(ctx, spec, top, cssHeight);
+      drawCompare(ctx, spec, top, cssHeight, width);
       break;
     case "steps":
-      drawSteps(ctx, spec, top, cssHeight);
+      drawSteps(ctx, spec, top, cssHeight, width);
       break;
     case "kpi":
-      drawKpi(ctx, spec, top, cssHeight);
+      drawKpi(ctx, spec, top, cssHeight, width);
       break;
   }
 
   const buffer = canvas.toBuffer("image/png");
-  return { buffer, width: WIDTH * SCALE, height: cssHeight * SCALE };
+  return { buffer, width: width * scale, height: cssHeight * scale };
+}
+
+export async function buildChartPng(spec: ChartSpec): Promise<{ buffer: Buffer; width: number; height: number }> {
+  return renderChartPng(spec);
 }
 
 export async function renderChart(
   spec: ChartSpec,
 ): Promise<{ url: string; path: string; size: number; width: number; height: number }> {
   await ensureImageDir();
-  const { buffer, width, height } = await buildChartPng(spec);
+  const { buffer, width, height } = renderChartPng(spec);
   const relPath = `${Date.now()}-${createId("chart").slice(0, 8)}.png`;
   const abs = path.join(imageDir(), relPath);
   await fs.writeFile(abs, buffer);

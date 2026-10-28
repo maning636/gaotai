@@ -1425,3 +1425,144 @@ img {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* --- 15. 图解图例与自动配图 --------------------------------------------- */
+
+/* 六种图的图例卡片网格：窄屏 1 列，宽屏 3 列，中屏 2 列。 */
+.gt-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .gt-chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .gt-chart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 一张图例卡片：白底细边框；选中态用黄色底 + 硬边框 + 实心投影。 */
+.gt-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  text-align: left;
+  background: var(--gt-surface);
+  border: var(--gt-border-thin);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+}
+
+.gt-chart-card:hover {
+  box-shadow: var(--gt-shadow-sm);
+  transform: translate(-1px, -1px);
+}
+
+.gt-chart-card--active {
+  background: var(--gt-yellow);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+}
+
+.gt-chart-card__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: #fff;
+  border: 1px solid var(--gt-line);
+  overflow: hidden;
+}
+
+.gt-chart-card__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.gt-chart-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 13px;
+  color: var(--gt-muted);
+}
+
+.gt-chart-card__name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gt-ink);
+}
+
+.gt-chart-card__purpose {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--gt-muted);
+}
+
+/* 自动配图计划条目。 */
+.gt-chart-plan-card {
+  border: var(--gt-border-thin);
+  border-left-width: 8px;
+  border-left-color: var(--gt-yellow);
+  padding: 10px 12px;
+  background: var(--gt-surface);
+}
+
+.gt-chart-plan-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.gt-chart-plan-card__kind {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 7px;
+  background: var(--gt-yellow);
+  border: 2px solid var(--gt-line);
+}
+
+.gt-chart-plan-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gt-ink);
+}
+
+.gt-chart-plan-card__where,
+.gt-chart-plan-card__why {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--gt-muted);
+}
+
+.gt-chart-plan-card__why {
+  color: var(--gt-ink);
+}
+
+.gt-chart-plan-card__data {
+  margin-top: 6px;
+}
+
+.gt-chart-plan-card__data summary {
+  font-size: 12px;
+  color: var(--gt-muted);
+  cursor: pointer;
+}
+
+.gt-chart-plan-card__data textarea {
+  margin-top: 6px;
+}
+

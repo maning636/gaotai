@@ -123,6 +123,21 @@ export const CHART_KIND_LABELS: Record<ChartKind, string> = {
   kpi: "关键数字",
 };
 
+/**
+ * 每种图型一句人话用途（图例卡片上显示）。
+ *
+ * 与 CHART_KIND_HINTS 分开：卡片上是「这图能帮你干嘛」，
+ * 数据格式说明只出现在输入框 placeholder 里，不重复贴格式。
+ */
+export const CHART_KIND_PURPOSES: Record<ChartKind, string> = {
+  bar: "几项数值比大小，一眼看清谁高谁低",
+  waffle: "整体分成几块，看各部分占多少",
+  timeline: "事情按时间先后排开，看清来龙去脉",
+  compare: "改造前后摆在一起，差别一目了然",
+  steps: "一件事分几步走，流程看得明白",
+  kpi: "把最想让人记住的几个数单独放大",
+};
+
 /** 每种图型的数据格式提示（界面直接显示）。 */
 export const CHART_KIND_HINTS: Record<ChartKind, string> = {
   bar: "每行一条：标签,数值\n例如：评审,42",
