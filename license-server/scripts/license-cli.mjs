@@ -1,11 +1,11 @@
 import { randomInt } from 'node:crypto';
 import { parseConfig, selfCheck } from '../lib/config.mjs';
-import { createStore, generateCode, normalizeCode, normalizeContact } from '../lib/store.mjs';
+import { createStore, generateCode, normalizeContact } from '../lib/store.mjs';
 import { derivePublicKeyPem } from '../lib/token.mjs';
 
-// 管理 CLI：issue / list / revoke / unrevoke / unbind / show / stats
+// 管理 CLI：issue / list / revoke / unrevoke / unbind / show / stats / show-format
 // 直接复用 store 层，不经 HTTP
-const COMMANDS = ['issue', 'list', 'revoke', 'unrevoke', 'unbind', 'show', 'stats'];
+const COMMANDS = ['issue', 'list', 'revoke', 'unrevoke', 'unbind', 'show', 'stats', 'show-format'];
 
 function usage() {
   console.log(`用法：node scripts/license-cli.mjs <命令> [参数]
@@ -19,6 +19,7 @@ function usage() {
   unbind  --code <GT-...> [--machine <hex64>]   解绑设备（不传 machine 解全部）
   show    --code <GT-...>      查看详情（含设备列表与最后在线时间）
   stats   汇总统计
+  show-format   打印当前生效的注册码格式（确认连的是哪个产品的实例）
 `);
 }
 
@@ -26,6 +27,20 @@ function arg(args, name) {
   const i = args.indexOf('--' + name);
   if (i < 0) return undefined;
   return args[i + 1];
+}
+
+// 用当前格式拼一个展示用的示例码（只取每组首字符，不用于真实发码）
+function exampleCode(f) {
+  const group = f.groupSize > 0 ? f.groupSize : f.bodyLength;
+  const parts = [];
+  let left = f.bodyLength;
+  while (left > 0) {
+    const n = Math.min(group, left);
+    parts.push(f.alphabet[0].repeat(n));
+    left -= n;
+  }
+  const body = parts.join('-');
+  return f.prefix ? f.prefix + '-' + body : body;
 }
 
 async function main() {
@@ -49,9 +64,20 @@ async function main() {
   }
 
   const now = () => Date.now();
-  const store = createStore({ dataDir: config.dataDir, now });
+  const store = createStore({ dataDir: config.dataDir, now, codeFormat: config.codeFormat });
 
   switch (cmd) {
+    case 'show-format':
+    case '--show-format': {
+      const f = config.codeFormat;
+      console.log('当前注册码格式：');
+      console.log('  prefix:       ' + (f.prefix || '（无前缀）'));
+      console.log('  bodyLength:   ' + f.bodyLength);
+      console.log('  groupSize:    ' + (f.groupSize === 0 ? '（不分段）' : f.groupSize));
+      console.log('  alphabet:     ' + f.alphabet);
+      console.log('  示例:         ' + exampleCode(f));
+      break;
+    }
     case 'issue': {
       const contact = normalizeContact(arg(rest, 'contact') || '');
       if (!contact) {
@@ -62,7 +88,7 @@ async function main() {
       const plan = arg(rest, 'plan') || 'free';
       const maxDevices = parseInt(arg(rest, 'max-devices') || '1', 10);
       const note = arg(rest, 'note') || '';
-      const code = generateCode(store, randomInt);
+      const code = generateCode(store, randomInt, config.codeFormat);
       const r = await store.issueCode({ code, contact, channel, plan, maxDevices, note });
       console.log('已发放注册码：');
       console.log('  code:        ' + r.code);
@@ -93,7 +119,7 @@ async function main() {
     case 'revoke':
     case 'unrevoke': {
       const raw = arg(rest, 'code');
-      const code = normalizeCode(raw);
+      const { code } = store.resolveCode(raw);
       if (!code) {
         console.error('注册码格式不正确：' + raw);
         process.exit(1);
@@ -107,7 +133,7 @@ async function main() {
       break;
     }
     case 'unbind': {
-      const code = normalizeCode(arg(rest, 'code'));
+      const { code } = store.resolveCode(arg(rest, 'code'));
       if (!code) {
         console.error('注册码格式不正确');
         process.exit(1);
@@ -122,17 +148,12 @@ async function main() {
       break;
     }
     case 'show': {
-      const code = normalizeCode(arg(rest, 'code'));
-      if (!code) {
-        console.error('注册码格式不正确');
-        process.exit(1);
-      }
-      const r = await store.findCode(code);
-      if (!r) {
+      const { record } = store.resolveCode(arg(rest, 'code'));
+      if (!record) {
         console.error('注册码不存在');
         process.exit(1);
       }
-      console.log(JSON.stringify(r, null, 2));
+      console.log(JSON.stringify(record, null, 2));
       break;
     }
     case 'stats': {

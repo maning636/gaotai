@@ -1,5 +1,4 @@
 import { readJsonBody, failByCode, ok, clientIp, isValidMachine } from '../lib/http.mjs';
-import { normalizeCode } from '../lib/store.mjs';
 import { signToken } from '../lib/token.mjs';
 
 // POST /v1/activate
@@ -24,12 +23,20 @@ export async function handle(ctx, req, res) {
     return;
   }
 
-  // 规范化注册码：大写、去空格、补格式
-  const code = normalizeCode(body.code);
+  // 查码（兼容感知）：先按当前格式规范化，匹配不到且格式非默认时再按旧格式试
+  const { code, record } = store.resolveCode(body.code);
   if (!code) {
+    // 连规范化都过不了 → 400 格式错误
     rateLimiter.recordFail(ip);
     store.appendAudit({ ip, codePrefix: '', errorCode: 'bad_request', event: 'activate' });
     failByCode(res, 'bad_request', '注册码格式不正确');
+    return;
+  }
+  if (!record) {
+    // 格式合法但库里没有 → 404 码不存在
+    rateLimiter.recordFail(ip);
+    store.appendAudit({ ip, codePrefix: code.slice(0, 7), errorCode: 'invalid_code', event: 'activate' });
+    failByCode(res, 'invalid_code', '注册码不存在');
     return;
   }
 
@@ -56,7 +63,6 @@ export async function handle(ctx, req, res) {
     return;
   }
 
-  const record = result.record;
   const issuedAt = now();
   const expiresAt = issuedAt + config.tokenTtlMs;
   const payload = {

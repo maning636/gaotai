@@ -2,41 +2,83 @@ import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync, appendF
 import { resolve } from 'node:path';
 
 // Crockford Base32 字符集，去掉了 I L O U，降低手抄抄错率
-const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-// 注册码格式 GT-XXXX-XXXX-XXXX-XXXX，4 段 4 位
-const CODE_GROUPS = 4;
-const CODE_GROUP_LEN = 4;
+export const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+// 默认注册码格式：GT-XXXX-XXXX-XXXX-XXXX，4 段 4 位
+// 通过环境变量 CODE_PREFIX / CODE_BODY_LENGTH / CODE_GROUP_SIZE / CODE_ALPHABET 可覆盖，
+// 默认值保持不变，保证现有部署与已发出去的码继续有效。
+export const DEFAULT_CODE_FORMAT = {
+  prefix: 'GT',
+  bodyLength: 16,
+  groupSize: 4,
+  alphabet: CROCKFORD,
+};
 
-// 规范化注册码：大写、去空格、接受用户输入的 GT 前缀或无前缀
-export function normalizeCode(raw) {
-  if (typeof raw !== 'string') return '';
-  let s = raw.toUpperCase().replace(/\s+/g, '');
-  // 用户可能输小写 o 当 0、小写 l 当 1，Crockford 约定映射
-  s = s.replace(/O/g, '0').replace(/L/g, '1').replace(/I/g, '1');
-  // 去掉连字符与可能的 GT 前缀，只留 16 位码体
-  let clean = s.replace(/-/g, '');
-  if (clean.startsWith('GT')) {
-    clean = clean.slice(2);
-  }
-  if (clean.length !== CODE_GROUPS * CODE_GROUP_LEN) return '';
-  // Crockford Base32 去掉 I L O U，字符范围：0-9 A-H J-N P-T V-Z
-  if (!/^[0-9A-HJ-NP-TV-Z]+$/.test(clean)) return '';
-  return 'GT-' + clean.match(/.{4}/g).join('-');
+// 判断两个格式是否等价（未传入按默认格式算）
+export function sameFormat(a, b) {
+  const x = a || DEFAULT_CODE_FORMAT;
+  const y = b || DEFAULT_CODE_FORMAT;
+  return (
+    x.prefix === y.prefix &&
+    x.bodyLength === y.bodyLength &&
+    x.groupSize === y.groupSize &&
+    x.alphabet === y.alphabet
+  );
 }
 
-// 用 crypto.randomInt 逐段生成，碰撞重试
-// randomInt 从外部注入，避免在 ESM 里用 require
-export function generateCode(store, randomInt, maxTries = 1000) {
-  for (let i = 0; i < maxTries; i++) {
-    let groups = [];
-    for (let g = 0; g < CODE_GROUPS; g++) {
-      let part = '';
-      for (let c = 0; c < CODE_GROUP_LEN; c++) {
-        part += CROCKFORD[randomInt(CROCKFORD.length)];
+// 按格式组装注册码：PREFIX-分组1-分组2-...
+// groupSize 为 0 表示不分段；prefix 为空则码体直接分组
+function assembleCode(prefix, body, groupSize) {
+  const grouped = groupSize > 0 ? body.match(new RegExp('.{' + groupSize + '}', 'g')).join('-') : body;
+  return prefix ? prefix + '-' + grouped : grouped;
+}
+
+// 规范化注册码：大写、去空格、容忍漏输前缀 / 大小写混写 / 中间夹空格
+// format 缺省用默认格式（GT/16/4），保证老调用方行为不变
+export function normalizeCode(raw, format = DEFAULT_CODE_FORMAT) {
+  if (typeof raw !== 'string') return '';
+  const { prefix, bodyLength, groupSize, alphabet } = format;
+  let s = raw.toUpperCase().replace(/\s+/g, '');
+  // 用户可能输小写 o 当 0、小写 l 当 1，Crockford 约定映射；
+  // 仅当目标字符在字符集内才做映射，避免自定义字符集被误改
+  if (alphabet.includes('0')) s = s.replace(/O/g, '0');
+  if (alphabet.includes('1')) s = s.replace(/L/g, '1').replace(/I/g, '1');
+  // 去掉连字符，只留码体（含可能带上的前缀）
+  const clean = s.replace(/-/g, '');
+  const allowed = new Set(alphabet);
+
+  // 收集候选码体：优先「剥掉前缀」的版本，再试「原样」，
+  // 这样既能接受带前缀的规范输入，也能容忍用户漏输前缀（且码体恰好以 prefix 开头）
+  const candidates = [];
+  if (prefix && clean.startsWith(prefix)) {
+    candidates.push(clean.slice(prefix.length));
+  }
+  candidates.push(clean);
+
+  for (const body of candidates) {
+    if (body.length !== bodyLength) continue;
+    let ok = true;
+    for (const ch of body) {
+      if (!allowed.has(ch)) {
+        ok = false;
+        break;
       }
-      groups.push(part);
     }
-    const code = 'GT-' + groups.join('-');
+    if (!ok) continue;
+    return assembleCode(prefix, body, groupSize);
+  }
+  return '';
+}
+
+// 用 crypto.randomInt 逐位生成，碰撞重试
+// randomInt 从外部注入，避免在 ESM 里用 require
+export function generateCode(store, randomInt, format = DEFAULT_CODE_FORMAT, maxTries = 1000) {
+  const { prefix, bodyLength, groupSize, alphabet } = format;
+  for (let i = 0; i < maxTries; i++) {
+    let body = '';
+    for (let c = 0; c < bodyLength; c++) {
+      body += alphabet[randomInt(alphabet.length)];
+    }
+    const code = assembleCode(prefix, body, groupSize);
     if (!store.findCode(code)) {
       return code;
     }
@@ -72,10 +114,13 @@ function createQueue() {
   return { enqueue };
 }
 
-export function createStore({ dataDir, now = Date.now }) {
+export function createStore({ dataDir, now = Date.now, codeFormat }) {
   const dbPath = resolve(dataDir, 'license.json');
   const auditPath = resolve(dataDir, 'audit.jsonl');
   const queue = createQueue();
+  // 保存注册码格式（默认值保持不变），供 lookup 时做兼容解析；
+  // 不作为模块级全局，便于同一进程内测试多种 format
+  const fmt = codeFormat || DEFAULT_CODE_FORMAT;
 
   // 确保目录存在，data/.gitkeep 已在仓库里，但测试注入的临时目录可能没有
   if (!existsSync(dataDir)) {
@@ -124,6 +169,25 @@ export function createStore({ dataDir, now = Date.now }) {
 
   function findCode(code) {
     return load().codes[code] || null;
+  }
+
+  // 查码（兼容感知）：先按当前 format 规范化后精确匹配；若匹配不到、且 format 与默认不同，
+  // 再按默认格式（GT/16/4）规范化试一次，让库里已有的旧格式码仍能激活。
+  // 返回 { code, record }：
+  //   - 命中时 code 为库里实际使用的规范化字符串（可能是旧格式，供后续 CRUD 精确命中）
+  //   - 未命中时 record 为 null；code 为「当前格式或旧格式」下最合理的规范化串，
+  //     非空表示 raw 格式合法（调用方可据此区分 400 格式错 与 404 码不存在）
+  function resolveCode(raw) {
+    const db = load();
+    const cur = normalizeCode(raw, fmt);
+    if (cur && db.codes[cur]) return { code: cur, record: db.codes[cur] };
+    if (!sameFormat(fmt, DEFAULT_CODE_FORMAT)) {
+      const legacy = normalizeCode(raw, DEFAULT_CODE_FORMAT);
+      if (legacy && db.codes[legacy]) return { code: legacy, record: db.codes[legacy] };
+      // 旧格式规范化成功但库里没有 → 交给调用方报「码不存在」；否则退回当前格式结果
+      if (legacy) return { code: legacy, record: null };
+    }
+    return { code: cur, record: null };
   }
 
   // 发码：写入新激活码记录，contact 幂等
@@ -288,6 +352,7 @@ export function createStore({ dataDir, now = Date.now }) {
 
   return {
     findCode,
+    resolveCode,
     issueCode,
     listCodes,
     revoke,

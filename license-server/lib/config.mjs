@@ -1,6 +1,7 @@
 import { readFileSync, accessSync, constants, statSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_CODE_FORMAT } from './store.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // 服务端根目录：lib 的上一级
@@ -47,6 +48,9 @@ export function parseConfig(env = process.env, opts = {}) {
   // 协议 §6.1：channel 取值固定集合
   const redeemChannels = ['wechat-mp', 'wechat-oa', 'direct'];
 
+  // 注册码格式（环境变量可配，默认值保持不变）
+  const codeFormat = parseCodeFormat(env);
+
   return {
     root,
     port,
@@ -62,15 +66,71 @@ export function parseConfig(env = process.env, opts = {}) {
     rateWindowMs,
     redeemPerHour,
     redeemChannels,
+    codeFormat,
     // 测试可注入已加载的私钥/公钥，避免每次自检读盘
     privateKey: opts.privateKey || null,
     publicKey: opts.publicKey || null,
   };
 }
 
-// 启动自检：私钥、data 目录可写、资产目录存在（资产缺失只告警不退出，可在发码前补打）
+// ---- 注册码格式：环境变量解析（带默认值与类型清洗，不在解析期抛错，交给自检）----
+export function parseCodeFormat(env = process.env) {
+  const prefix = (env.CODE_PREFIX ?? DEFAULT_CODE_FORMAT.prefix).trim().toUpperCase();
+  const bodyLength = env.CODE_BODY_LENGTH === undefined ? DEFAULT_CODE_FORMAT.bodyLength : parseInt(env.CODE_BODY_LENGTH, 10);
+  const groupSize = env.CODE_GROUP_SIZE === undefined ? DEFAULT_CODE_FORMAT.groupSize : parseInt(env.CODE_GROUP_SIZE, 10);
+  const alphabet = (env.CODE_ALPHABET ?? DEFAULT_CODE_FORMAT.alphabet).trim().toUpperCase();
+  return { prefix, bodyLength, groupSize, alphabet };
+}
+
+// 校验注册码格式配置，返回 { ok, errors }
+// 失败时拒绝启动，给运维可行动的中文错误
+export function validateCodeFormat(fmt) {
+  const errors = [];
+  const { prefix, bodyLength, groupSize, alphabet } = fmt;
+
+  // 前缀：大写字母/数字，1–6 位，允许为空（空则码不带前缀）
+  if (!/^[A-Z0-9]{0,6}$/.test(prefix)) {
+    errors.push(`CODE_PREFIX 只能是大写字母/数字、0–6 位（当前：${JSON.stringify(prefix)}）`);
+  }
+
+  // 码体长度：6–32 的整数
+  if (!Number.isInteger(bodyLength) || bodyLength < 6 || bodyLength > 32) {
+    errors.push(`CODE_BODY_LENGTH 必须是 6–32 的整数（当前：${JSON.stringify(bodyLength)}）`);
+  }
+
+  // 分组大小：0 或能整除码体长度
+  if (!Number.isInteger(groupSize) || groupSize < 0) {
+    errors.push(`CODE_GROUP_SIZE 必须是 0 或正整数（当前：${JSON.stringify(groupSize)}）`);
+  } else if (groupSize > 0 && bodyLength > 0 && bodyLength % groupSize !== 0) {
+    errors.push(`CODE_GROUP_SIZE=${groupSize} 必须能整除 CODE_BODY_LENGTH=${bodyLength}（否则分组不整齐）`);
+  }
+
+  // 字符集：去重后 ≥16，只能 [A-Z0-9]
+  const unique = new Set(alphabet.split(''));
+  if (alphabet.length < 16 || unique.size !== alphabet.length) {
+    errors.push(`CODE_ALPHABET 去重后长度必须 ≥16 且字符唯一（当前长度 ${alphabet.length}、去重后 ${unique.size}）`);
+  }
+  if (!/^[A-Z0-9]+$/.test(alphabet)) {
+    errors.push(`CODE_ALPHABET 只能由大写字母/数字组成（当前：${JSON.stringify(alphabet)}）`);
+  }
+
+  // 熵：组合后的码体要能容纳足够熵，避免太短的码被猜到
+  if (alphabet.length > 0 && bodyLength > 0 && Math.pow(alphabet.length, bodyLength) < 1e12) {
+    errors.push(`字符集 ${alphabet.length} 种、码体 ${bodyLength} 位，组合数 ${alphabet.length ** bodyLength} 不足 1e12，请增大 CODE_BODY_LENGTH 或 CODE_ALPHABET`);
+  }
+
+  return { ok: errors.length === 0, errors };
+}
+
+// 启动自检：注册码格式、私钥、data 目录可写、资产目录存在（资产缺失只告警不退出，可在发码前补打）
 export function selfCheck(cfg) {
   const errors = [];
+
+  // 注册码格式非法 → 拒绝启动
+  const fmt = validateCodeFormat(cfg.codeFormat);
+  if (!fmt.ok) {
+    errors.push('注册码格式配置非法：\n  ' + fmt.errors.join('\n  '));
+  }
 
   // 私钥：要么已注入，要么从盘上读
   try {

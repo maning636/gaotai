@@ -1,5 +1,4 @@
 import { readJsonBody, failByCode, ok, clientIp, isValidMachine } from '../lib/http.mjs';
-import { normalizeCode } from '../lib/store.mjs';
 import { signToken } from '../lib/token.mjs';
 
 // POST /v1/refresh
@@ -22,7 +21,8 @@ export async function handle(ctx, req, res) {
     return;
   }
 
-  const code = normalizeCode(body.code);
+  // 查码（兼容感知）：先按当前格式，匹配不到且格式非默认时再按旧格式试
+  const { code } = store.resolveCode(body.code);
   if (!code || !isValidMachine(body.machine)) {
     rateLimiter.recordFail(ip);
     store.appendAudit({ ip, codePrefix: code ? code.slice(0, 7) : '', errorCode: 'bad_request', event: 'refresh' });

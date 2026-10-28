@@ -48,7 +48,7 @@ export async function handle(ctx, req, res) {
   // channel 非必填，给默认值 direct；不在白名单内也接受但不记录非法值
   const channel = config.redeemChannels.includes(body.channel) ? body.channel : 'direct';
 
-  const code = generateCode(store, randomInt);
+  const code = generateCode(store, randomInt, config.codeFormat);
   const record = await store.issueCode({
     code,
     contact,

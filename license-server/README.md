@@ -79,6 +79,12 @@ PORT=9000 node server.mjs
 | `RATE_FAILS` | `5` | 限流阈值：窗口内失败次数 |
 | `RATE_WINDOW_MS` | `300000` | 限流窗口（5 分钟） |
 | `REDEEM_PER_HOUR` | `20` | 领码：同 IP 每小时上限 |
+| `CODE_PREFIX` | `GT` | 注册码前缀，大写字母/数字，0–6 位；留空则码不带前缀 |
+| `CODE_BODY_LENGTH` | `16` | 前缀之后的码体总长度（字母数字，不含连字符），6–32 |
+| `CODE_GROUP_SIZE` | `4` | 每几位插一个连字符；`0` 表示不分段，须整除码体长度 |
+| `CODE_ALPHABET` | Crockford Base32 | 可用字符集（`0123456789ABCDEFGHJKMNPQRSTVWXYZ`），去重后 ≥16 且仅字母数字 |
+
+> 注册码格式由上面四个变量组合决定；改了它们会改变本实例**新发**的码的样子，但库中已有的旧码仍按兼容逻辑可激活。每个产品实例用一套互不相同的 `CODE_PREFIX` 即可，不需要改客户端。
 
 ## 接口
 
@@ -144,6 +150,17 @@ server {
 - `keys/ed25519-private.pem`：**最重要**，丢失则所有已签发 token 无法刷新。离线备份，不要进 git。
 - `data/license.json`：激活码与绑定记录。定期备份即可。
 - `data/audit.jsonl`：审计日志，按需归档。
+
+### 一台服务器挂多个产品
+
+同一台机器可并行挂多个互不相干的产品，**互不共享任何东西**。每个产品：
+
+1. 复制一份 `license-server/` 到独立目录（如 `/opt/gaotai-a/`、`/opt/gaotai-b/`）
+2. 一份独立 systemd 服务，一个不撞的端口（如 `8787`/`8090`/`8790`…）
+3. 一个子域名 + 一套 `keys/`（各自 `keygen.mjs` 生成）+ 一套 `LICENSE_DATA_DIR`
+4. 一套 `CODE_PREFIX`（如 `GT`/`FDE`/`ABC`），注册码互不混淆
+
+改 `CODE_PREFIX` 等变量后，`show-format` 子命令可打印当前实例生效的格式，方便确认连的是哪个产品。
 
 ### 发码流程
 

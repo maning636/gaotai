@@ -33,7 +33,7 @@ export function createApp({ config: cfg }) {
   }
 
   const now = () => Date.now();
-  const store = createStore({ dataDir: config.dataDir, now });
+  const store = createStore({ dataDir: config.dataDir, now, codeFormat: config.codeFormat });
   const assets = createAssets({ assetsDir: config.assetsDir });
 
   // 限流器可被测试替换为独立实例
