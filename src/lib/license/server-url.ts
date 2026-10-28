@@ -13,7 +13,7 @@
  * 第 3 条为什么限定生产：`npm test` 里有一条「未配置服务器应返回
  * server_not_configured」的用例，若开发态也回落内置地址，测试会真的去连线上服务器。
  */
-export const BUILTIN_LICENSE_SERVER = "https://maning789link.top";
+export const BUILTIN_LICENSE_SERVER = "https://license.maning789link.top";
 
 /** 去掉尾部斜杠，统一成不带尾斜杠的基址。 */
 function normalize(value: string): string {

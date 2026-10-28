@@ -9,7 +9,7 @@
  */
 
 const BUILTIN_PUBKEY = `-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEATLqVDETmq6zXTKnOfaTxNz8uGr2fXZSb9StgmKsOlDk=
+MCowBQYDK2VwAyEASHyCdbRBujSiNmYq8TebcNMgzonzJPZuv+hs5xDyFPs=
 -----END PUBLIC KEY-----`;
 
 /**
