@@ -23,6 +23,38 @@
 > AppSecret 不记录在此，只写进服务器 `.env` 的 `WECHAT_APPSECRET`。
 > 注意：本文档里的操作都在 **公众平台 mp.weixin.qq.com**；开放平台（open.weixin.qq.com）里没有网页授权域名，别在那找。
 
+## 消息推送已接管（2026-10-29）
+
+服务号的消息回调现在指向我们自己的服务，**微信后台的「自动回复」因此永久禁用**（微信规则：回调开启时后台自动回复不可用）。这是预期行为，不是故障。
+
+| 项 | 值 |
+| --- | --- |
+| URL | `https://license.maning789link.top/wechat` |
+| Token | 存在服务器 `/opt/gaotai-license/.env` 的 `WECHAT_TOKEN`，与后台填的必须一致 |
+| 消息加密方式 | **明文模式**（不支持安全模式；切换前要先实现 AES 解密） |
+| 数据格式 | XML |
+
+用户在微信里的行为对应的回复：
+
+| 用户动作 | 回复 |
+| --- | --- |
+| 关注 | 欢迎语 + 产品清单（文案在服务器 `data/wechat.json` 的 `welcome`） |
+| 发「稿台」「写作」 | 直接用 openid 发码并回报注册码（同一 openid 重复发返回同一个码） |
+| 发「领码」「全部」「产品」 | 产品清单 |
+| 其它文字 | 兜底语（`data/wechat.json` 的 `fallback`） |
+| 取关 | 不回 |
+
+改文案：编辑服务器上的 `/opt/gaotai-license/data/wechat.json`，改完立即生效，不用重启。
+
+## 发码后台（/admin）
+
+`https://license.maning789link.top/admin`
+
+- 口令在服务器 `/opt/gaotai-license/.env` 的 `ADMIN_PASSWORD`
+- 能做：看列表、按邮箱/码搜索、发码、吊销、恢复、解绑
+- 未登录只能看到登录页；连续 5 次输错锁 5 分钟
+- 手机浏览器可用
+
 ## 0. 这条要显眼：为什么是服务号，不是小程序
 
 > **小程序没有「关注」关系，也不能主动群发消息。**

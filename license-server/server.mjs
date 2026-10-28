@@ -11,7 +11,10 @@ import { handle as refresh } from './routes/refresh.mjs';
 import { handle as status } from './routes/status.mjs';
 import { handle as assetsRoute } from './routes/assets.mjs';
 import { handle as redeemRoute } from './routes/redeem.mjs';
+import { createWechatRoute } from './routes/wechat.mjs';
+import { createAdminRoute } from './routes/admin.mjs';
 import { privacyPageHtml } from './lib/privacy-page.mjs';
+import { loadWechatConfig } from './lib/wechat-config.mjs';
 
 // createApp 是测试入口：注入临时目录、临时密钥、独立 store/limiter
 // 返回 { handler, close }
@@ -36,6 +39,17 @@ export function createApp({ config: cfg }) {
   const now = () => Date.now();
   const store = createStore({ dataDir: config.dataDir, now, codeFormat: config.codeFormat });
   const assets = createAssets({ assetsDir: config.assetsDir });
+
+  // 微信公众号配置：读 <dataDir>/wechat.json，缺省自动落盘默认值；
+  // 失败降级到默认配置，不让回调 500。挂到 config.wechat 供路由层消费。
+  if (!config.wechat) {
+    config.wechat = loadWechatConfig(config.dataDir).config;
+  }
+  const wechatRoute = createWechatRoute({ config, store, randomInt: config.randomInt || randomInt });
+
+  // 网页后台路由：/admin、/admin/login、/admin/logout、/admin/action。
+  // 独立于其它路由，自带认证/限流/同源校验。
+  const adminRoute = createAdminRoute({ config, store, randomInt: config.randomInt || randomInt, now });
 
   // 限流器可被测试替换为独立实例
   const rateLimiter = config.rateLimiter || createRateLimiter({
@@ -89,6 +103,12 @@ export function createApp({ config: cfg }) {
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('Content-Length', Buffer.byteLength(html));
         res.end(html);
+      } else if ((method === 'GET' || method === 'POST') && pathname === '/wechat') {
+        await wechatRoute.handle(req, res);
+      } else if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+        // 网页后台：注意要放在所有精确路由之后、404 兜底之前，
+        // 用前缀匹配而非精确相等，保证 /admin/login 等子路径也能命中。
+        await adminRoute.handle(req, res, url);
       } else {
         failByCode(res, 'not_found', '接口不存在');
       }

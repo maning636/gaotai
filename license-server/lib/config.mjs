@@ -45,6 +45,20 @@ export function parseConfig(env = process.env, opts = {}) {
 
   const redeemPerHour = parseInt(env.REDEEM_PER_HOUR || String(DEFAULT_REDEEM_PER_HOUR), 10);
 
+  // 微信公众号回调签名 token 与公众号原始 ID。
+  // token 用于验证微信回调（sha1 签名），为空时 /wechat 一律 403；
+  // 原始 ID（gh_xxxx）用作被动回复的 FromUserName，为空则填空串。
+  // 两者都不写进任何日志（token 属于凭据）。
+  const wechatToken = (env.WECHAT_TOKEN || '').trim();
+  const wechatOriginalId = (env.WECHAT_ORIGINAL_ID || '').trim();
+
+  // 网页后台（/admin）的管理口令与会话签名密钥。
+  // 口令为空时后台整体 503（见 admin-auth.mjs / routes/admin.mjs），
+  // 绝不降级成「无口令可进」；会话密钥缺失时用启动随机密钥并告警。
+  // 两者都属于凭据，绝不写进任何日志。
+  const adminPassword = (env.ADMIN_PASSWORD || '').trim();
+  const adminSessionSecret = (env.ADMIN_SESSION_SECRET || '').trim();
+
   // 协议 §6.1：channel 取值固定集合
   const redeemChannels = ['wechat-mp', 'wechat-oa', 'direct'];
 
@@ -66,6 +80,10 @@ export function parseConfig(env = process.env, opts = {}) {
     rateWindowMs,
     redeemPerHour,
     redeemChannels,
+    wechatToken,
+    wechatOriginalId,
+    adminPassword,
+    adminSessionSecret,
     codeFormat,
     // 测试可注入已加载的私钥/公钥，避免每次自检读盘
     privateKey: opts.privateKey || null,
