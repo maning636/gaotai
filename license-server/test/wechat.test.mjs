@@ -190,6 +190,64 @@ describe('消息路由（纯逻辑）', () => {
     });
     assert.equal(got, 'b');
   });
+
+  test('faq 关键词命中 → 返回对应回复', async () => {
+    const cfg = {
+      ...baseConfig,
+      faq: [{ keywords: ['怎么用', '激活'], reply: '这是激活步骤' }],
+    };
+    const r = await handleWechatMessage({ message: { MsgType: 'text', Content: '怎么用' }, config: cfg, openid: 'o' });
+    assert.equal(r.reply, '这是激活步骤');
+  });
+
+  test('产品关键词优先于 faq：产品命中时不走 faq', async () => {
+    // 「稿台」既是产品关键词，也在 faq 里 → 应发码（产品优先），不回 faq 文案
+    const cfg = {
+      ...baseConfig,
+      products: [{ key: 'gaotai', name: '稿台', keywords: ['稿台'], issue: true, replySuffix: '' }],
+      faq: [{ keywords: ['稿台'], reply: '不该返回这条' }],
+    };
+    let got = null;
+    const r = await handleWechatMessage({
+      message: { MsgType: 'text', Content: '稿台' },
+      config: cfg,
+      openid: 'o',
+      issue: async (oid, p) => { got = p.key; return 'GT-X'; },
+    });
+    assert.equal(got, 'gaotai');
+    assert.ok(r.reply.includes('GT-X'));
+    assert.ok(!r.reply.includes('不该返回这条'));
+  });
+
+  test('列表关键词优先于 faq', async () => {
+    // 「领码」既在 listKeywords 也在 faq → 应回产品清单（列表优先）
+    const cfg = {
+      ...baseConfig,
+      listKeywords: ['领码'],
+      faq: [{ keywords: ['领码'], reply: '不该返回这条' }],
+    };
+    const r = await handleWechatMessage({ message: { MsgType: 'text', Content: '领码' }, config: cfg, openid: 'o' });
+    assert.ok(r.reply.includes('现有产品'));
+    assert.ok(!r.reply.includes('不该返回这条'));
+  });
+
+  test('faq 多条命中时取关键词最长者', async () => {
+    const cfg = {
+      ...baseConfig,
+      faq: [
+        { keywords: ['用'], reply: '短' },
+        { keywords: ['怎么用'], reply: '长' },
+      ],
+    };
+    const r = await handleWechatMessage({ message: { MsgType: 'text', Content: '怎么用' }, config: cfg, openid: 'o' });
+    assert.equal(r.reply, '长');
+  });
+
+  test('未知消息走 fallback（faq 未命中）', async () => {
+    const cfg = { ...baseConfig, faq: [{ keywords: ['怎么用'], reply: '激活' }] };
+    const r = await handleWechatMessage({ message: { MsgType: 'text', Content: '完全无关' }, config: cfg, openid: 'o' });
+    assert.equal(r.reply, cfg.fallback);
+  });
 });
 
 describe('微信配置加载', () => {

@@ -11,9 +11,10 @@
 // 失败留在原页显示错误（不把用户踢回登录页）。
 
 import { createAdminAuth } from '../lib/admin-auth.mjs';
-import { loginPage, consolePage, notConfiguredPage } from '../lib/admin-page.mjs';
+import { loginPage, consolePage, notConfiguredPage, textsPage } from '../lib/admin-page.mjs';
 import { generateCode, normalizeContact, isValidEmail } from '../lib/store.mjs';
 import { clientIp } from '../lib/http.mjs';
+import { loadWechatConfig, saveWechatConfig, DEFAULT_WECHAT_CONFIG } from '../lib/wechat-config.mjs';
 
 const COOKIE_NAME = 'gt_admin';
 const SESSION_COOKIE_TTL = 12 * 60 * 60; // 秒，与 admin-auth 的令牌有效期一致
@@ -134,6 +135,116 @@ function isSecure(req, trustProxy) {
   return !!req.socket.encrypted;
 }
 
+// 字符串去重（保序），空串剔除。
+function dedupe(arr) {
+  const seen = new Set();
+  const out = [];
+  for (const s of arr) {
+    const t = String(s).trim();
+    if (!t) continue;
+    if (seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
+// 把原始表单 body 构造成「草稿配置」用于校验失败后回显——保证用户刚输入的内容不丢。
+// 与 parseTextsForm 不同，这里不做校验、尽量还原用户看到的样子（faq 保持字面 \n 文本）。
+function draftFromBody(body) {
+  const str = (v) => (typeof v === 'string' ? v : '');
+  const faqLines = [];
+  for (const line of str(body.faq).split('\n')) {
+    const l = line.trim();
+    if (!l) continue;
+    const eq = l.indexOf('=');
+    if (eq < 0) {
+      faqLines.push({ keywords: [], reply: l });
+      continue;
+    }
+    faqLines.push({
+      keywords: dedupe(l.slice(0, eq).split(',')),
+      reply: l.slice(eq + 1).replace(/\\n/g, '\n'),
+    });
+  }
+  const products = [];
+  for (let i = 0; i < 6; i++) {
+    const name = str(body[`p${i}_name`]).trim();
+    if (!name) continue;
+    products.push({
+      key: str(body[`p${i}_key`]).trim() || name.toLowerCase().replace(/\s+/g, '-'),
+      name,
+      keywords: dedupe((str(body[`p${i}_keywords`]) || '').split(',')),
+      issue: str(body[`p${i}_issue`]) === '1',
+      url: str(body[`p${i}_url`]).trim(),
+      replySuffix: str(body[`p${i}_suffix`]).trim(),
+    });
+  }
+  return { welcome: str(body.welcome), fallback: str(body.fallback), faq: faqLines, products, menu: {} };
+}
+
+// 解析 /admin/texts 表单 → wechat 配置对象。
+//
+// 容错（后台是人手敲的）：
+//  - faq：空行忽略；每行按「第一个 =」分割，左边是逗号分隔的关键词，右边是回复；
+//    回复里字面 `\n`（反斜杠 n）转成真实换行；关键词去重。
+//  - 产品：最多 6 行；名称为空整行忽略；关键词逗号分隔去重；key/suffix 从隐藏字段带回，
+//    新行用名称派生 key（下划线化）；issue 由 checkbox 是否存在决定。
+// 返回 { ok, config } 或 { ok:false, error }。
+function parseTextsForm(body) {
+  const str = (v) => (typeof v === 'string' ? v : '');
+  const welcome = str(body.welcome);
+  const fallback = str(body.fallback);
+
+  // ---- FAQ：每行 `关键词1,关键词2=回复`，`\n` 字面量 → 换行 ----
+  const faq = [];
+  const faqRaw = str(body.faq);
+  for (const line of faqRaw.split('\n')) {
+    const l = line.trim();
+    if (!l) continue;
+    const eq = l.indexOf('=');
+    if (eq < 0) {
+      return { ok: false, error: `关键词回复行缺少「=」：${l}` };
+    }
+    const kws = dedupe(l.slice(0, eq).split(','));
+    if (kws.length === 0) {
+      return { ok: false, error: `关键词回复行没有关键词：${l}` };
+    }
+    const reply = l.slice(eq + 1).replace(/\\n/g, '\n');
+    faq.push({ keywords: kws, reply });
+  }
+
+  // ---- 产品：最多 6 行 ----
+  const products = [];
+  for (let i = 0; i < 6; i++) {
+    const name = str(body[`p${i}_name`]).trim();
+    if (!name) continue; // 空行忽略
+    const keywords = dedupe((str(body[`p${i}_keywords`]) || '').split(','));
+    if (keywords.length === 0) {
+      return { ok: false, error: `产品「${name}」没有关键词` };
+    }
+    const key = str(body[`p${i}_key`]).trim() || name.toLowerCase().replace(/\s+/g, '-');
+    products.push({
+      key,
+      name,
+      keywords,
+      issue: str(body[`p${i}_issue`]) === '1',
+      url: str(body[`p${i}_url`]).trim(),
+      replySuffix: str(body[`p${i}_suffix`]).trim(),
+    });
+  }
+  if (products.length === 0) {
+    return { ok: false, error: '至少要保留一个产品' };
+  }
+
+  return { ok: true, config: { welcome, fallback, faq, products } };
+}
+
+// 当前生效的 wechat 配置：从 store 的 config.wechat 取，加载时已保证字段齐全。
+function currentWechatConfig(config) {
+  return config && config.wechat && typeof config.wechat === 'object' ? config.wechat : DEFAULT_WECHAT_CONFIG;
+}
+
 export function createAdminRoute({ config, store, randomInt, now }) {
   // 口令与会话密钥来自环境变量；adminAuth 内部处理「未配置密钥用随机」。
   const auth = createAdminAuth({
@@ -186,6 +297,21 @@ export function createAdminRoute({ config, store, randomInt, now }) {
       const message = url.searchParams.get('msg') || '';
       const error = url.searchParams.get('err') || '';
       sendHtml(res, consolePage({ codes, query: q, message, error }));
+      return;
+    }
+
+    // ---- GET /admin/texts：登录后编辑文案与关键词 ----
+    if (method === 'GET' && pathname === '/admin/texts') {
+      const token = readCookie(req, COOKIE_NAME);
+      const session = auth.verifySession(token);
+      if (!session) {
+        const err = url.searchParams.get('err') || '';
+        sendHtml(res, loginPage({ error: err || undefined }));
+        return;
+      }
+      const message = url.searchParams.get('msg') || '';
+      const error = url.searchParams.get('err') || '';
+      sendHtml(res, textsPage({ config: currentWechatConfig(config), message, error }));
       return;
     }
 
@@ -248,6 +374,45 @@ export function createAdminRoute({ config, store, randomInt, now }) {
     if (pathname === '/admin/logout') {
       clearSessionCookie(res, secure);
       redirect(res, '/admin');
+      return;
+    }
+
+    // POST /admin/texts：保存文案与关键词。
+    // 解析 → saveWechatConfig 原子写 → 303 回 /admin/texts?msg=；
+    // 校验失败回本页带错误并保留用户输入（用 ?err= 传错误信息即可，输入靠再次 GET 预填——
+    // 失败时回 303 到 GET /admin/texts?err=...，用户改的内容不会丢，因为表单预填的是
+    // 当前生效配置，而本次失败的内容并未落盘，仍是最新的未保存输入，符合「不要吞掉用户输入」）。
+    if (pathname === '/admin/texts') {
+      const body = await readBody(req);
+      if (!body) {
+        redirect(res, '/admin/texts?err=' + encodeURIComponent('请求格式不正确'));
+        return;
+      }
+      const parsed = parseTextsForm(body);
+      if (!parsed.ok) {
+        // 校验失败：直接回同页（200）并显示错误，表单预填用户刚提交的内容（不丢输入）。
+        sendHtml(res, textsPage({ config: draftFromBody(body), error: parsed.error }));
+        return;
+      }
+      // 表单只改 welcome/fallback/faq/products，listKeywords 与 menu 沿用当前生效值，
+      // 合并后校验结构再落盘。
+      const merged = {
+        ...currentWechatConfig(config),
+        welcome: parsed.config.welcome,
+        fallback: parsed.config.fallback,
+        faq: parsed.config.faq,
+        products: parsed.config.products,
+      };
+      const saved = saveWechatConfig(config.dataDir, merged);
+      if (!saved.ok) {
+        sendHtml(res, textsPage({ config: draftFromBody(body), error: saved.error }));
+        return;
+      }
+      // 写成功后同步内存里的 config.wechat，让后续回调立即用新配置，无需重启。
+      // 重新 load 一次保证字段齐全（深合并补齐默认值）。
+      config.wechat = loadWechatConfig(config.dataDir).config;
+      store.appendAudit({ ip, codePrefix: '', errorCode: '', event: 'admin:texts' });
+      redirect(res, '/admin/texts?msg=' + encodeURIComponent('已保存，文案与关键词已生效'));
       return;
     }
 

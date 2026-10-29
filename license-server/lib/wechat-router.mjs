@@ -23,6 +23,23 @@ function matchProduct(products, text) {
   return best;
 }
 
+// 找最长匹配关键词的 FAQ 条目：包含即命中，关键词越长越优先。
+// 返回命中的 FAQ 条目对象，未命中返回 null。多条 FAQ 的「回复内容不同、关键词最长者胜」。
+function matchFaq(faq, text) {
+  let best = null;
+  let bestLen = 0;
+  for (const f of faq || []) {
+    for (const kw of f.keywords || []) {
+      const k = String(kw).trim().toLowerCase();
+      if (k && text.includes(k) && k.length > bestLen) {
+        best = f;
+        bestLen = k.length;
+      }
+    }
+  }
+  return best;
+}
+
 // 产品清单文案：列出每个产品与各自的领取方式。
 // 有 url 的给「发「关键词」领码」，否则给 url。
 export function productListText(config) {
@@ -101,6 +118,10 @@ export async function handleWechatMessage({ message, config, openid, issue }) {
       if (product.url) return reply(product.url);
       return reply(product.name);
     }
+
+    // FAQ 关键词：产品之后、fallback 之前命中，回配置好的回复。
+    const faq = matchFaq(cfg.faq, text);
+    if (faq) return reply(faq.reply);
 
     return reply(cfg.fallback || '发「领码」看全部产品。');
   }

@@ -307,4 +307,141 @@ describe('后台 /admin', () => {
       assert.ok(!text.includes('发放注册码'));
     });
   });
+
+  describe('后台文案编辑 /admin/texts', () => {
+    let s;
+    beforeEach(async () => { s = makeAdminSetup(); });
+    afterEach(async () => { await s.close(); });
+
+    test('未登录 GET /admin/texts → 200 登录页', async () => {
+      const base = await s.base();
+      const r = await fetch(base + '/admin/texts');
+      const text = await r.text();
+      assert.equal(r.status, 200);
+      assert.ok(text.includes('后台登录'));
+      assert.ok(!text.includes('保存文案'));
+    });
+
+    test('未登录 POST /admin/texts → 401', async () => {
+      const base = await s.base();
+      const r = await fetch(base + '/admin/texts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ welcome: 'x' }),
+      });
+      assert.equal(r.status, 401);
+    });
+
+    test('登录后 GET /admin/texts 预填当前生效内容', async () => {
+      const base = await s.base();
+      const { cookie } = await login(base);
+      const r = await fetch(base + '/admin/texts', { headers: { Cookie: cookie } });
+      const text = await r.text();
+      assert.equal(r.status, 200);
+      assert.ok(text.includes('文案与关键词'));
+      assert.ok(text.includes('保存文案'));
+      // 预填了默认欢迎语（当前生效内容）
+      assert.ok(text.includes('谢谢你关注'));
+      assert.ok(text.includes('当前生效'));
+    });
+
+    test('登录后保存成功 → 303 且 wechat.json 内容确实变了', async () => {
+      const base = await s.base();
+      const { cookie } = await login(base);
+      const form = new URLSearchParams({
+        welcome: '【新欢迎】你好呀',
+        fallback: '新兜底',
+        faq: '怎么用,激活=这是新激活步骤\\n第二行',
+        p0_name: '稿台',
+        p0_keywords: '稿台,写作',
+        p0_key: 'gaotai',
+        p0_suffix: '后缀',
+        p0_issue: '1',
+        p0_url: 'https://example.com',
+      });
+      const r = await fetch(base + '/admin/texts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookie },
+        body: form,
+        redirect: 'manual',
+      });
+      assert.equal(r.status, 303);
+      assert.match(r.headers.get('location') || '', /\/admin\/texts\?msg=/);
+
+      // 读盘确认真的变了
+      const { readFileSync } = await import('node:fs');
+      const cfg = JSON.parse(readFileSync(join(s.config.dataDir, 'wechat.json'), 'utf8'));
+      assert.equal(cfg.welcome, '【新欢迎】你好呀');
+      assert.equal(cfg.fallback, '新兜底');
+      assert.equal(cfg.faq[0].reply, '这是新激活步骤\n第二行'); // 字面 \n 被转成换行
+      assert.deepEqual(cfg.faq[0].keywords, ['怎么用', '激活']);
+      assert.equal(cfg.products[0].name, '稿台');
+
+      // 再 GET /admin/texts 看到新内容
+      const page = await fetch(base + '/admin/texts', { headers: { Cookie: cookie } });
+      const text = await page.text();
+      assert.ok(text.includes('【新欢迎】你好呀'));
+    });
+
+    test('保存非法内容（faq 行缺 =）→ 页面显示错误且文件未变', async () => {
+      const base = await s.base();
+      const { cookie } = await login(base);
+      const { readFileSync } = await import('node:fs');
+      const cfgPath = join(s.config.dataDir, 'wechat.json');
+      const before = readFileSync(cfgPath, 'utf8');
+
+      const form = new URLSearchParams({
+        welcome: 'x',
+        fallback: 'y',
+        faq: '怎么用=ok\n没有等号这一行',
+        p0_name: '稿台',
+        p0_keywords: '稿台',
+        p0_key: 'gaotai',
+        p0_suffix: '',
+        p0_issue: '1',
+        p0_url: '',
+      });
+      const r = await fetch(base + '/admin/texts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookie },
+        body: form,
+        redirect: 'manual',
+      });
+      const text = await r.text();
+      assert.equal(r.status, 200); // 留在同页
+      assert.ok(text.includes('缺少「=」')); // 显示错误
+      // 文件未变
+      assert.equal(readFileSync(cfgPath, 'utf8'), before);
+    });
+
+    test('保存非法内容（产品无关键词）→ 页面显示错误且文件未变', async () => {
+      const base = await s.base();
+      const { cookie } = await login(base);
+      const { readFileSync } = await import('node:fs');
+      const cfgPath = join(s.config.dataDir, 'wechat.json');
+      const before = readFileSync(cfgPath, 'utf8');
+
+      const form = new URLSearchParams({
+        welcome: 'x',
+        fallback: 'y',
+        faq: '',
+        p0_name: '稿台',
+        p0_keywords: '',
+        p0_key: 'gaotai',
+        p0_suffix: '',
+        p0_issue: '1',
+        p0_url: '',
+      });
+      const r = await fetch(base + '/admin/texts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookie },
+        body: form,
+        redirect: 'manual',
+      });
+      const text = await r.text();
+      assert.equal(r.status, 200);
+      assert.ok(text.includes('没有关键词'));
+      assert.equal(readFileSync(cfgPath, 'utf8'), before);
+    });
+  });
 });
