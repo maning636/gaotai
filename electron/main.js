@@ -131,15 +131,19 @@ function createMainWindow() {
   // 注意：这里不 loadURL。由 whenReady 中的调用方在注入 session cookie 之后显式 loadURL，
   // 否则 AuthGate 拿不到会话会被重定向到 /login，白白多一次跳转。
   // 只允许导航到本地后端地址；其它链接一律交给系统浏览器打开。
+  // 只放行 http/https：其它协议（file:, javascript: 等）既不是我们要打开的下载页，
+  // 也可能是被注入的伪协议，直接拒绝比交给系统浏览器更安全。
   const isLocalService = (u) => u.startsWith(`http://127.0.0.1:${backendPort}`);
+  const isSafeExternal = (u) => /^https?:\/\//i.test(u);
   mainWindow.webContents.on("will-navigate", (event, u) => {
     if (!isLocalService(u)) {
       event.preventDefault();
-      shell.openExternal(u);
+      if (isSafeExternal(u)) shell.openExternal(u);
     }
   });
   mainWindow.webContents.setWindowOpenHandler(({ url: u }) => {
-    if (!isLocalService(u)) {
+    if (!isLocalService(u) && isSafeExternal(u)) {
+      // 「去下载新版本」按钮 window.open 的落地：交给系统浏览器，不在应用内开新窗。
       shell.openExternal(u);
     }
     return { action: "deny" };

@@ -11,10 +11,11 @@
 // 失败留在原页显示错误（不把用户踢回登录页）。
 
 import { createAdminAuth } from '../lib/admin-auth.mjs';
-import { loginPage, consolePage, notConfiguredPage, textsPage } from '../lib/admin-page.mjs';
+import { loginPage, consolePage, notConfiguredPage, textsPage, versionPage } from '../lib/admin-page.mjs';
 import { generateCode, normalizeContact, isValidEmail } from '../lib/store.mjs';
 import { clientIp } from '../lib/http.mjs';
 import { loadWechatConfig, saveWechatConfig, DEFAULT_WECHAT_CONFIG } from '../lib/wechat-config.mjs';
+import { loadAppPolicy, saveAppPolicy } from '../lib/app-policy.mjs';
 
 const COOKIE_NAME = 'gt_admin';
 const SESSION_COOKIE_TTL = 12 * 60 * 60; // 秒，与 admin-auth 的令牌有效期一致
@@ -315,6 +316,22 @@ export function createAdminRoute({ config, store, randomInt, now }) {
       return;
     }
 
+    // ---- GET /admin/version：登录后编辑版本策略 ----
+    if (method === 'GET' && pathname === '/admin/version') {
+      const token = readCookie(req, COOKIE_NAME);
+      const session = auth.verifySession(token);
+      if (!session) {
+        const err = url.searchParams.get('err') || '';
+        sendHtml(res, loginPage({ error: err || undefined }));
+        return;
+      }
+      const message = url.searchParams.get('msg') || '';
+      const error = url.searchParams.get('err') || '';
+      const policy = loadAppPolicy(config.dataDir).config;
+      sendHtml(res, versionPage({ policy, message, error }));
+      return;
+    }
+
     // ---- 写操作：登录本身例外，其余都要先有会话 ----
     if (method !== 'POST') {
       res.statusCode = 405;
@@ -413,6 +430,35 @@ export function createAdminRoute({ config, store, randomInt, now }) {
       config.wechat = loadWechatConfig(config.dataDir).config;
       store.appendAudit({ ip, codePrefix: '', errorCode: '', event: 'admin:texts' });
       redirect(res, '/admin/texts?msg=' + encodeURIComponent('已保存，文案与关键词已生效'));
+      return;
+    }
+
+    // POST /admin/version：保存版本策略。
+    // 解析表单 → saveAppPolicy 原子写 → 303 回 /admin/version?msg=；
+    // 校验失败回本页带错误并保留用户输入（表单预填用户刚提交的内容，不吞输入）。
+    if (pathname === '/admin/version') {
+      const body = await readBody(req);
+      if (!body) {
+        redirect(res, '/admin/version?err=' + encodeURIComponent('请求格式不正确'));
+        return;
+      }
+      const str = (v) => (typeof v === 'string' ? v : '');
+      const draft = {
+        latest: str(body.latest).trim(),
+        minSupported: str(body.minSupported).trim(),
+        mode: str(body.mode) === 'direct' ? 'direct' : 'link',
+        url: str(body.url).trim(),
+        notes: str(body.notes),
+      };
+      const saved = saveAppPolicy(config.dataDir, draft);
+      if (!saved.ok) {
+        // 校验失败：直接回同页（200）并显示错误，表单预填用户刚提交的内容（不丢输入）。
+        sendHtml(res, versionPage({ policy: draft, error: saved.error }));
+        return;
+      }
+      // 版本策略接口每次从盘上读取，保存即生效，无需同步内存、无需重启。
+      store.appendAudit({ ip, codePrefix: '', errorCode: '', event: 'admin:version' });
+      redirect(res, '/admin/version?msg=' + encodeURIComponent('已保存，版本策略已生效'));
       return;
     }
 

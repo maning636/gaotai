@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { UpdateGate } from "./update/update-gate";
 
 export const metadata: Metadata = {
   title: "稿台",
@@ -14,7 +15,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* 版本更新覆盖层：放在 children 之外、body 之内，任何页面（含登录页）都会被盖住。 */}
+        <UpdateGate />
+      </body>
     </html>
   );
 }

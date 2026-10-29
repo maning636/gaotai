@@ -9,6 +9,7 @@ import { derivePublicKeyPem } from './lib/token.mjs';
 import { handle as activate } from './routes/activate.mjs';
 import { handle as refresh } from './routes/refresh.mjs';
 import { handle as status } from './routes/status.mjs';
+import { createAppPolicyRoute } from './routes/app-policy.mjs';
 import { handle as assetsRoute } from './routes/assets.mjs';
 import { handle as redeemRoute } from './routes/redeem.mjs';
 import { createWechatRoute } from './routes/wechat.mjs';
@@ -72,6 +73,11 @@ export function createApp({ config: cfg }) {
     randomInt: config.randomInt || randomInt,
   };
 
+  // 客户端版本策略：GET /v1/app/policy（无需登录/token，自带宽松限流）。
+  // 独立实例，可被测试替换。
+  const appPolicyRoute = createAppPolicyRoute({ config });
+  ctx.appPolicyLimiter = appPolicyRoute.limiter;
+
   async function handler(req, res) {
     let url;
     try {
@@ -91,6 +97,8 @@ export function createApp({ config: cfg }) {
         await refresh(ctx, req, res);
       } else if (method === 'POST' && pathname === '/v1/status') {
         await status(ctx, req, res);
+      } else if (method === 'GET' && pathname === '/v1/app/policy') {
+        await appPolicyRoute.handle(ctx, req, res, url);
       } else if (method === 'GET' && (pathname === '/v1/assets/manifest' || /^\/v1\/assets\/[^/]+$/.test(pathname))) {
         await assetsRoute(ctx, req, res, url);
       } else if (method === 'POST' && pathname === '/v1/redeem') {
@@ -131,6 +139,7 @@ export function createApp({ config: cfg }) {
     // store 是同步写盘，没有需要 flush 的缓冲；预留 hook 供未来扩展
     rateLimiter.reset();
     redeemLimiter.reset();
+    appPolicyRoute.limiter.reset();
   }
 
   return { handler, close, ctx };

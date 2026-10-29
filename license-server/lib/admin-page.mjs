@@ -222,6 +222,7 @@ export function consolePage({ codes, query, message, error } = {}) {
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a href="/admin/texts" class="nav-link">文案与关键词</a>
+      <a href="/admin/version" class="nav-link">版本策略</a>
       <form method="post" action="/admin/logout">
         <button type="submit" class="btn-muted" style="height:36px;padding:0 16px;font-size:13px">退出登录</button>
       </form>
@@ -318,4 +319,70 @@ ${banner}
   </form>
 </div>`;
   return pageShell({ title: '文案与关键词', body });
+}
+
+// 版本策略编辑页（/admin/version）。
+//
+// 表单字段（HTML 原生，无 JS）：
+//  - latest：最新版本号
+//  - minSupported：最低支持版本（低于它 → 强制更新）
+//  - mode：下拉 link / direct
+//  - url：下载地址（https:// 开头）
+//  - notes：更新说明（textarea，≤2000 字）
+// 保存成功后 303 回 /admin/version?msg=，校验失败留在本页带错误并保留用户输入（不吞）。
+//
+// 页面明确提示：minSupported 高于用户当前版本时，用户会被强制更新后才能使用；调低即解除。
+export function versionPage({ policy, message, error } = {}) {
+  const banner = message
+    ? `<div class="banner ok">${escapeHtml(message)}</div>`
+    : error
+      ? `<div class="banner err">${escapeHtml(error)}</div>`
+      : '';
+
+  const p = policy || {};
+  const latest = escapeHtml(p.latest || '');
+  const minSupported = escapeHtml(p.minSupported || '');
+  const mode = p.mode === 'direct' ? 'direct' : 'link';
+  const url = escapeHtml(p.url || '');
+  const notes = escapeHtml(p.notes || '');
+
+  const modeOptions = ['link', 'direct']
+    .map((m) => `<option value="${m}" ${mode === m ? 'selected' : ''}>${m === 'link' ? '外链（夸克网盘等）' : '直链'}</option>`)
+    .join('');
+
+  const body = `
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div>
+      <h1>版本策略</h1>
+      <p class="desc" style="margin-bottom:0">下面这些就是当前生效的策略，改完保存立即生效</p>
+    </div>
+    <a href="/admin" class="nav-link">返回控制台</a>
+  </div>
+</div>
+${banner}
+<div class="card">
+  <div class="banner" style="background:#fff7e6;color:#8a5a00">「minSupported」高于用户当前版本时，用户会被强制更新后才能使用；调低即解除。</div>
+  <form method="post" action="/admin/version">
+    <label for="latest">最新版本号</label>
+    <input id="latest" name="latest" value="${latest}" placeholder="如 0.3.0" required>
+
+    <label for="minSupported">最低支持版本（低于它强制更新）</label>
+    <input id="minSupported" name="minSupported" value="${minSupported}" placeholder="如 0.2.5" required>
+
+    <label for="mode">下载方式</label>
+    <select id="mode" name="mode">${modeOptions}</select>
+
+    <label for="url">下载地址</label>
+    <input id="url" name="url" value="${url}" placeholder="https://…" required>
+    <div class="hint">必须是 https:// 开头的链接（外链如夸克网盘分享，或将来切直链）。</div>
+
+    <label for="notes">更新说明</label>
+    <textarea id="notes" name="notes" rows="6" maxlength="2000" placeholder="可选，展示给用户的更新内容">${notes}</textarea>
+    <div class="hint">不超过 2000 字。</div>
+
+    <button type="submit" style="width:100%;margin-top:20px">保存版本策略</button>
+  </form>
+</div>`;
+  return pageShell({ title: '版本策略', body });
 }

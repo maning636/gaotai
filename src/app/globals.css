@@ -1566,3 +1566,103 @@ img {
   margin-top: 6px;
 }
 
+/* --- 版本更新覆盖层 ------------------------------------------------------ */
+/* 全屏锁层：硬边框 + 实心投影 + 黄色主色，与页面同一套 gt-* 设计语言。 */
+
+.gt-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /* 米白网格底 + 半透明压暗，让底层页面透出来但明确不可交互。 */
+  background-color: rgba(242, 239, 230, 0.92);
+  background-image:
+    repeating-linear-gradient(to right, rgba(15, 15, 15, 0.05) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(to bottom, rgba(15, 15, 15, 0.05) 0 1px, transparent 1px 28px);
+}
+
+.gt-update-card {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  border-radius: var(--gt-radius);
+  box-shadow: var(--gt-shadow-lg);
+  padding: 28px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gt-update-card__tag {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 9px;
+  background: var(--gt-yellow);
+  border: var(--gt-border-thin);
+  color: #0f0f0f;
+}
+
+.gt-update-card__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.gt-update-card__notes {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--gt-ink);
+  background: var(--gt-sunken);
+  border-left: 6px solid var(--gt-yellow);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
+.gt-update-card__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gt-update-card__steps p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--gt-muted);
+}
+
+.gt-update-card__steps strong {
+  color: var(--gt-ink);
+}
+
+.gt-update-card__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.gt-update-card__notice {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gt-red);
+}
+
+.gt-update-card__foot {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--gt-muted);
+  font-family: var(--gt-mono);
+}
+
