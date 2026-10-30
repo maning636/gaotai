@@ -23,6 +23,9 @@ const pkg = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "u
 // Turbopack 的追踪规则对动态文件访问不总是听话，真正的最后一道闸门在打包脚本层
 // （scripts/sanitize-standalone.mjs）。
 const config: NextConfig = {
+  // 关掉开发环境的悬浮角标：它会出现在截图右下角，做官网/文档素材时很碍眼。
+  // 只影响开发态显示，生产构建本来就没有这个角标。
+  devIndicators: false,
   output: "standalone",
   turbopack: { root: process.cwd() },
   serverExternalPackages: ["better-sqlite3", "canvas"],

@@ -409,9 +409,9 @@ export function LicensePanel() {
               <h2 className="gt-panel__title">注册码从哪来</h2>
             </div>
             <ol className="gt-list">
-              <li className="gt-list__item">关注作者的服务号；</li>
-              <li className="gt-list__item">在菜单里点「领注册码」；</li>
-              <li className="gt-list__item">填你的微信号，就能拿到注册码。</li>
+              <li className="gt-list__item">关注公众号「马哥AI落地」；</li>
+              <li className="gt-list__item">直接发两个字：稿台（或在菜单里点「领注册码」）；</li>
+              <li className="gt-list__item">公众号会回你一个注册码，复制过来填在下面。</li>
             </ol>
             <p className="gt-small gt-muted" style={{ marginBottom: 0 }}>
               授权服务器：{serverConfigured ? "已配置" : "未配置"}。
