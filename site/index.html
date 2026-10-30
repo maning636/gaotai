@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="a">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>稿台 · 本地优先的公众号写作工作台</title>
+<meta name="description" content="稿台——把素材，一步步写成能发出去的稿子。四道工序，全部在你的电脑上跑。">
+<style>
+/* ==========================================================================
+   稿台 · 官网单页
+   三套主题（A 工业蓝 / B 纸感 / C 深色科技）全部走 CSS 变量，切换只换变量。
+   ========================================================================== */
+
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+
+/* --- A · 工业蓝（默认，最像 B2B 产品页） -------------------------------- */
+:root,
+[data-theme="a"] {
+  --bg: #F7F8FA;
+  --card: #FFFFFF;
+  --text: #1A1D21;
+  --muted: #5B6470;
+  --primary: #1F4E8C;
+  --accent: #2E6BE6;
+  --line: #E3E7EC;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 8px;
+  --title-weight: 600;
+
+  --card-border: 1px solid var(--line);
+  --nav-bg: rgba(247,248,250,.86);
+  --nav-border: 1px solid var(--line);
+  --grid: none;
+
+  --btn-bg: var(--primary);
+  --btn-color: #fff;
+  --btn-border: 1px solid transparent;
+  --btn-shadow: none;
+  --ghost-color: var(--text);
+  --ghost-bg: transparent;
+  --ghost-border: 1px solid var(--line);
+  --ghost-shadow: none;
+
+  --dark-bg: #16202E;
+  --dark-text: #E6EDF3;
+  --dark-muted: #A9B4C2;
+  --dark-line: #243040;
+
+  --focus: 2px solid var(--accent);
+  --chip-bg: #EEF2F8;
+  --chip-color: var(--primary);
+  --link-color: var(--accent);
+}
+
+/* --- B · 纸感（与软件界面同一套语言：硬边阴影、粗描边、米白底） -------- */
+[data-theme="b"] {
+  --bg: #F2EFE6;
+  --card: #FFFFFF;
+  --text: #0F0F0F;
+  --muted: #6B6862;
+  --primary: #0F0F0F;
+  --accent: #FFD429;
+  --line: #0F0F0F;
+  --shadow: 6px 6px 0 #0F0F0F;
+  --radius: 2px;
+  --title-weight: 700;
+
+  --card-border: 3px solid var(--line);
+  --nav-bg: rgba(242,239,230,.9);
+  --nav-border: 1px solid rgba(15,15,15,.25);
+  --grid:
+    repeating-linear-gradient(to right, rgba(15,15,15,.05) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(to bottom, rgba(15,15,15,.05) 0 1px, transparent 1px 28px);
+
+  --btn-bg: #0F0F0F;
+  --btn-color: #fff;
+  --btn-border: 3px solid #0F0F0F;
+  --btn-shadow: 4px 4px 0 #0F0F0F;
+  --ghost-color: #0F0F0F;
+  --ghost-bg: transparent;
+  --ghost-border: 3px solid #0F0F0F;
+  --ghost-shadow: 4px 4px 0 #0F0F0F;
+
+  --dark-bg: #16161A;
+  --dark-text: #F5F3EE;
+  --dark-muted: #9A968E;
+  --dark-line: #2A2A31;
+
+  --focus: 3px solid var(--accent);
+  --chip-bg: #0F0F0F;
+  --chip-color: #fff;
+  --link-color: #0F0F0F;
+}
+
+/* --- C · 深色科技 ------------------------------------------------------ */
+[data-theme="c"] {
+  --bg: #0E1116;
+  --card: #161B22;
+  --text: #E6EDF3;
+  --muted: #8B949E;
+  --primary: #35D0BA;
+  --accent: #5B8CFF;
+  --line: #232A33;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4);
+  --radius: 10px;
+  --title-weight: 600;
+
+  --card-border: 1px solid var(--line);
+  --nav-bg: rgba(14,17,22,.85);
+  --nav-border: 1px solid var(--line);
+  --grid: none;
+
+  --btn-bg: var(--primary);
+  --btn-color: #06201B;
+  --btn-border: 1px solid var(--primary);
+  --btn-shadow: none;
+  --ghost-color: var(--text);
+  --ghost-bg: transparent;
+  --ghost-border: 1px solid var(--line);
+  --ghost-shadow: none;
+
+  --dark-bg: #0B0E13;
+  --dark-text: #E6EDF3;
+  --dark-muted: #8B949E;
+  --dark-line: #232A33;
+
+  --focus: 2px solid var(--primary);
+  --chip-bg: rgba(53,208,186,.12);
+  --chip-color: var(--primary);
+  --link-color: var(--primary);
+}
+
+/* --- 基础 -------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image: var(--grid);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .25s ease, color .25s ease;
+}
+/* height:auto 是关键：图片带 width/height 属性时，只设 max-width 会让高度停在 1800px，
+   把首屏撑爆并把左栏文字挤出视口。栅格子项也必须 min-width:0，否则它不会缩到内容以下。 */
+html { scroll-padding-top: 84px; }
+img { max-width: 100%; height: auto; display: block; }
+.hero-grid > *, .cards > *, .split > *, .steps > *, .spec-grid > * { min-width: 0; }
+a { color: inherit; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+h1, h2, h3 { margin: 0; line-height: 1.25; letter-spacing: -0.01em; }
+h2 { font-size: 30px; font-weight: var(--title-weight); }
+h3 { font-size: 18px; font-weight: var(--title-weight); }
+p { margin: 0; }
+
+:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection { background: var(--accent); color: var(--text); }
+
+/* 按钮 */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 22px;
+  font-size: 15px; font-weight: 600; line-height: 1.2;
+  color: var(--btn-color); background: var(--btn-bg);
+  border: var(--btn-border); border-radius: var(--radius);
+  box-shadow: var(--btn-shadow);
+  cursor: pointer; text-decoration: none;
+  transition: transform .12s ease, box-shadow .12s ease, background-color .2s ease;
+}
+.btn:hover { transform: translate(-1px,-1px); }
+.btn-ghost {
+  color: var(--ghost-color); background: var(--ghost-bg);
+  border: var(--ghost-border); border-radius: var(--radius);
+  box-shadow: var(--ghost-shadow);
+}
+.btn-ghost:hover { transform: translate(-1px,-1px); }
+
+/* --- 顶栏（吸顶） ------------------------------------------------------ */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--nav-bg);
+  border-bottom: 1px solid transparent;
+  backdrop-filter: blur(8px);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.nav.scrolled { border-bottom: var(--nav-border); box-shadow: 0 4px 16px rgba(0,0,0,.04); }
+.nav-inner {
+  display: flex; align-items: center; gap: 20px;
+  height: 64px;
+}
+.brand { font-size: 20px; font-weight: 800; letter-spacing: .02em; color: var(--text); text-decoration: none; }
+.brand .dot { color: var(--accent); }
+.nav-links { display: flex; gap: 4px; margin-left: 12px; }
+.nav-links a {
+  padding: 8px 12px; font-size: 14px; color: var(--muted);
+  text-decoration: none; border-radius: var(--radius);
+  transition: color .15s ease, background-color .15s ease;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-links a.active { color: var(--text); font-weight: 600; background: var(--chip-bg); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+/* 主题切换器 */
+.theme-switch { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.theme-switch button {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 13px; font-weight: 600; line-height: 1;
+  padding: 7px 10px; border-radius: calc(var(--radius) - 2px); cursor: pointer;
+}
+.theme-switch button[aria-pressed="true"] { background: var(--primary); color: var(--btn-color); }
+
+/* --- 首屏 -------------------------------------------------------------- */
+.hero { padding: 92px 0 64px; }
+.hero-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 48px; align-items: center; }
+.eyebrow {
+  display: inline-block; font-size: 14px; font-weight: 600; letter-spacing: .02em;
+  color: var(--chip-color); background: var(--chip-bg);
+  padding: 6px 14px; border-radius: var(--radius); margin-bottom: 18px;
+}
+.hero h1 { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 18px; }
+.hero-sub { font-size: 17px; color: var(--muted); max-width: 34em; margin-bottom: 28px; }
+.hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 40px; }
+
+.hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stat {
+  background: var(--card); border: var(--card-border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px 14px 14px;
+}
+/* 纸感主题边框是 3px，同样的 padding 会让「31 套模板」在词中间断行，这里统一收一点。 */
+.stat b { display: block; font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -0.01em; }
+.stat span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+.hero-media { position: relative; }
+.hero-media img {
+  border: var(--card-border); border-radius: var(--radius);
+  box-shadow: var(--shadow); background: var(--card);
+}
+
+/* --- 区块通用 ---------------------------------------------------------- */
+.section { padding: 72px 0; }
+.section-head { max-width: 46em; margin-bottom: 40px; }
+.section-head .kicker { font-size: 14px; font-weight: 700; letter-spacing: .04em; color: var(--link-color); margin-bottom: 8px; }
+.section-head p { color: var(--muted); margin-top: 10px; }
+
+/* 能力卡片 */
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.card {
+  background: var(--card); border: var(--card-border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 26px 24px;
+}
+.card .num { font-size: 13px; font-weight: 700; color: var(--link-color); letter-spacing: .04em; margin-bottom: 12px; }
+.card h3 { margin-bottom: 10px; }
+.card p { font-size: 15px; color: var(--muted); }
+
+/* 流程时间轴 */
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: step; }
+.step { position: relative; padding-top: 16px; }
+.step::before {
+  content: attr(data-step); display: inline-block;
+  font-size: 13px; font-weight: 700; color: var(--chip-color); background: var(--chip-bg);
+  padding: 5px 12px; border-radius: var(--radius); margin-bottom: 14px;
+}
+.step h3 { margin-bottom: 8px; }
+.step p { font-size: 14px; color: var(--muted); }
+.step::after {
+  content: ""; position: absolute; left: 0; top: 6px; bottom: 0; width: 2px;
+  background: var(--line); z-index: -1;
+}
+
+/* 大图展示 */
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.shot { margin: 0; }
+.shot .frame {
+  display: block; overflow: hidden; cursor: zoom-in;
+  border: var(--card-border); border-radius: var(--radius);
+  box-shadow: var(--shadow); background: var(--card);
+}
+.shot .frame img { width: 100%; transition: transform .2s ease; }
+.shot .frame:hover img { transform: scale(1.015); }
+.shot figcaption { margin-top: 12px; font-size: 14px; color: var(--muted); }
+
+/* 模板与图解两栏 */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.panel {
+  background: var(--card); border: var(--card-border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 30px 28px;
+}
+.panel .tag { font-size: 13px; font-weight: 700; color: var(--link-color); letter-spacing: .04em; margin-bottom: 12px; }
+.panel h3 { font-size: 21px; margin-bottom: 12px; }
+.panel p { font-size: 15px; color: var(--muted); }
+
+/* 技术说明（深色区块） */
+.tech { background: var(--dark-bg); color: var(--dark-text); border-top: var(--card-border); border-bottom: var(--card-border); }
+.tech h2 { color: var(--dark-text); }
+.tech .kicker { color: var(--primary); }
+.tech .kicker p { color: var(--dark-muted); }
+.tech-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.tech-cols h3 { color: var(--dark-text); margin-bottom: 10px; }
+.tech-cols p { font-size: 14px; color: var(--dark-muted); }
+
+/* 规格与下载 */
+.spec-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: start; }
+.spec-list { list-style: none; padding: 0; margin: 0 0 26px; }
+.spec-list li {
+  display: flex; gap: 12px; padding: 12px 0; font-size: 15px;
+  border-bottom: 1px solid var(--line);
+}
+.spec-list li b { color: var(--text); font-weight: 700; }
+.spec-list li span { color: var(--muted); }
+.dl-note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+.dl-actions { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+
+/* 页脚 */
+.footer { border-top: var(--card-border); padding: 28px 0; }
+.footer p { font-size: 13px; color: var(--muted); line-height: 1.8; }
+.footer .sep { margin: 0 10px; opacity: .5; }
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(10,12,16,.9);
+  display: none; align-items: center; justify-content: center; padding: 32px;
+}
+.lightbox.open { display: flex; }
+.lightbox img {
+  max-width: 96vw; max-height: 92vh; object-fit: contain;
+  border-radius: 6px; box-shadow: 0 12px 60px rgba(0,0,0,.5); background: #fff;
+}
+.lightbox .close {
+  position: absolute; top: 18px; right: 22px; width: 44px; height: 44px;
+  border: none; background: rgba(255,255,255,.12); color: #fff;
+  font-size: 26px; line-height: 1; border-radius: 8px; cursor: pointer;
+}
+.lightbox .close:hover { background: rgba(255,255,255,.22); }
+
+/* 滚动淡入 */
+.reveal { opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
+.reveal.in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  * { animation: none !important; }
+}
+
+/* --- 平板 768–1199 ----------------------------------------------------- */
+@media (max-width: 1199px) {
+  .hero h1 { font-size: 38px; }
+  .hero-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .steps { grid-template-columns: repeat(2, 1fr); gap: 32px 24px; }
+  .step::after { display: none; }
+  .gallery { grid-template-columns: 1fr 1fr; }
+}
+
+/* --- 手机 <768 --------------------------------------------------------- */
+@media (max-width: 767px) {
+  body { font-size: 15px; }
+  .nav-links { display: none; }
+  .nav-inner { height: 56px; gap: 12px; }
+  .theme-switch button { padding: 6px 8px; }
+
+  .hero { padding: 48px 0 44px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 28px; }
+  .hero h1 { font-size: 30px; }
+  .hero-sub { font-size: 15px; }
+  .hero-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat b { font-size: 17px; }
+  .stat span { font-size: 12px; }
+
+  h2 { font-size: 24px; }
+  .section { padding: 48px 0; }
+  .cards { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+  .gallery { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; }
+  .tech-cols { grid-template-columns: 1fr; }
+  .spec-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 顶栏 ===== -->
+<header class="nav" id="top">
+  <div class="container nav-inner">
+    <a class="brand" href="#top">稿台<span class="dot">.</span></a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="#capabilities" data-spy="capabilities">能力</a>
+      <a href="#process" data-spy="process">流程</a>
+      <a href="#templates" data-spy="templates">模板与图解</a>
+      <a href="#tech" data-spy="tech">技术说明</a>
+      <a href="#download" data-spy="download">下载</a>
+    </nav>
+    <div class="nav-right">
+      <div class="theme-switch" role="group" aria-label="切换主题">
+        <button type="button" data-theme-btn="a" aria-pressed="true" title="工业蓝">A</button>
+        <button type="button" data-theme-btn="b" aria-pressed="false" title="纸感">B</button>
+        <button type="button" data-theme-btn="c" aria-pressed="false" title="深色科技">C</button>
+      </div>
+      <a class="btn" href="#download">免费获取</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 首屏 ===== -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-text reveal in">
+      <span class="eyebrow">本地优先的公众号写作工作台</span>
+      <h1>把素材，一步步写成能发出去的稿子</h1>
+      <p class="hero-sub">四道工序把「一堆材料」推到「一篇成稿」。选题、大纲、正文、排版、配图、推到公众号草稿箱，一条线走完。全部在你的电脑上跑。</p>
+      <div class="hero-cta">
+        <a class="btn" href="https://pan.quark.cn/s/5cdddfa4c371">下载 Windows 版</a>
+        <a class="btn btn-ghost" href="#process">看它怎么工作</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><b>四道工序</b><span>材料 → 选题 → 大纲 → 正文</span></div>
+        <div class="stat"><b>31 套模板</b><span>内置排版包，可复制改</span></div>
+        <div class="stat"><b>6 种图解</b><span>条形 / 占比 / 时间线 / 对比 / 步骤 / 关键数字</span></div>
+        <div class="stat"><b>零上传</b><span>稿件、素材、密钥都在本机</span></div>
+      </div>
+    </div>
+    <div class="hero-media reveal in">
+      <img src="images/01-workbench.png" alt="稿台工作台：开一篇新稿" width="2880" height="1800">
+    </div>
+  </div>
+</section>
+
+<!-- ===== 能力 ===== -->
+<section class="section" id="capabilities">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">能力</div>
+      <h2>写稿的每一步，都能停、能看、能改</h2>
+    </div>
+    <div class="cards">
+      <article class="card reveal">
+        <div class="num">01</div>
+        <h3>四道工序，每道都留下可改的东西</h3>
+        <p>材料解读把长文拆成要点；选题给三个方向并说明为什么；大纲逐段定活儿；正文按大纲写。每一步都产出文件，不满意就回去改，不用从头再来。</p>
+      </article>
+      <article class="card reveal">
+        <div class="num">02</div>
+        <h3>技能包决定「怎么写得像人」</h3>
+        <p>内置编辑规则、长文方法、通用中文写作三套技能。它们不是提示词模板，是可按需读取的写作档案——模型自己决定读哪一份，而不是把所有规则一次塞进去。</p>
+      </article>
+      <article class="card reveal">
+        <div class="num">03</div>
+        <h3>从正文到草稿箱，不用复制粘贴</h3>
+        <p>排版包一键套用，配图自动换成微信地址，封面、摘要、原文链接填好后直接推进公众号草稿箱。</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 流程 ===== -->
+<section class="section" id="process">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">流程</div>
+      <h2>四道工序，一步一篇文件</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal" data-step="01">
+        <h3>材料解读</h3>
+        <p>贴进采访稿、报告、聊天记录，先让它把材料读成要点和可用的事实</p>
+      </div>
+      <div class="step reveal" data-step="02">
+        <h3>选题与方向</h3>
+        <p>给三个可写的角度，各自说明写给谁、靠什么立住、哪里可能站不住</p>
+      </div>
+      <div class="step reveal" data-step="03">
+        <h3>写作大纲</h3>
+        <p>逐段定：这段推进什么、用哪些素材、写成什么形式</p>
+      </div>
+      <div class="step reveal" data-step="04">
+        <h3>文章正文</h3>
+        <p>照大纲写，写完可以查 AI 味、套排版、配图、推草稿箱</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 大图展示 ===== -->
+<section class="section" id="gallery">
+  <div class="container">
+    <div class="gallery">
+      <figure class="shot reveal">
+        <button class="frame" type="button" data-zoom="images/01-workbench.png" aria-label="放大：工作台截图">
+          <img src="images/01-workbench.png" alt="工作台：开一篇新稿" loading="lazy" width="2880" height="1800">
+        </button>
+        <figcaption>工作台：开一篇新稿</figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <button class="frame" type="button" data-zoom="images/04-templates.png" aria-label="放大：模板库截图">
+          <img src="images/04-templates.png" alt="模板库：挑一套排版，右侧手机实时预览" loading="lazy" width="2880" height="1800">
+        </button>
+        <figcaption>模板库：挑一套排版，右侧手机实时预览</figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <button class="frame" type="button" data-zoom="images/02-projects.png" aria-label="放大：稿件列表截图">
+          <img src="images/02-projects.png" alt="稿件列表" loading="lazy" width="2880" height="1800">
+        </button>
+        <figcaption>稿件列表</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 模板与图解 ===== -->
+<section class="section" id="templates">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">模板与图解</div>
+      <h2>排版和配图，都交给模板与图解</h2>
+    </div>
+    <div class="split">
+      <div class="panel reveal">
+        <div class="tag">排版</div>
+        <h3>排版比内容更容易做砸</h3>
+        <p>31 套内置排版包，选中一套右侧立刻出手机预览；想改就复制一份，改颜色、改部件，改完存成自己的模板。内置的只读，你的永远是你的。</p>
+      </div>
+      <div class="panel reveal">
+        <div class="tag">图解</div>
+        <h3>六种图解，自动挑位置</h3>
+        <p>条形排名、占比方块、时间线、前后对比、步骤流程、关键数字。给它数据它出图；也可以让它通读全文，自己决定配几张、配在哪、配什么类型——没有真数字时它不会硬造。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 技术说明 ===== -->
+<section class="section tech" id="tech">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">技术说明</div>
+      <h2>在你电脑上跑，用你自己的 Key</h2>
+    </div>
+    <div class="tech-cols">
+      <div class="reveal">
+        <h3>全部在本机</h3>
+        <p>稿件、素材、数据库、密钥都写在你的用户目录里，不上传任何服务器。发给你的安装包里也不含技能包和提示词——那些在激活后由服务器加密下发。</p>
+      </div>
+      <div class="reveal">
+        <h3>模型用你自己的 Key</h3>
+        <p>支持 DeepSeek 兼容接口。填自己的 Key，按自己的额度用，稿台不代理、不抽成、不看你写了什么。</p>
+      </div>
+      <div class="reveal">
+        <h3>免费，但要激活</h3>
+        <p>关注公众号「马哥AI落地」，发「稿台」，会回你一个注册码。一码一机，30 天自动续期，断网也能用。授权只验证「有没有码」，不读稿件内容。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 规格与下载 ===== -->
+<section class="section" id="download">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">规格与下载</div>
+      <h2>拿到手就能写</h2>
+    </div>
+    <div class="spec-grid">
+      <div class="reveal">
+        <ul class="spec-list">
+          <li><b>系统</b><span>Windows 10 / 11（64 位）</span></li>
+          <li><b>安装包</b><span>约 124 MB，无数字签名，首次运行 Windows 可能提示「已保护你的电脑」，点「更多信息 → 仍要运行」</span></li>
+        </ul>
+      </div>
+      <div class="dl-actions reveal">
+        <a class="btn" href="https://pan.quark.cn/s/5cdddfa4c371">下载 0.2.1</a>
+        <a class="btn btn-ghost" href="https://pan.quark.cn/s/5cdddfa4c371">查看安装与激活说明</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div class="container">
+    <p>稿台 · 本地优先的写作工作台<span class="sep">｜</span>公众号：马哥AI落地<span class="sep">｜</span>联系：184610138@qq.com<span class="sep">｜</span>本站图片为软件真实界面截图</p>
+  </div>
+</footer>
+
+<!-- ===== Lightbox ===== -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="图片放大">
+  <button class="close" type="button" aria-label="关闭">×</button>
+  <img src="" alt="放大图">
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* --- 主题切换 --------------------------------------------------------- */
+  var root = document.documentElement;
+  var themeKey = "gaotai-site-theme";
+  var saved = null;
+  try { saved = localStorage.getItem(themeKey); } catch (e) {}
+  if (saved !== "a" && saved !== "b" && saved !== "c") saved = "a";
+  var themeButtons = document.querySelectorAll("[data-theme-btn]");
+
+  function applyTheme(t) {
+    root.setAttribute("data-theme", t);
+    themeButtons.forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-theme-btn") === t));
+    });
+    try { localStorage.setItem(themeKey, t); } catch (e) {}
+  }
+  themeButtons.forEach(function (b) {
+    b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme-btn")); });
+  });
+  applyTheme(saved);
+
+  /* --- 吸顶栏滚动后加背景与细边框 ------------------------------------- */
+  var nav = document.querySelector(".nav");
+  function onScroll() {
+    nav.classList.toggle("scrolled", window.scrollY > 8);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* --- 滚动淡入（只播一次） -------------------------------------------- */
+  var revealEls = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    var ro = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add("in"); ro.unobserve(en.target); }
+      });
+    }, { threshold: 0.12 });
+    revealEls.forEach(function (el) { ro.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add("in"); });
+  }
+
+  /* --- 导航当前区块高亮 ------------------------------------------------- */
+  var spyLinks = {};
+  document.querySelectorAll("[data-spy]").forEach(function (a) { spyLinks[a.getAttribute("data-spy")] = a; });
+  var sections = ["capabilities", "process", "templates", "tech", "download"]
+    .map(function (id) { return document.getElementById(id); })
+    .filter(Boolean);
+  if ("IntersectionObserver" in window && sections.length) {
+    var so = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          Object.keys(spyLinks).forEach(function (k) { spyLinks[k].classList.remove("active"); });
+          var link = spyLinks[en.target.id];
+          if (link) link.classList.add("active");
+        }
+      });
+    }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+    sections.forEach(function (s) { so.observe(s); });
+  }
+
+  /* --- Lightbox --------------------------------------------------------- */
+  var lb = document.getElementById("lightbox");
+  var lbImg = lb.querySelector("img");
+  function openLb(src) { lbImg.src = src; lb.classList.add("open"); }
+  function closeLb() { lb.classList.remove("open"); lbImg.src = ""; }
+  document.querySelectorAll("[data-zoom]").forEach(function (btn) {
+    btn.addEventListener("click", function () { openLb(btn.getAttribute("data-zoom")); });
+  });
+  lb.addEventListener("click", function (e) {
+    if (e.target === lb || e.target.classList.contains("close")) closeLb();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeLb();
+  });
+})();
+</script>
+</body>
+</html>
