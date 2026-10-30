@@ -12,7 +12,7 @@
 //   npm run shots -- --only=03,04          # 只截 03、04
 //   npm run shots -- --base=http://127.0.0.1:3060
 //   npm run shots -- --out=shots
-import { spawn, execSync } from "node:child_process";
+import { spawn, execSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import net from "node:net";
@@ -108,21 +108,20 @@ function readPassword() {
 
 /** 杀 dev 服务器进程树（Windows 上 npm run dev 会再拉 node 子进程，必须整树杀）。 */
 function killServer(child) {
-  // 优先按「谁在监听 BASE 端口」找进程再整树杀：npm 父进程退出后子进程会成孤儿，
-  // 仅按 pid 杀 npm 杀不到它们，会留下监听 3060 的孤儿服务器。
-  // 不用命令行正则匹配（中文路径在 PowerShell 里有编码问题，匹配不稳）。
+  // 必须同步：脚本下一秒就 process.exit()，异步 spawn 的 taskkill 根本来不及执行，
+  // 结果 dev 服务器变成孤儿进程继续占着 3060，还会把父进程的 stdout 管道挂住，
+  // 表现为「截图都出来了，但命令一直不返回」。
   const pid = findListenerPid(BASE_PORT);
   if (pid) {
     try {
-      spawn("taskkill", ["/pid", String(pid), "/T", "/F"], { shell: true, stdio: "ignore" });
+      spawnSync("taskkill", ["/pid", String(pid), "/T", "/F"], { stdio: "ignore", timeout: 5000 });
     } catch {
       /* 继续下面的按 child.pid 杀 */
     }
   }
-  // 再按 pid 杀 npm 父进程及其子树（若仍在）。
   if (child && !child.killed && child.pid) {
     try {
-      spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { shell: true, stdio: "ignore" });
+      spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore", timeout: 5000 });
     } catch {
       child.kill();
     }
