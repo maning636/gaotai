@@ -1666,3 +1666,32 @@ img {
   font-family: var(--gt-mono);
 }
 
+/* --- 发布页 Tab 条 --------------------------------------------------------- */
+
+.gt-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: var(--gt-border-thin);
+}
+
+.gt-tabs__tab {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 10px 16px 12px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: inherit;
+  color: var(--gt-muted);
+  cursor: pointer;
+}
+
+.gt-tabs__tab:hover {
+  color: var(--gt-ink);
+}
+
+.gt-tabs__tab--active {
+  color: var(--gt-ink);
+  box-shadow: inset 0 -3px 0 var(--gt-yellow);
+}
+

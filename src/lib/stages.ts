@@ -69,3 +69,20 @@ export type AssetRow = {
   body: string;
   created_at: number;
 };
+
+/**
+ * 文案库里的一行。
+ *
+ * 文案是结构化数据（标题 + 正文 + 分类 + 可选关联稿件），不是文件，
+ * 所以落 SQLite 而不是 drafts/ 目录。project_id 允许为空——
+ * 很多文案是独立写的，不挂靠任何一篇稿子。
+ */
+export type DraftRow = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  project_id: string | null;
+  created_at: number;
+  updated_at: number;
+};

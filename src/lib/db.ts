@@ -18,6 +18,7 @@ import { dataStorageDir } from "./paths";
 
 export type {
   AssetRow,
+  DraftRow,
   EditRow,
   MessageRow,
   ProjectRow,
@@ -118,6 +119,22 @@ CREATE TABLE IF NOT EXISTS layout_templates (
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL
 );
+
+-- 文案库。
+-- 文案是结构化数据（标题 + 正文 + 分类 + 可选关联稿件），不是文件，
+-- 所以落 SQLite 而不是 drafts/ 目录——要按分类筛选、要关联稿件、要全文检索，
+-- 这些都是数据库的活。project_id 允许为空：很多文案是独立写的，不挂靠任何一篇稿子，
+-- 删稿件时把它置空（SET NULL）而不是级联删掉，文案本身还有价值。
+CREATE TABLE IF NOT EXISTS drafts (
+  id          TEXT PRIMARY KEY,
+  title       TEXT NOT NULL DEFAULT '',
+  content     TEXT NOT NULL DEFAULT '',
+  category    TEXT NOT NULL DEFAULT 'general',
+  project_id  TEXT REFERENCES projects(id) ON DELETE SET NULL,
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_drafts_category ON drafts(category);
 `;
 
 /**
@@ -132,6 +149,8 @@ function migrate(db: Database.Database) {
   if (!columns.some(column => column.name === "template_id")) {
     db.exec("ALTER TABLE wx_preferences ADD COLUMN template_id TEXT NOT NULL DEFAULT ''");
   }
+  // drafts 表本身是新增的，CREATE TABLE IF NOT EXISTS 会建出来；
+  // 这里只补老库升级时可能缺的列。目前没有需要补的列，保留这个位置作为唯一入口。
 }
 
 export function getDb(): Database.Database {

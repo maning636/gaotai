@@ -1,4 +1,4 @@
-import { getDb, now, type AssetRow, type EditRow, type MessageRow, type ProjectRow, type Stage, type StageResultRow, type StyleProfileRow } from "./db";
+import { getDb, now, type AssetRow, type DraftRow, type EditRow, type MessageRow, type ProjectRow, type Stage, type StageResultRow, type StyleProfileRow } from "./db";
 import { createId } from "./ids";
 
 /**
@@ -445,5 +445,85 @@ export function saveLayoutTemplateRow(input: {
 /** 删一个模板。删不存在的返回 false。 */
 export function deleteLayoutTemplateRow(id: string): boolean {
   const result = getDb().prepare("DELETE FROM layout_templates WHERE id = ?").run(id);
+  return result.changes > 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * 文案库
+ * ------------------------------------------------------------------ */
+
+/**
+ * 列文案。category 传了就按分类筛，不传给全量。
+ *
+ * 列表场景前端只需要标题和分类，content 也一并返回：文案本体通常不大（几千字），
+ * 一次取全免去「点开再拉一次」的往返，桌面版本地库也扛得住。
+ */
+export function listDrafts(options: { category?: string } = {}): DraftRow[] {
+  const db = getDb();
+  if (options.category) {
+    return db
+      .prepare("SELECT * FROM drafts WHERE category = ? ORDER BY updated_at DESC, rowid DESC")
+      .all(options.category) as DraftRow[];
+  }
+  return db.prepare("SELECT * FROM drafts ORDER BY updated_at DESC, rowid DESC").all() as DraftRow[];
+}
+
+/** 取一条文案。不存在返回 null。 */
+export function getDraft(id: string): DraftRow | null {
+  const row = getDb().prepare("SELECT * FROM drafts WHERE id = ?").get(id) as DraftRow | undefined;
+  return row ?? null;
+}
+
+/** 新建一条文案。title/content 至少有一个有内容，调用方负责校验。 */
+export function createDraft(input: {
+  title: string;
+  content: string;
+  category?: string;
+  projectId?: string;
+}): DraftRow {
+  const db = getDb();
+  const timestamp = now();
+  const row: DraftRow = {
+    id: createId("dft"),
+    title: input.title.trim(),
+    content: input.content,
+    category: input.category?.trim() || "general",
+    project_id: input.projectId?.trim() || null,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+  db.prepare(
+    "INSERT INTO drafts (id, title, content, category, project_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run(row.id, row.title, row.content, row.category, row.project_id, row.created_at, row.updated_at);
+  return row;
+}
+
+/**
+ * 更新一条文案，未传的字段沿用旧值。
+ *
+ * category / projectId 传空字符串表示「清掉」——分类回到 general、关联稿件置空，
+ * 这是前端明确传过来的意图，不能当成「没传」忽略掉。
+ */
+export function updateDraft(id: string, patch: { title?: string; content?: string; category?: string; projectId?: string | null }): DraftRow | null {
+  const db = getDb();
+  const existing = getDraft(id);
+  if (!existing) return null;
+  const next: DraftRow = {
+    ...existing,
+    title: patch.title !== undefined ? patch.title.trim() : existing.title,
+    content: patch.content !== undefined ? patch.content : existing.content,
+    category: patch.category !== undefined ? patch.category.trim() || "general" : existing.category,
+    project_id: patch.projectId !== undefined ? (patch.projectId?.trim() || null) : existing.project_id,
+    updated_at: now(),
+  };
+  db.prepare(
+    "UPDATE drafts SET title = ?, content = ?, category = ?, project_id = ?, updated_at = ? WHERE id = ?",
+  ).run(next.title, next.content, next.category, next.project_id, next.updated_at, id);
+  return next;
+}
+
+/** 删一条文案。删不存在的返回 false。 */
+export function deleteDraft(id: string): boolean {
+  const result = getDb().prepare("DELETE FROM drafts WHERE id = ?").run(id);
   return result.changes > 0;
 }

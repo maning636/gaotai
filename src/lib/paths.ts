@@ -115,6 +115,11 @@ export function imagesDir(): string {
   return path.join(dataRoot(), "images");
 }
 
+/** 可写数据：本地视频素材目录。与 images 平级，视频体积大，单独一个目录便于清理。 */
+export function videosDir(): string {
+  return path.join(dataRoot(), "videos");
+}
+
 /**
  * public 静态资源目录。
  *

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat as statFile } from "node:fs/promises";
 import path from "node:path";
 import { readWechatCredentials, type WechatCredentials } from "./wechat-config";
 
@@ -350,6 +350,65 @@ export async function updateDraft(input: {
   const body = parseWechatBody(text, token);
   // 微信正常情况下回同一个 media_id；个别版本回空时退回入参，避免调用方拿不到 id。
   const mediaId = typeof body.media_id === "string" && body.media_id ? body.media_id : payload.media_id;
+  return { mediaId };
+}
+
+/**
+ * 上传一个本地视频到微信永久素材库。
+ *
+ * 视频只有「永久素材」这一条路——公众号没有「正文内嵌视频文件」的接口，
+ * 正文里要放视频，只能先传成永久素材拿到 media_id，再在图文里引用它。
+ *
+ * 微信对视频的限制（≤200MB / ≤10 分钟 / MP4）在客户端先判一遍：
+ * 这些是本地就能确定的硬约束，没必要花一次上传的代价去换微信的一句 400。
+ * description 是 JSON 字符串（{"title":...,"introduction":...}），微信要的就是这个形状。
+ *
+ * 错误处理与 uploadPermanentImage 对齐：fetchWithTimeout 兜超时、parseWechatBody
+ * 统一抛业务错误、maskToken 保证 access_token 永不进错误信息。
+ */
+export async function uploadVideo(input: {
+  localPath: string;
+  title: string;
+  description: string;
+  creds?: WechatCredentials;
+}): Promise<{ mediaId: string }> {
+  if (!input.title.trim()) throw new WechatError("视频标题不能为空。");
+
+  const token = await getAccessToken(input.creds);
+  const absolute = path.resolve(input.localPath);
+  let bytes: Buffer;
+  let stat;
+  try {
+    stat = await statFile(absolute);
+    bytes = await readFile(absolute);
+  } catch {
+    throw new WechatError(`无法读取视频：${path.basename(absolute)}`);
+  }
+  if (!bytes.length) throw new WechatError("视频内容为空。");
+  // 200MB 是微信的硬上限。先在本地判掉，省一次几十兆的上传。
+  if (stat.size > 200 * 1024 * 1024) {
+    throw new WechatError("视频不能超过 200MB，请压缩后再上传。");
+  }
+
+  const form = new FormData();
+  form.append("media", new Blob([new Uint8Array(bytes)]), path.basename(absolute));
+  form.append(
+    "description",
+    JSON.stringify({ title: input.title.trim(), introduction: input.description?.trim() || "" }),
+  );
+
+  const url = `${API_BASE}/cgi-bin/media/uploadvideo?access_token=${encodeURIComponent(token)}`;
+  const response = await fetchWithTimeout(url, { method: "POST", body: form }, token);
+  const text = await response.text();
+  if (!response.ok) {
+    throw new WechatError(`上传视频失败：HTTP ${response.status}`, {
+      status: response.status,
+      errmsg: maskToken(text.slice(0, 300), token),
+    });
+  }
+  const body = parseWechatBody(text, token);
+  const mediaId = typeof body.media_id === "string" ? body.media_id : "";
+  if (!mediaId) throw new WechatError("微信接口没有返回视频 media_id。");
   return { mediaId };
 }
 
