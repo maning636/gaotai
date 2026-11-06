@@ -81,7 +81,10 @@ suite("Markdown 渲染", ({ test }) => {
     const code = html.match(/<code>([\s\S]*?)<\/code>/);
     assertTrue(code !== null, "代码块应该有 code 元素");
     assertTrue(!code![1].includes("\n"), "代码内容里不该有裸换行符");
-    assertMatch(code![1], /const a = 1;<br \/>const b = 2;/);
+    // 高亮后 token 被包进 span，内容仍在，换行是显式 br
+    assertMatch(code![1], /a = /);
+    assertMatch(code![1], /b = /);
+    assertMatch(code![1], /<br \/>/);
   });
 
   test("代码块里的尖括号仍然是转义过的文本", () => {
@@ -167,19 +170,28 @@ suite("排版主题与链接安全", ({ test }) => {
     assertTrue(!/text-decoration: underline/.test(html), "不该出现下划线");
   });
 
-  test("代码块是带三圆点标题条的窗口卡片，换行仍是显式 br", () => {
+  test("代码块是带三圆点标题条的 Mac 窗口卡片，GitHub Dark 配色，换行仍是显式 br", () => {
     const html = markdownToWechatHtml("```ts\nconst a = 1;\nconst b = 2;\n```");
-    // 三个圆点都是 12px 的实心圆
+    // 三个圆点都是 12px 的实心圆，且用 section（微信会过滤空的 span）
     assertEqual((html.match(/border-radius: 50%/g) ?? []).length, 3, "标题条应该有三个圆点");
     assertMatch(html, /width: 12px; height: 12px/);
-    // 外层是 section，带圆角、描边和极淡阴影
+    assertMatch(html, /<section style="[^"]*width: 12px; height: 12px; border-radius: 50%/);
+    // 外层是 section，GitHub Dark 深底、圆角、描边和阴影
     assertMatch(html, /<section style="[^"]*border-radius: 8px[^"]*box-shadow:/);
+    assertMatch(html, /background-color: #0d1117/);
+    assertMatch(html, /color: #f0f6fc/);
+    // 行号列从 1 开始，且与代码 flex 并排
+    assertMatch(html, /<section style="[^"]*text-align: right[^"]*user-select: none/);
+    assertMatch(html, /display: flex/);
+    // 高亮后的代码仍是显式 br
     assertMatch(html, /data-language="ts"/);
-    assertMatch(html, /<pre style="[^"]*background-color: #f5f5f5/);
     const code = html.match(/<code>([\s\S]*?)<\/code>/);
     assertTrue(code !== null, "代码块应该有 code 元素");
-    assertMatch(code![1], /const a = 1;<br \/>const b = 2;/);
+    assertMatch(code![1], /a = /);
+    assertMatch(code![1], /<br \/>/);
     assertTrue(!code![1].includes("\n"), "代码内容里不该有裸换行符");
+    // 公众号不接受 class，代码高亮必须用内联 style
+    assertTrue(!/\bclass\s*=/.test(html), "输出里不能出现 class 属性");
   });
 
   test("表格被横向滚动的 section 包住，table 自身有 min-width", () => {

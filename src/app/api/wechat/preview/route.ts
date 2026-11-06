@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { guard } from "../../../../lib/license/guard";
 import { resolveTemplateForProject } from "../../../../lib/layout-store";
 import { getProject, getStageResult, saveWxPreference } from "../../../../lib/repo";
-import { markdownToPlainText, markdownToWechatHtml } from "../../../../lib/markdown";
+import { markdownToPlainText } from "../../../../lib/markdown";
+import { markdownToWechatHtmlAsync } from "../../../../lib/render/wechat-render";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,7 @@ type PreviewInput = {
   remember: boolean;
 };
 
-function buildPreview(input: PreviewInput) {
+async function buildPreview(input: PreviewInput) {
   const { projectId } = input;
   if (!projectId) {
     return NextResponse.json({ error: "缺少 projectId" }, { status: 400 });
@@ -67,7 +68,7 @@ function buildPreview(input: PreviewInput) {
       });
     }
 
-    const html = markdownToWechatHtml(content, {
+    const html = await markdownToWechatHtmlAsync(content, {
       template: resolved.template,
       decorateImages: true,
     });

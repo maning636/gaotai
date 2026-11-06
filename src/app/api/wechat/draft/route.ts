@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { guard } from "../../../../lib/license/guard";
 import { getProject, getStageResult, getWxPreference, saveWxPreference } from "../../../../lib/repo";
-import { extractSummary, extractTitle, markdownToWechatHtml, type ThemeId } from "../../../../lib/markdown";
+import { extractSummary, extractTitle, type ThemeId } from "../../../../lib/markdown";
+import { markdownToWechatHtmlAsync } from "../../../../lib/render/wechat-render";
 import { resolveTemplateForProject } from "../../../../lib/layout-store";
 import { readWechatCover, readAccountById, type WechatCredentials } from "../../../../lib/wechat-config";
 import { cdnizeLocalImages } from "../../../../lib/wechat-images";
@@ -143,7 +144,7 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
 
   // 正文里的本机图片换成微信地址；个别失败不阻断整篇，失败项在响应里如实报回。
   const images = await cdnizeLocalImages(article.content, resolvedCreds);
-  const html = markdownToWechatHtml(images.markdown, {
+  const html = await markdownToWechatHtmlAsync(images.markdown, {
     template: resolved.template,
     decorateImages: true,
   });

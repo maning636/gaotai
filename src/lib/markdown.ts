@@ -2,7 +2,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import { gfmTable } from "micromark-extension-gfm-table";
 import type { Root, RootContent, Table } from "mdast";
-import { codeBlockText, escapeHtml, styleText } from "./html-util";
+import { escapeHtml, styleText } from "./html-util";
 import {
   builtinTemplate,
   defaultPartTemplate,
@@ -12,6 +12,7 @@ import {
   renderPlacement,
   type LayoutTemplate,
 } from "./layout-template";
+import { highlightCode } from "./render/code-highlight";
 import { normalizeThemeId, type ThemeId } from "./wx-theme";
 
 /**
@@ -45,6 +46,10 @@ export type WechatRenderOptions = {
   /** 排版模板。给了它就按它排，theme 忽略。 */
   template?: LayoutTemplate;
 };
+
+// 正文用系统栈，跟 layout-template 里那套保持一致。
+const FONT_STACK =
+  "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif";
 
 // 代码用等宽栈，SFMono 只在 Apple 平台有，后面几级保证 Windows 落到 Consolas。
 const MONO_STACK = '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace';
@@ -115,7 +120,7 @@ function renderNodes(
         break;
       }
       case "code": {
-        out += renderCodeBlock(node, template);
+        out += renderCodeBlock(node);
         break;
       }
       case "blockquote": {
@@ -216,44 +221,105 @@ function renderNodes(
 }
 
 /**
- * 代码块。
+ * 代码块（Mac 窗口风格）。
  *
- * 顶栏的三个圆点用模板变量里的 dot1..dot3 上色，
- * 语言名有值才出现——没写语言的时候标题条只剩三个点，不留一个空标签。
+ * 公众号编辑器会过滤掉**空的** `<span>`——顶上那三个红绿灯圆点正好是空的，
+ * 用 span 会被整只删掉，标题条就秃了。所以这里一律用 `<section>`，
+ * 公众号不清理 section，圆点能留得住。
+ *
+ * 配色固定走 GitHub Dark：`#0d1117` 底、`#f0f6fc` 字。不走模板色值——
+ * 代码块是「抗清洗」的一部分，模板那套浅色变量在深色代码块上会花掉。
+ *
+ * 结构：外层 Mac 窗口 section → 标题条 section（三圆点 + 语言名）+
+ * 代码区 section（flex 行号列 + 高亮代码）。代码用 highlight.js 逐 token
+ * 上内联色，公众号不剥 style，高亮能留得住。
  */
-function renderCodeBlock(
-  node: Extract<RootContent, { type: "code" }>,
-  template: LayoutTemplate,
-): string {
-  const vars = template.vars;
+function renderCodeBlock(node: Extract<RootContent, { type: "code" }>): string {
   const lang = node.lang ? escapeHtml(node.lang) : "";
-  const dots = [vars.dot1, vars.dot2, vars.dot3]
+
+  // 三个红绿灯圆点，用 section 而非 span。
+  const dotColors = ["#ff5f57", "#febc2e", "#28c840"];
+  const dots = dotColors
     .map(
       color =>
-        `<span style="${styleText({
-          display: "inline-block",
+        `<section style="${styleText({
           width: "12px",
           height: "12px",
           "border-radius": "50%",
           "background-color": color,
           margin: "0 6px 0 0",
-        })}"></span>`,
+        })}"></section>`,
     )
     .join("");
+
   const caption = lang
-    ? `<span style="${styleText({
+    ? `<section style="${styleText({
         "font-family": MONO_STACK,
         "font-size": "12px",
-        color: vars.muted,
+        color: "#8b949e",
         margin: "0 0 0 8px",
-      })}">${lang}</span>`
+      })}">${lang}</section>`
     : "";
-  return renderPart(template, "code", codeBlockText(node.value), {
-    dots,
-    langCaption: caption,
-    langAttr: lang ? ` data-language="${lang}"` : "",
-    lang,
-  });
+
+  // 行号列：1..N，每行一个 br 分隔。行号是装饰，不选中（公众号里用户点复制时
+  // 不该把行号一起拷走）。
+  const lines = node.value.replace(/\r\n?/g, "\n").split("\n");
+  const lineNumbers = lines
+    .map((_, index) => String(index + 1))
+    .join("<br />");
+
+  // 高亮代码（已含 <br /> 换行与内联上色）。
+  const codeHtml = highlightCode(node.value, node.lang ?? "");
+
+  return (
+    `<section style="${styleText({
+      border: "1px solid #30363d",
+      "border-radius": "8px",
+      "box-shadow": "0 1px 3px rgba(0, 0, 0, 0.20)",
+      overflow: "hidden",
+      margin: "0 0 16px 0",
+      "background-color": "#0d1117",
+    })}">` +
+    // 标题条：三个圆点 + 语言名
+    `<section style="${styleText({
+      display: "flex",
+      "align-items": "center",
+      "font-family": FONT_STACK,
+      "line-height": 1,
+      padding: "8px 12px",
+      "background-color": "#161b22",
+      "border-bottom": "1px solid #30363d",
+    })}">${dots}${caption}</section>` +
+    // 代码区：flex 行号列 + 高亮代码
+    `<section style="${styleText({
+      display: "flex",
+      "align-items": "flex-start",
+      "font-family": MONO_STACK,
+      "font-size": "13px",
+      "line-height": 1.6,
+      "background-color": "#0d1117",
+      color: "#f0f6fc",
+      "overflow-x": "auto",
+    })}">` +
+    `<section style="${styleText({
+      "min-width": "28px",
+      padding: "14px 12px 14px 16px",
+      "text-align": "right",
+      color: "#8b949e",
+      "user-select": "none",
+      "flex-shrink": "0",
+    })}">${lineNumbers}</section>` +
+    `<pre style="${styleText({
+      margin: "0",
+      padding: "14px 16px 14px 12px",
+      "font-family": MONO_STACK,
+      "font-size": "13px",
+      "line-height": 1.6,
+      color: "#f0f6fc",
+    })}"${lang ? ` data-language="${lang}"` : ""}><code>${codeHtml}</code></pre>` +
+    `</section>` +
+    `</section>`
+  );
 }
 
 /**

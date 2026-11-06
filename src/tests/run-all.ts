@@ -43,6 +43,9 @@ import "./app-update.test";
 import "./assets-sync.test";
 import "./test-card-themes";
 import "./test-custom-css";
+import "./test-math";
+import "./test-mermaid";
+import "./test-code-highlight";
 
 /**
  * 测试入口。
