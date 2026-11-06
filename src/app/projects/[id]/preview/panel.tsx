@@ -12,7 +12,7 @@ import styles from "./preview.module.css";
  * 排版预览面板（发布中心）。
  *
  * 文章签字确认后，所有排版到发布的操作按顺序收在这一页：
- *   ① 选模板 → ② 看预览 → ③ 推草稿 → ④ 去发布
+ *   ① 选模板 → ② 插入图表 → ③ 公众号通道 → ④ 封面图 → ⑤ 推草稿
  * 左侧功能区从上到下就是这条流程，右侧手机常驻显示真实正文。
  *
  * 用户不用在导航栏来回跳——通道没通就提示去配，封面没配就提示去配，
@@ -345,10 +345,31 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* ② 公众号通道 */}
+        {/* ② 插入图表（引导去编辑器做） */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
             <span className={styles.stepNum}>2</span>
+            <h2 className={styles.stepTitle}>插入图表</h2>
+          </div>
+          <p className={styles.stepDesc}>
+            在编辑器里插入图片和图表后，回到这里排版。图表会随正文一起推到公众号草稿。
+          </p>
+          <div className={styles.stepBlock}>
+            <div className="gt-row" style={{ gap: "8px" }}>
+              <Link className="gt-btn gt-btn--sm gt-btn--ghost" href={`/projects/${projectId}`}>
+                插入图片 →
+              </Link>
+              <Link className="gt-btn gt-btn--sm gt-btn--ghost" href={`/projects/${projectId}`}>
+                生成图解 →
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ③ 公众号通道 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>3</span>
             <h2 className={styles.stepTitle}>公众号通道</h2>
             <span
               className={`gt-tag ${channel === null ? "gt-tag--yellow" : channel.ok ? "gt-tag--green" : "gt-tag--pink"}`}
@@ -383,10 +404,10 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* ③ 封面图 */}
+        {/* ④ 封面图 */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
-            <span className={styles.stepNum}>3</span>
+            <span className={styles.stepNum}>4</span>
             <h2 className={styles.stepTitle}>封面图</h2>
             <span className={`gt-tag ${coverReady ? "gt-tag--green" : "gt-tag--yellow"}`} style={{ marginLeft: "auto" }}>
               {coverReady ? "已配" : "未配"}
@@ -415,10 +436,10 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* ④ 推草稿箱 */}
+        {/* ⑤ 推草稿箱 */}
         <section className={`${styles.step} ${styles.stepFinal}`}>
           <div className={styles.stepHead}>
-            <span className={styles.stepNum}>4</span>
+            <span className={styles.stepNum}>5</span>
             <h2 className={styles.stepTitle}>推到草稿箱</h2>
           </div>
           {draftResult ? (
@@ -432,9 +453,9 @@ export function PreviewPanel({
               <p className={styles.stepDesc}>
                 去公众号后台预览、编辑、发布。稿台不代替人点发布。
               </p>
-              <div className="gt-row" style={{ gap: "8px" }}>
+              <div className={styles.draftActions}>
                 <a
-                  className="gt-btn gt-btn--sm gt-btn--primary"
+                  className="gt-btn gt-btn--primary gt-btn--block"
                   href="https://mp.weixin.qq.com"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -442,7 +463,7 @@ export function PreviewPanel({
                   去公众号后台发布 →
                 </a>
                 <button
-                  className="gt-btn gt-btn--sm"
+                  className="gt-btn gt-btn--block draftCopyBtn"
                   type="button"
                   onClick={() => void onCopyFormatted()}
                   disabled={busy !== ""}
@@ -460,21 +481,21 @@ export function PreviewPanel({
                     ? channelReady
                       ? coverReady
                         ? "就绪。"
-                        : "还差封面图——上面第 3 步。"
-                      : "通道还没通——上面第 2 步。"
+                        : "还差封面图——上面第 4 步。"
+                      : "通道还没通——上面第 3 步。"
                     : "还没有正文——先回编辑器写完。"}
               </p>
-              <div className="gt-row" style={{ gap: "8px" }}>
+              <div className={styles.draftActions}>
                 <button
-                  className="gt-btn gt-btn--sm gt-btn--primary"
+                  className="gt-btn gt-btn--primary draftPushBtn"
                   type="button"
                   onClick={() => void onPushDraft()}
                   disabled={busy !== "" || !draftReady}
                 >
-                  {busy === "draft" ? "推送中…" : "推到草稿箱"}
+                  {busy === "draft" ? "推送中…" : "推到草稿箱 →"}
                 </button>
                 <button
-                  className="gt-btn gt-btn--sm"
+                  className="gt-btn draftCopyBtn"
                   type="button"
                   onClick={() => void onCopyFormatted()}
                   disabled={busy !== "" || !selected}

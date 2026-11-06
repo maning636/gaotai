@@ -1,13 +1,14 @@
 /* ==========================================================================
    排版预览页（发布中心）
 
-   左侧功能区按操作步骤从上到下排列：① 选模板 → ② 通道 → ③ 封面 → ④ 推草稿
+   左侧功能区按操作步骤从上到下排列：
+     ① 选模板 → ② 插入图表 → ③ 通道 → ④ 封面 → ⑤ 推草稿
    右侧手机常驻，选了模板就实时看这篇稿子的排版效果。
    ========================================================================== */
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 42%);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 48%);
   gap: 24px;
   align-items: start;
 }
@@ -88,19 +89,20 @@
   gap: 8px;
 }
 
-/* --- 模板列表（竖排，每条一行） -------------------------------------- */
+/* --- 模板列表（方块网格点选，缩略图在上、名称在下） ------------------- */
 
 .templateList {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 8px;
 }
 
 .templateItem {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
   border: 2px solid var(--gt-line);
   border-radius: 3px;
   background: var(--gt-surface);
@@ -133,9 +135,8 @@
 
 .templateThumb {
   position: relative;
-  flex: 0 0 72px;
-  width: 72px;
-  height: 96px;
+  width: 100%;
+  height: 120px;
   border: 1px solid var(--gt-line);
   border-radius: 2px;
   overflow: hidden;
@@ -143,10 +144,10 @@
 }
 
 .thumbInner {
-  transform: scale(0.16);
+  transform: scale(0.2);
   transform-origin: top left;
-  width: calc(72px / 0.16);
-  height: calc(96px / 0.16);
+  width: calc(100% / 0.2);
+  height: calc(120px / 0.2);
   padding: 12px 14px;
   color: var(--gt-ink);
   font-size: 14px;
@@ -155,21 +156,22 @@
 }
 
 .templateInfo {
-  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  text-align: center;
 }
 
 .templateNameRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
 }
 
 .templateName {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -178,8 +180,8 @@
 
 .badge {
   flex: none;
-  font-size: 11px;
-  padding: 1px 5px;
+  font-size: 10px;
+  padding: 1px 4px;
   background: var(--gt-sunken);
   color: var(--gt-ink);
   border-radius: 2px;
@@ -187,16 +189,14 @@
 }
 
 .templateDesc {
-  font-size: 12px;
-  color: var(--gt-muted);
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
 .templateStatus {
-  flex: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
   width: 20px;
   text-align: center;
   font-size: 16px;
@@ -218,11 +218,34 @@
 
 .previewCol {
   position: sticky;
-  top: 24px;
+  top: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+}
+
+/* --- 推草稿 / 复制 大号长条按钮 ---------------------------------------- */
+
+.draftActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 主操作：推到草稿箱——全宽长条、粗字重、黄底硬阴影。 */
+.draftPushBtn {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* 次操作：复制排版正文——比推草稿小一号，仍是全宽长条。 */
+.draftCopyBtn {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
 }
 
 /* --- 窄屏折叠 --------------------------------------------------------- */
