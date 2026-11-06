@@ -1,0 +1,182 @@
+/* ==========================================================================
+   多平台分发 · Neo-Brutalist 纸感主题
+   颜色/描边/阴影全部走 --gt-* 变量，深色模式自动适配。
+   ========================================================================== */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 880px;
+}
+
+/* --- 连接状态行 -------------------------------------------------------- */
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.statusDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--gt-line);
+  flex: 0 0 auto;
+}
+
+.statusMeta {
+  font-size: 12px;
+  color: var(--gt-muted);
+  font-family: var(--gt-mono);
+}
+
+/* --- 分区 -------------------------------------------------------------- */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+/* --- 平台卡片墙 --------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px;
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+  border-radius: var(--gt-radius);
+  cursor: pointer;
+  font: inherit;
+  color: var(--gt-ink);
+  text-align: left;
+  transition: transform 90ms ease, box-shadow 90ms ease;
+}
+
+.card:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--gt-line);
+}
+
+.cardActive {
+  background: var(--gt-sunken);
+  box-shadow: var(--gt-shadow);
+  outline: 3px solid var(--gt-yellow);
+  outline-offset: 2px;
+}
+
+.cardMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f0f0f;
+  border: 2px solid var(--gt-line);
+  border-radius: var(--gt-radius);
+}
+
+.cardName {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.cardHint {
+  font-size: 12px;
+  color: var(--gt-muted);
+  line-height: 1.4;
+}
+
+/* --- 操作与结果 --------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notice {
+  padding: 10px 14px;
+  background: var(--gt-sunken);
+  border: var(--gt-border-thin);
+  font-size: 13px;
+  color: var(--gt-ink);
+}
+
+.error {
+  padding: 10px 14px;
+  background: var(--gt-red);
+  color: #ffffff;
+  border: var(--gt-border-thin);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.result {
+  padding: 14px 16px;
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+}
+
+.result strong {
+  font-size: 15px;
+  font-weight: 900;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.result p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gt-ink);
+  word-break: break-all;
+}
+
+.resultOk {
+  background: var(--gt-green);
+  color: #0f0f0f;
+}
+
+.resultFail {
+  background: var(--gt-red);
+  color: #ffffff;
+}
+
+.resultFail p {
+  color: #ffffff;
+}

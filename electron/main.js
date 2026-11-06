@@ -5,6 +5,8 @@ const path = require("node:path");
 const net = require("node:net");
 const fs = require("node:fs");
 const crypto = require("node:crypto");
+// 浏览器扩展桥：本地 WS 服务端，供 Chrome 扩展连接、接收多平台分发任务。
+const wsBridge = require("./ws-bridge");
 
 // 运行模式：production（打包后）走 Next standalone 产物，dev（开发调试）走 next dev。
 // 由 npm script 通过环境变量注入，默认按打包态处理。
@@ -314,6 +316,11 @@ function quitApp(code = 0) {
   } catch (err) {
     logStartupError("cleanupBackend failed", err);
   }
+  try {
+    wsBridge.stopWsBridge();
+  } catch (err) {
+    logStartupError("stopWsBridge failed", err);
+  }
   // 留 300ms 让杀后端的命令真正跑起来。
   // 这里刻意不 unref：要让这个定时器把进程钉住，直到退出真正执行。
   setTimeout(() => {
@@ -616,8 +623,18 @@ function cleanupBackend() {
 // app.getPath("userData") 只在 app.ready 之后可用，所以路径解析与端口探测都放这里。
 app.whenReady().then(async () => {
   try {
-    // 严格顺序：后端就绪 → 自动登录并注入 Cookie → 创建窗口 → loadURL。
+    // 严格顺序：WS 桥 → 后端就绪 → 自动登录并注入 Cookie → 创建窗口 → loadURL。
     // Cookie 必须在 loadURL 之前 set，否则 AuthGate 拿不到会话会被弹回 /login。
+    // WS 桥必须先于 startBackend：桥绑定后把实际端口写入 GAOTAI_WS_PORT，
+    // 后端子进程经 baseEnv 继承，前端才能读到「扩展连到哪个端口」。
+    try {
+      await wsBridge.startWsBridge();
+      logLifecycle(`ws bridge listening on ${wsBridge.getWsBridgePort()}`);
+    } catch (err) {
+      // 桥起不来只影响多平台分发，不让整个应用退出——记日志继续跑。
+      logStartupError("ws bridge failed", err);
+    }
+
     await startBackend();
     await tryAutoLogin(backendPort);
     createMainWindow();

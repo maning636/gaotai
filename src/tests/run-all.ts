@@ -50,6 +50,8 @@ import "./test-card-render";
 import "./test-card-capture";
 import "./test-ai-image-styles";
 import "./test-unsplash";
+import "./test-bridge-protocol";
+import "./test-bridge-ws";
 
 /**
  * 测试入口。

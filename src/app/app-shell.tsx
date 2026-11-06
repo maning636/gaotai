@@ -35,6 +35,7 @@ const NAV_SECTIONS: { label: string; items: { href: string; label: string }[] }[
       { href: "/templates", label: "模板库" },
       { href: "/files", label: "素材" },
       { href: "/publish", label: "发布" },
+      { href: "/publish/multi-platform", label: "多平台分发" },
     ],
   },
   {
