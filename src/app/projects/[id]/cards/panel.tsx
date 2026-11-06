@@ -26,6 +26,7 @@ import { exportCards, exportedSuccessCount, exportedFailCount } from "../../../.
 import { capturePageToDataUrl } from "../../../../lib/card/capture";
 import { buildCoverModel } from "../../../../lib/card/cover-model";
 import { extractTitle } from "../../../../lib/markdown";
+import { MediaPicker } from "./media-picker";
 import styles from "./cards.module.css";
 
 /**
@@ -75,7 +76,6 @@ export function CardsPanel({
   /** 当前页面元素列表（真实 DOM，供截图/复制/放大）。 */
   const [pageEls, setPageEls] = useState<HTMLDivElement[]>([]);
 
-  const coverPicker = useRef<HTMLInputElement>(null);
   const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
   /** 离屏容器本体（可变引用，不参与渲染）。 */
   const offscreenRef = useRef<HTMLDivElement | null>(null);
@@ -241,16 +241,6 @@ export function CardsPanel({
     }
   }
 
-  function onCoverUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCoverImage({ url: String(reader.result ?? ""), name: file.name });
-    };
-    reader.readAsDataURL(file);
-  }
-
   const coverModel = buildCoverModel({ title, topicName }, theme, ratio, coverImage?.url ?? "");
 
   return (
@@ -405,19 +395,13 @@ export function CardsPanel({
           ) : (
             <div className={styles.coverBlock}>
               <p className={styles.stepDesc}>
-                上传本地图片做封面（AI 生图 / Unsplash 接口预留）。封面底色
+                AI 生图 / Unsplash 搜索 / 本地上传选一张做封面。封面底色
                 {coverModel.background.startsWith("linear") ? "渐变" : "色"} · 比例 {coverModel.ratio}。
               </p>
-              <input
-                ref={coverPicker}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                style={{ display: "none" }}
-                onChange={onCoverUpload}
+              <MediaPicker
+                articleContent={articleContent}
+                onSelect={dataUrl => setCoverImage({ url: dataUrl, name: "封面图" })}
               />
-              <button type="button" className="gt-btn gt-btn--sm" onClick={() => coverPicker.current?.click()}>
-                上传封面图
-              </button>
             </div>
           )}
         </section>

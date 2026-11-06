@@ -48,6 +48,8 @@ import "./test-mermaid";
 import "./test-code-highlight";
 import "./test-card-render";
 import "./test-card-capture";
+import "./test-ai-image-styles";
+import "./test-unsplash";
 
 /**
  * 测试入口。
