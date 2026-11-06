@@ -9,14 +9,14 @@ import { PhonePreview } from "../../../templates/phone-preview";
 import styles from "./preview.module.css";
 
 /**
- * 排版预览面板。
+ * 排版预览面板（发布中心）。
  *
- * 文章签字确认后，所有排版相关的操作都收在这里：
- * 选模板、看这篇稿子排出来的效果、复制排版正文、推到草稿箱。
- * 编辑器底部不再堆一长排按钮。
+ * 文章签字确认后，所有排版到发布的操作按顺序收在这一页：
+ *   ① 选模板 → ② 看预览 → ③ 推草稿 → ④ 去发布
+ * 左侧功能区从上到下就是这条流程，右侧手机常驻显示真实正文。
  *
- * 布局跟模板库一致（左卡片、右手机），区别是手机里渲染的是**真实正文**
- * （props.articleContent），不是示例稿——用户看到的就是「这一篇」排出来的样子。
+ * 用户不用在导航栏来回跳——通道没通就提示去配，封面没配就提示去配，
+ * 都就绪了「推到草稿箱」才能点；推完了出现「去公众号后台发布」。
  */
 
 const SOURCE_LABEL: Record<LayoutTemplate["source"], string> = {
@@ -25,7 +25,6 @@ const SOURCE_LABEL: Record<LayoutTemplate["source"], string> = {
   custom: "我的",
 };
 
-/** 卡片徽标：随包模板按来源再细分一层（与模板库同一口径）。 */
 function badgeOf(template: LayoutTemplate): string {
   if (template.source === "custom") return SOURCE_LABEL.custom;
   if (template.id.startsWith("builtin:wedraft-")) return "WeDraft";
@@ -33,7 +32,6 @@ function badgeOf(template: LayoutTemplate): string {
   return SOURCE_LABEL.builtin;
 }
 
-/** 公众号通道检查结果（与 /api/wechat/test 返回一致）。 */
 type ChannelCheck = {
   ok: boolean;
   reason: string;
@@ -42,18 +40,21 @@ type ChannelCheck = {
 
 type CoverState = {
   configured: boolean;
+  image: string;
+  previewUrl: string;
 };
 
 type PreviewPanelProps = {
   projectId: string;
   projectTitle: string;
   topicName: string;
-  /** 服务端读出来的正文（已保存的那一份）。 */
   articleContent: string;
   articleStatus: "draft" | "confirmed" | "empty";
-  /** 这篇稿子记住的模板 id；没存过就回退到内置配色。 */
   initialTemplateId: string;
 };
+
+/** 推草稿是否成功——成功后显示「去发布」入口。 */
+type DraftResult = { ok: true; title: string; uploadedImages: number } | null;
 
 export function PreviewPanel({
   projectId,
@@ -69,11 +70,10 @@ export function PreviewPanel({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState<"" | "copy" | "draft" | "apply" | "test">("");
-  /** 通道检查结果。没测过就是 null；null 与 !ok 都要拦推草稿。 */
   const [channel, setChannel] = useState<ChannelCheck | null>(null);
-  const [cover, setCover] = useState<CoverState>({ configured: false });
+  const [cover, setCover] = useState<CoverState>({ configured: false, image: "", previewUrl: "" });
+  const [draftResult, setDraftResult] = useState<DraftResult>(null);
 
-  // 拉模板清单，并保证选中项存在：记着的那套被删了就回退到第一套。
   useEffect(() => {
     let alive = true;
     fetch("/api/layout-templates", { cache: "no-store" })
@@ -98,7 +98,6 @@ export function PreviewPanel({
     };
   }, []);
 
-  // 进页面先把通道和封面状态读出来，顶部标签直接给出「能不能推」的答案。
   const checkChannel = useCallback(async () => {
     setBusy("test");
     setError("");
@@ -123,10 +122,14 @@ export function PreviewPanel({
     try {
       const response = await fetch("/api/wechat/cover", { cache: "no-store" });
       if (!response.ok) return;
-      const body = (await response.json()) as CoverState;
-      setCover({ configured: Boolean(body.configured) });
+      const body = await response.json();
+      setCover({
+        configured: Boolean(body.configured),
+        image: body.image ?? "",
+        previewUrl: body.previewUrl ?? "",
+      });
     } catch {
-      // 封面状态读不到就不显示为已配，别误导用户去推。
+      // 读不到就不显示已配
     }
   }, []);
 
@@ -141,11 +144,10 @@ export function PreviewPanel({
   );
 
   const hasArticle = articleContent.trim().length > 0;
+  const channelReady = channel?.ok ?? false;
+  const coverReady = cover.configured;
+  const draftReady = hasArticle && channelReady && coverReady;
 
-  /**
-   * 卡片的缩略图：把示例稿按该模板渲染成整段 HTML。
-   * 跟模板库一致——卡片放的是「一眼可辨的排版长相」，手机里才看真实正文。
-   */
   function renderCardPreview(template: LayoutTemplate): string {
     try {
       return renderTemplatePreview(PREVIEW_SAMPLE, template);
@@ -154,12 +156,12 @@ export function PreviewPanel({
     }
   }
 
-  /** 点卡片：切换右侧手机，并把这套记成这篇稿子的偏好。 */
   async function onPick(template: LayoutTemplate) {
     if (busy) return;
     setSelectedId(template.id);
     setError("");
     setNotice("");
+    setDraftResult(null);
     setBusy("apply");
     try {
       const response = await fetch("/api/wechat/theme", {
@@ -177,7 +179,6 @@ export function PreviewPanel({
     }
   }
 
-  /** 复制排版正文：剪贴板里同时写 html（带行内样式）和纯文本两份。 */
   async function onCopyFormatted() {
     if (busy) return;
     if (!selected) return;
@@ -199,8 +200,6 @@ export function PreviewPanel({
       const html = String(body.html ?? "");
       const text = String(body.text ?? "");
       if (!html) throw new Error("这篇稿子还没有正文。");
-
-      // 先写纯文本作为兜底，html 那份用 ClipboardItem 单独写。
       await navigator.clipboard.writeText(text);
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
         try {
@@ -211,18 +210,17 @@ export function PreviewPanel({
             }),
           ]);
         } catch {
-          // 忽略：纯文本那份已经复制成功了。
+          // 纯文本已经够了
         }
       }
       setNotice("排版正文已复制（html + 纯文本两种格式）。");
     } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "复制失败，请手动选中复制。");
+      setError(issue instanceof Error ? issue.message : "复制失败。");
     } finally {
       setBusy("");
     }
   }
 
-  /** 推到草稿箱：通道没通或封面没配都不给推。 */
   async function onPushDraft() {
     if (busy) return;
     if (!selected) return;
@@ -230,19 +228,19 @@ export function PreviewPanel({
       setError("这篇稿子还没有正文，先回编辑器把文章正文走完。");
       return;
     }
-    // 「先测后发」：推之前再测一次通道，测不通就把原因摆出来。
     const check = await checkChannel();
     if (!check?.ok) {
-      setError(`公众号通道还没测通：${check?.reason ?? "还没测过"}。${check?.hint ?? "先测通道，测通了才能推。"}`);
+      setError(`公众号通道还没测通：${check?.reason ?? "还没测过"}。${check?.hint ?? ""}`);
       return;
     }
     if (!cover.configured) {
-      setError("还没有封面图。公众号草稿必须带封面，请先到「公众号」页面上传一张。");
+      setError("还没有封面图。公众号草稿必须带封面，请先到「公众号」页面设一张。");
       return;
     }
     setBusy("draft");
     setError("");
     setNotice("");
+    setDraftResult(null);
     try {
       const response = await fetch("/api/wechat/draft", {
         method: "POST",
@@ -252,6 +250,7 @@ export function PreviewPanel({
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "推送失败。");
       const uploaded = Number(body.uploadedImages ?? 0);
+      setDraftResult({ ok: true, title: body.title, uploadedImages: uploaded });
       setNotice(
         [`已放进草稿箱：${body.title}`, uploaded > 0 ? `正文图片已上传 ${uploaded} 张到微信。` : ""]
           .filter(Boolean)
@@ -268,51 +267,37 @@ export function PreviewPanel({
     articleStatus === "confirmed" ? "正文已签字" : articleStatus === "draft" ? "正文草稿" : "正文未开始";
 
   return (
-    <div className="gt-stack gt-stack--lg">
-      {/* 状态行：稿件信息 + 通道/封面标签 + 模板管理入口 */}
-      <div className="gt-row gt-row--between" style={{ gap: "12px", flexWrap: "wrap" }}>
-        <div className="gt-row" style={{ gap: "8px", flexWrap: "wrap" }}>
-          <span className={`gt-tag ${articleStatus === "confirmed" ? "gt-tag--green" : articleStatus === "draft" ? "gt-tag--yellow" : "gt-tag--yellow"}`}>
+    <div className={styles.layout}>
+      {/* ============ 左侧：功能区（从上到下按操作顺序） ============ */}
+      <div className={styles.gridWrap}>
+        {/* 顶部稿件信息条 */}
+        <div className={styles.infoBar}>
+          <Link className="gt-btn gt-btn--sm gt-btn--ghost" href={`/projects/${projectId}`}>
+            ← 返回编辑器
+          </Link>
+          <span className={`gt-tag ${articleStatus === "confirmed" ? "gt-tag--green" : "gt-tag--yellow"}`}>
             {statusLabel}
           </span>
-          <span className="gt-tag" title={topicName}>专题：{topicName}</span>
-          <span
-            className={`gt-tag ${
-              channel === null ? "gt-tag--yellow" : channel.ok ? "gt-tag--green" : "gt-tag--pink"
-            }`}
-            title={channel ? `${channel.reason}${channel.hint ? " " + channel.hint : ""}` : "还没测过通道"}
-          >
-            {channel === null ? "通道未测" : channel.ok ? "通道已通" : "通道不通"}
-          </span>
-          <span className={`gt-tag ${cover.configured ? "gt-tag--green" : "gt-tag--yellow"}`}>
-            {cover.configured ? "封面已配" : "封面未配"}
-          </span>
-          {channel && !channel.ok ? (
-            <button className="gt-btn gt-btn--sm" type="button" onClick={() => void checkChannel()} disabled={busy !== ""}>
-              {busy === "test" ? "测试中…" : "重新测通道"}
-            </button>
-          ) : null}
+          <span className="gt-small gt-muted" title={topicName}>{projectTitle}</span>
         </div>
-        <Link className="gt-btn gt-btn--sm gt-btn--ghost" href="/templates?tab=manage">
-          模板管理
-        </Link>
-      </div>
 
-      {error ? <div className="gt-alert gt-alert--error">{error}</div> : null}
-      {notice ? <div className="gt-alert gt-alert--ok">{notice}</div> : null}
-      {!hasArticle ? (
-        <div className="gt-alert gt-alert--warn">
-          这篇稿子还没有正文。先回编辑器把「文章正文」这一步走完，再回来排版。
-        </div>
-      ) : null}
+        {error ? <div className="gt-alert gt-alert--error">{error}</div> : null}
+        {notice ? <div className="gt-alert gt-alert--ok">{notice}</div> : null}
+        {!hasArticle ? (
+          <div className="gt-alert gt-alert--warn">
+            这篇稿子还没有正文。先回编辑器把「文章正文」走完，再回来排版。
+          </div>
+        ) : null}
 
-      <div className={styles.layout}>
-        {/* 左：模板卡片 */}
-        <div className={styles.gridWrap}>
-          <p className={styles.hint}>
-            挑一套排版：卡片里是这套模板的「长相」，右侧手机里是这篇稿子的真实正文。
-            点卡片会把这套记成这篇稿子的排版偏好，下次打开还是它。
-          </p>
+        {/* ① 选模板 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>1</span>
+            <h2 className={styles.stepTitle}>选排版模板</h2>
+            <Link className="gt-small" href="/templates?tab=manage" style={{ marginLeft: "auto" }}>
+              模板管理 →
+            </Link>
+          </div>
           {loading ? (
             <div className="gt-empty">
               <span className="gt-empty__mark">⋯</span>
@@ -321,86 +306,197 @@ export function PreviewPanel({
           ) : templates.length === 0 ? (
             <div className="gt-empty">
               <span className="gt-empty__mark">?</span>
-              还没有模板。去「模板管理」导入一套样式包，或者先用内置配色。
+              还没有模板。去「模板管理」导入一套样式包。
             </div>
           ) : (
-            <div className={styles.grid} role="list">
+            <div className={styles.templateList}>
               {templates.map(template => {
                 const isPicked = selectedId === template.id;
                 return (
-                  <article
+                  <button
                     key={template.id}
-                    className={`${styles.card}${isPicked ? " " + styles.cardPicked : ""}`}
-                    role="listitem"
-                    aria-pressed={isPicked ? "true" : "false"}
+                    type="button"
+                    className={`${styles.templateItem}${isPicked ? " " + styles.templateItemActive : ""}`}
+                    onClick={() => void onPick(template)}
+                    disabled={busy !== ""}
                   >
-                    <div className={styles.cardHead}>
-                      <h3 className={styles.cardTitle}>{template.name}</h3>
-                      <span className={styles.badge}>{badgeOf(template)}</span>
-                    </div>
-                    <p className={styles.cardDesc}>{template.description || "（无描述）"}</p>
-                    <div className={styles.cardThumb}>
+                    <div className={styles.templateThumb}>
                       <div
                         className={styles.thumbInner}
                         dangerouslySetInnerHTML={{ __html: renderCardPreview(template) }}
                       />
                     </div>
-                    <div className={styles.cardFoot}>
-                      <button
-                        type="button"
-                        className={`${styles.pickBtn}${isPicked ? " " + styles.pickBtnActive : ""}`}
-                        onClick={() => void onPick(template)}
-                        disabled={busy !== ""}
-                      >
-                        {isPicked ? (busy === "apply" ? "应用中…" : "当前这套") : "用这套"}
-                      </button>
+                    <div className={styles.templateInfo}>
+                      <div className={styles.templateNameRow}>
+                        <span className={styles.templateName}>{template.name}</span>
+                        <span className={styles.badge}>{badgeOf(template)}</span>
+                      </div>
+                      <span className={styles.templateDesc}>
+                        {template.description || "（无描述）"}
+                      </span>
                     </div>
-                  </article>
+                    <span className={styles.templateStatus}>
+                      {isPicked ? (busy === "apply" ? "…" : "✓") : ""}
+                    </span>
+                  </button>
                 );
               })}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* 右：手机预览（真实正文）+ 底部操作 */}
-        <aside className={styles.previewCol}>
-          <PhonePreview
-            template={selected}
-            content={articleContent}
-            projectTitle={projectTitle}
-            projectId={projectId}
-            showApply={false}
-          />
-          <div className={styles.actions}>
-            <div className={styles.actionsTarget}>
-              <span className="gt-small gt-muted">当前模板</span>
-              <span className={styles.actionsTargetName}>{selected?.name ?? "未选"}</span>
-            </div>
-            <div className="gt-row" style={{ gap: "8px", flexWrap: "wrap" }}>
-              <button
-                className="gt-btn gt-btn--sm"
-                type="button"
-                onClick={() => void onCopyFormatted()}
-                disabled={busy !== "" || !selected}
-              >
-                {busy === "copy" ? "复制中…" : "复制排版正文"}
-              </button>
-              <button
-                className="gt-btn gt-btn--sm gt-btn--primary"
-                type="button"
-                onClick={() => void onPushDraft()}
-                disabled={busy !== "" || !selected}
-              >
-                {busy === "draft" ? "推送中…" : "推到草稿箱"}
-              </button>
-            </div>
+        {/* ② 公众号通道 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>2</span>
+            <h2 className={styles.stepTitle}>公众号通道</h2>
+            <span
+              className={`gt-tag ${channel === null ? "gt-tag--yellow" : channel.ok ? "gt-tag--green" : "gt-tag--pink"}`}
+              style={{ marginLeft: "auto" }}
+            >
+              {channel === null ? "未测" : channel.ok ? "已通" : "不通"}
+            </span>
           </div>
-          <p className={styles.actionsHint}>
-            「推到草稿箱」需要公众号通道已通、封面已配好（到「公众号」页面设置）。
-            复制排版正文则不需要——贴进公众号编辑器即可。
-          </p>
-        </aside>
+          {channel && channel.ok ? (
+            <p className={styles.stepDesc}>通道正常，可以推草稿。</p>
+          ) : channel && !channel.ok ? (
+            <div className={styles.stepBlock}>
+              <p className={styles.stepDesc}>
+                {channel.reason}。{channel.hint}
+              </p>
+              <div className="gt-row" style={{ gap: "8px" }}>
+                <button className="gt-btn gt-btn--sm" type="button" onClick={() => void checkChannel()} disabled={busy !== ""}>
+                  {busy === "test" ? "测试中…" : "重新测试"}
+                </button>
+                <Link className="gt-btn gt-btn--sm gt-btn--ghost" href="/wechat">
+                  去配公众号凭据 →
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.stepBlock}>
+              <p className={styles.stepDesc}>还没测过通道，先测一次。</p>
+              <button className="gt-btn gt-btn--sm" type="button" onClick={() => void checkChannel()} disabled={busy !== ""}>
+                {busy === "test" ? "测试中…" : "测试通道"}
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* ③ 封面图 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>3</span>
+            <h2 className={styles.stepTitle}>封面图</h2>
+            <span className={`gt-tag ${coverReady ? "gt-tag--green" : "gt-tag--yellow"}`} style={{ marginLeft: "auto" }}>
+              {coverReady ? "已配" : "未配"}
+            </span>
+          </div>
+          {coverReady && cover.previewUrl ? (
+            <div className={styles.stepBlock}>
+              <img
+                src={cover.previewUrl}
+                alt="当前封面"
+                className={styles.coverPreview}
+              />
+              <Link className="gt-btn gt-btn--sm gt-btn--ghost" href="/wechat">
+                去公众号页换封面 →
+              </Link>
+            </div>
+          ) : (
+            <div className={styles.stepBlock}>
+              <p className={styles.stepDesc}>
+                公众号草稿必须带封面。去公众号页面上传一张。
+              </p>
+              <Link className="gt-btn gt-btn--sm gt-btn--ghost" href="/wechat">
+                去配封面 →
+              </Link>
+            </div>
+          )}
+        </section>
+
+        {/* ④ 推草稿箱 */}
+        <section className={`${styles.step} ${styles.stepFinal}`}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>4</span>
+            <h2 className={styles.stepTitle}>推到草稿箱</h2>
+          </div>
+          {draftResult ? (
+            <div className={styles.stepBlock}>
+              <div className="gt-alert gt-alert--ok" style={{ marginBottom: "8px" }}>
+                已放进草稿箱：{draftResult.title}
+                {draftResult.uploadedImages > 0
+                  ? `（正文图片已上传 ${draftResult.uploadedImages} 张）`
+                  : ""}
+              </div>
+              <p className={styles.stepDesc}>
+                去公众号后台预览、编辑、发布。稿台不代替人点发布。
+              </p>
+              <div className="gt-row" style={{ gap: "8px" }}>
+                <a
+                  className="gt-btn gt-btn--sm gt-btn--primary"
+                  href="https://mp.weixin.qq.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  去公众号后台发布 →
+                </a>
+                <button
+                  className="gt-btn gt-btn--sm"
+                  type="button"
+                  onClick={() => void onCopyFormatted()}
+                  disabled={busy !== ""}
+                >
+                  {busy === "copy" ? "复制中…" : "复制排版正文"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.stepBlock}>
+              <p className={styles.stepDesc}>
+                {draftReady
+                  ? "一切就绪，可以推了。"
+                  : hasArticle
+                    ? channelReady
+                      ? coverReady
+                        ? "就绪。"
+                        : "还差封面图——上面第 3 步。"
+                      : "通道还没通——上面第 2 步。"
+                    : "还没有正文——先回编辑器写完。"}
+              </p>
+              <div className="gt-row" style={{ gap: "8px" }}>
+                <button
+                  className="gt-btn gt-btn--sm gt-btn--primary"
+                  type="button"
+                  onClick={() => void onPushDraft()}
+                  disabled={busy !== "" || !draftReady}
+                >
+                  {busy === "draft" ? "推送中…" : "推到草稿箱"}
+                </button>
+                <button
+                  className="gt-btn gt-btn--sm"
+                  type="button"
+                  onClick={() => void onCopyFormatted()}
+                  disabled={busy !== "" || !selected}
+                >
+                  {busy === "copy" ? "复制中…" : "复制排版正文"}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
+
+      {/* ============ 右侧：手机预览（常驻） ============ */}
+      <aside className={styles.previewCol}>
+        <PhonePreview
+          template={selected}
+          content={articleContent}
+          projectTitle={projectTitle}
+          projectId={projectId}
+          showApply={false}
+        />
+      </aside>
     </div>
   );
 }

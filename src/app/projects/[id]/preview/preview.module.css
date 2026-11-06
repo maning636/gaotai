@@ -1,9 +1,8 @@
 /* ==========================================================================
-   排版预览页
+   排版预览页（发布中心）
 
-   布局跟模板库一致：左卡片列表、右手机预览。
-   手机框架的样式在 templates.module.css（PhonePreview 内部引用），
-   这里只负责本页的两栏布局、模板卡片与底部操作区。
+   左侧功能区按操作步骤从上到下排列：① 选模板 → ② 通道 → ③ 封面 → ④ 推草稿
+   右侧手机常驻，选了模板就实时看这篇稿子的排版效果。
    ========================================================================== */
 
 .layout {
@@ -15,58 +14,163 @@
 
 .gridWrap {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.hint {
-  margin: 0 0 12px;
+/* --- 顶部信息条 ------------------------------------------------------- */
+
+.infoBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--gt-line);
+}
+
+/* --- 步骤区块 --------------------------------------------------------- */
+
+.step {
+  background: var(--gt-surface);
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--gt-line);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stepFinal {
+  border-color: var(--gt-ink);
+  background: var(--gt-surface);
+}
+
+.stepHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepNum {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gt-ink);
+  color: var(--gt-paper);
   font-size: 13px;
-  color: var(--gt-muted);
+  font-weight: 800;
+  border-radius: 2px;
+}
+
+.stepTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.stepDesc {
+  margin: 0;
+  font-size: 13px;
   line-height: 1.5;
+  color: var(--gt-muted);
 }
 
-/* --- 卡片网格 --------------------------------------------------------- */
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.card {
+.stepBlock {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 12px;
-  background: var(--gt-surface);
-  border: 1px solid var(--gt-line);
-  border-radius: 4px;
-  box-shadow: 2px 2px 0 var(--gt-line);
-  transition: box-shadow 120ms ease, transform 120ms ease;
 }
 
-.card:hover {
-  transform: translateY(-1px);
-  box-shadow: 3px 3px 0 var(--gt-line);
+/* --- 模板列表（竖排，每条一行） -------------------------------------- */
+
+.templateList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.cardPicked {
-  outline: 2px solid var(--gt-blue);
-  outline-offset: -2px;
-}
-
-.cardHead {
+.templateItem {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  background: var(--gt-surface);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 80ms ease, box-shadow 80ms ease;
+  font: inherit;
+  color: inherit;
 }
 
-.cardTitle {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+.templateItem:hover {
+  background: var(--gt-sunken);
+}
+
+.templateItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.templateItemActive {
+  border-color: var(--gt-blue);
+  background: var(--gt-surface);
+  box-shadow: inset 0 0 0 1px var(--gt-blue);
+}
+
+.templateItemActive:hover {
+  background: var(--gt-sunken);
+}
+
+.templateThumb {
+  position: relative;
+  flex: 0 0 72px;
+  width: 72px;
+  height: 96px;
+  border: 1px solid var(--gt-line);
+  border-radius: 2px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.thumbInner {
+  transform: scale(0.16);
+  transform-origin: top left;
+  width: calc(72px / 0.16);
+  height: calc(96px / 0.16);
+  padding: 12px 14px;
   color: var(--gt-ink);
+  font-size: 14px;
+  line-height: 1.7;
+  background: #ffffff;
+}
+
+.templateInfo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.templateNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.templateName {
+  font-size: 14px;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -75,81 +179,42 @@
 .badge {
   flex: none;
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 1px 5px;
   background: var(--gt-sunken);
   color: var(--gt-ink);
   border-radius: 2px;
   line-height: 1.4;
 }
 
-.cardDesc {
-  margin: 0;
+.templateDesc {
   font-size: 12px;
   color: var(--gt-muted);
   line-height: 1.4;
-  min-height: 2em;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* --- 卡片缩略图（与模板库同一做法） ---------------------------------- */
-
-.cardThumb {
-  position: relative;
-  height: 200px;
-  border: 1px solid var(--gt-line);
-  border-radius: 3px;
-  overflow: hidden;
-  background: #ffffff;
+.templateStatus {
+  flex: none;
+  width: 20px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gt-blue);
 }
 
-.thumbInner {
-  transform: scale(0.22);
-  transform-origin: top left;
-  width: calc(100% / 0.22);
-  padding: 12px 14px;
-  color: var(--gt-ink);
-  font-size: 14px;
-  line-height: 1.7;
-  background: #ffffff;
+/* --- 封面预览 --------------------------------------------------------- */
+
+.coverPreview {
+  width: 120px;
+  height: auto;
+  border: 2px solid var(--gt-line);
+  box-shadow: 2px 2px 0 var(--gt-line);
+  display: block;
 }
 
-.cardFoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.pickBtn {
-  padding: 5px 10px;
-  font-size: 12px;
-  border: 1px solid var(--gt-line);
-  background: var(--gt-surface);
-  color: var(--gt-ink);
-  border-radius: 3px;
-  cursor: pointer;
-  line-height: 1.2;
-  transition: background 120ms ease;
-}
-
-.pickBtn:hover {
-  background: var(--gt-sunken);
-}
-
-.pickBtnActive {
-  background: var(--gt-blue);
-  color: #ffffff;
-  border-color: var(--gt-blue);
-}
-
-.pickBtnActive:hover {
-  background: var(--gt-blue);
-}
-
-/* --- 右侧栏 ----------------------------------------------------------- */
+/* --- 右侧手机栏 ------------------------------------------------------- */
 
 .previewCol {
   position: sticky;
@@ -160,45 +225,7 @@
   min-width: 0;
 }
 
-/* --- 底部操作区 ------------------------------------------------------- */
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  background: var(--gt-surface);
-  border: 1px solid var(--gt-line);
-  border-radius: 4px;
-  box-shadow: 2px 2px 0 var(--gt-line);
-}
-
-.actionsTarget {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-}
-
-.actionsTargetName {
-  font-size: 13px;
-  color: var(--gt-ink);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.actionsHint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--gt-muted);
-  line-height: 1.5;
-}
-
-/* --- 窄屏折叠 ---------------------------------------------------------
-   预览不再 sticky、不再放右侧；卡片列表铺满，手机落到列表下方。
-   -------------------------------------------------------------------- */
+/* --- 窄屏折叠 --------------------------------------------------------- */
 
 @media (max-width: 1023px) {
   .layout {
@@ -208,10 +235,5 @@
 
   .previewCol {
     position: static;
-  }
-
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
   }
 }
