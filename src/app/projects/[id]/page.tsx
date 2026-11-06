@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "../../app-shell";
 import { ProjectEditor } from "./editor";
 import { readSession } from "../../../lib/auth";
-import { getProject, getWxPreference, listMessages, listStageResults } from "../../../lib/repo";
+import { getProject, listMessages, listStageResults } from "../../../lib/repo";
 import { getTopic } from "../../../lib/topics";
 
 /** 稿件页：四道工序的主工作区。 */
@@ -14,11 +14,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const project = getProject(id);
   if (!project) notFound();
 
-  const [stages, messages, topic, wx] = await Promise.all([
+  const [stages, messages, topic] = await Promise.all([
     listStageResults(id),
     listMessages(id),
     getTopic(project.topic_id),
-    getWxPreference(id),
   ]);
 
   return (
@@ -41,8 +40,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         topic={topic ? { id: topic.id, name: topic.name, rules: topic.rules, skills: topic.skills } : null}
         initialStages={stages}
         initialMessages={messages}
-        wxTheme={wx?.theme}
-        wxTemplateId={wx?.template_id || undefined}
       />
     </AppShell>
   );

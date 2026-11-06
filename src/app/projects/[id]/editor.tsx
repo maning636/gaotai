@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { STAGES, STAGE_LABELS, type Stage, type StageResultRow, type MessageRow } from "../../../lib/stages";
-import { normalizeThemeId } from "../../../lib/wx-theme";
 import { insertMarkdownAt } from "../../../lib/editor-insert";
 import { paragraphInsertOffset } from "../../../lib/illustration-plan";
 import {
@@ -26,16 +25,7 @@ import {
  * 不只是存盘，它同时把这次修改登记进风格记忆。
  */
 
-/** 界面上的一个排版模板条目。 */
-export type EditorTemplate = {
-  id: string;
-  name: string;
-  description?: string;
-  source: "builtin" | "imported" | "custom";
-};
-
-export type EditorProject = {
-  id: string;
+export type EditorProject = {  id: string;
   title: string;
   topic_id: string;
   stage: Stage;
@@ -142,10 +132,6 @@ export type ProjectEditorProps = {
   topic: EditorTopic;
   initialStages: StageResultRow[];
   initialMessages: MessageRow[];
-  /** 这篇稿子记住的公众号排版主题（内置配色）。 */
-  wxTheme?: string;
-  /** 这篇稿子记住的排版模板。 */
-  wxTemplateId?: string;
 };
 
 type StageState = {
@@ -173,22 +159,19 @@ export function ProjectEditor({
   topic,
   initialStages,
   initialMessages,
-  wxTheme,
-  wxTemplateId,
 }: ProjectEditorProps) {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>(project.stage);
   const [state, setState] = useState<Record<Stage, StageState>>(() => initialState(initialStages));
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
   const [input, setInput] = useState("");
-  const [busy, setBusy] = useState<"" | "generate" | "save" | "confirm" | "preview" | "prompt" | "prose" | "copy" | "upload">("");
+  const [busy, setBusy] = useState<"" | "generate" | "save" | "confirm" | "prompt" | "prose" | "upload">("");
   /** 正在跑的那次生成的中止器：点「取消」能把它掐断。 */
   const abortRef = useRef<AbortController | null>(null);
   /** 这一轮已经跑了多少秒。模型慢的时候，人得看得见时间在走。 */
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [preview, setPreview] = useState("");
   /** 本机装好的技能包。 */
   const [skillCatalog, setSkillCatalog] = useState<EditorSkill[]>([]);
   /** 本次正文要启用的技能包。默认跟专题声明走。 */
@@ -248,17 +231,6 @@ export function ProjectEditor({
   const contentCaret = useRef<number | null>(null);
   /** 生成时服务端量出来的成稿体检摘要。 */
   const [quality, setQuality] = useState<ArticleQuality | null>(null);
-  /**
-   * 公众号排版模板。
-   *
-   * 排版选择已经搬到 /templates 页——这里只需要记住「这篇稿子用的哪套」，
-   * 用来预览、复制、推草稿，不再在正文页里改。
-   *
-   * 内置配色是三套只读的模板，用户自己固化的模板也在同一张清单里。
-   * 每次预览或推草稿都会把它记回这篇稿子的偏好。
-   */
-  const [templates, setTemplates] = useState<EditorTemplate[]>([]);
-  const [templateId, setTemplateId] = useState(wxTemplateId || `builtin:${normalizeThemeId(wxTheme)}`);
   /** 这一阶段各步骤的耗时。 */
   const [timings, setTimings] = useState<StageTiming[]>([]);
 
@@ -276,32 +248,6 @@ export function ProjectEditor({
     return () => {
       alive = false;
     };
-  }, []);
-
-  // 排版模板清单：内置配色 + 用户自己固化的模板。进页面时拉一次。
-  // 这份清单现在只用来显示「当前用的哪套」的名字，模板切换走 /templates 页。
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/layout-templates", { cache: "no-store" })
-      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取模板失败"))))
-      .then((body: { templates?: EditorTemplate[] }) => {
-        if (!alive) return;
-        const list = Array.isArray(body.templates) ? body.templates : [];
-        setTemplates(list);
-        // 记着的那套模板要是被删了，回退到内置默认，别让标签上出现空名字。
-        if (list.length && !list.some(item => item.id === templateId)) {
-          setTemplateId(list[0].id);
-        }
-      })
-      .catch(() => {
-        if (alive) setTemplates([]);
-      });
-    return () => {
-      alive = false;
-    };
-    // 只在进页面时拉一次：这里读到的是初始那份 templateId，
-    // 之后如果从模板库跳回来，靠重新挂载页面走一遍初始化。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 换了稿件、专题声明的技能不一样时，勾选跟着走。
@@ -516,104 +462,10 @@ export function ProjectEditor({
         setStage(body.nextStage);
         setNotice(`已签字，进入「${body.nextStageLabel}」。`);
       } else {
-        setNotice("已签字。这一篇到最后一道工序了，可以推去公众号。");
+        setNotice("已签字。这一篇到最后一道工序了，排版操作在「去排版预览」里。");
       }
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "确认失败。");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  /**
-   * 拉一份排版好的正文回来。
-   *
-   * 带上当前选的模板：服务端会顺手把它记成这篇稿子的偏好，
-   * 下次打开还是这套排版，推草稿时也按它渲染。
-   */
-  async function loadPreview(id: string) {
-    // POST 带上编辑器里的当前正文：图刚插进去、还没点「保存修改」时，
-    // 预览也应该能看到它。GET 只读数据库，会漏掉未保存的改动。
-    const response = await fetch("/api/wechat/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId: project.id, templateId: id, content: current.content }),
-    });
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.error ?? "预览失败。");
-    return body as { html?: string; text?: string };
-  }
-
-  async function onPreview() {
-    if (busy) return;
-    setBusy("preview");
-    setError("");
-    try {
-      const body = await loadPreview(templateId);
-      setPreview(body.html ?? "");
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "预览失败。");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  /**
-   * 当前模板在清单里的名字。
-   *
-   * 清单可能还没拉回来（首次挂载）、或者用户从模板库删掉了这套，
-   * 这两种情况下都回退到 templateId 本身——比显示空白强。
-   */
-  const currentTemplateName = templates.find(item => item.id === templateId)?.name ?? templateId;
-
-  /**
-   * 换排版模板。
-   *
-   * 排版选择已经搬到 /templates 页——这里不再直接改，
-   * 而是跳到模板库，带上稿件 id 和 from=editor 让那边知道来源。
-   * 模板库应用后会跳回编辑器，届时会重新读一次稿件偏好。
-   */
-  function onChooseTemplate() {
-    router.push(`/templates?project=${encodeURIComponent(project.id)}&from=editor`);
-  }
-
-  /**
-   * 复制排版正文。
-   *
-   * 剪贴板里同时写两份：html（带行内样式）和纯文本。
-   * 贴进公众号编辑器走 html 那份，贴进纯文本编辑器走文本那份——
-   * 只写一份的话，用户换个地方粘贴就变成一堆标签。
-   */
-  async function onCopyFormatted() {
-    if (busy) return;
-    setBusy("copy");
-    setError("");
-    setNotice("");
-    try {
-      const body = await loadPreview(templateId);
-      const html = String(body.html ?? "");
-      const text = String(body.text ?? "");
-      if (!html) throw new Error("这篇稿子还没有正文。");
-
-      // 先写纯文本：这一步各浏览器都支持，作为兜底。
-      await navigator.clipboard.writeText(text);
-      // html 那份要用 ClipboardItem 单独写一次。
-      // 浏览器不给写 html 格式的权限时，纯文本那份已经在剪贴板里了。
-      if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({
-              "text/html": new Blob([html], { type: "text/html" }),
-              "text/plain": new Blob([text], { type: "text/plain" }),
-            }),
-          ]);
-        } catch {
-          // 忽略：纯文本那份已经复制成功了。
-        }
-      }
-      setNotice("排版正文已复制（html + 纯文本两种格式）。");
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "复制失败，请手动选中复制。");
     } finally {
       setBusy("");
     }
@@ -1093,7 +945,6 @@ export function ProjectEditor({
               className={classes.join(" ")}
               onClick={() => {
                 setStage(item);
-                setPreview("");
                 setNotice("");
                 setError("");
                 setSkillWarning("");
@@ -1378,20 +1229,16 @@ export function ProjectEditor({
               <button className="gt-btn gt-btn--sm" type="button" onClick={onProseCheck} disabled={busy !== "" || !current.content.trim()}>
                 {busy === "prose" ? "体检中…" : "查 AI 味"}
               </button>
-              <span className="gt-spacer" />
-              {stage === "article" ? (
+              {stage === "article" && current.status === "confirmed" ? (
                 <>
-                  <span className="gt-small gt-muted">
-                    排版：<strong>{currentTemplateName}</strong>
-                  </span>
-                  <button className="gt-btn gt-btn--sm gt-btn--ghost" type="button" onClick={onChooseTemplate}>
-                    换排版
-                  </button>
-                  <button className="gt-btn gt-btn--sm" type="button" onClick={onCopyFormatted} disabled={busy !== ""}>
-                    {busy === "copy" ? "复制中…" : "复制排版正文"}
-                  </button>
-                  <button className="gt-btn gt-btn--sm gt-btn--blue" type="button" onClick={onPreview} disabled={busy !== ""}>
-                    {busy === "preview" ? "预览中…" : "公众号预览"}
+                  <span className="gt-spacer" />
+                  <span className="gt-small gt-muted">正文定稿，排版操作挪到了独立页面。</span>
+                  <button
+                    className="gt-btn gt-btn--sm gt-btn--blue"
+                    type="button"
+                    onClick={() => router.push(`/projects/${encodeURIComponent(project.id)}/preview`)}
+                  >
+                    去排版预览
                   </button>
                 </>
               ) : null}
@@ -1794,20 +1641,6 @@ export function ProjectEditor({
                 体检只报警，不替你改。稿台不自动重写、不自动补字：
                 怎么改由你定，改完把「保存修改」按下去。
               </p>
-            </section>
-          ) : null}
-
-          {preview ? (
-            <section className="gt-panel gt-panel--flat">
-              <div className="gt-panel__head">
-                <h3 className="gt-panel__title">公众号预览</h3>
-                <button className="gt-btn gt-btn--sm" type="button" onClick={() => setPreview("")}>
-                  收起
-                </button>
-              </div>
-              <div className="gt-preview">
-                <div className="gt-preview__frame" dangerouslySetInnerHTML={{ __html: preview }} />
-              </div>
             </section>
           ) : null}
         </div>

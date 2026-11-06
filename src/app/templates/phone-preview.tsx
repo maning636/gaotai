@@ -33,6 +33,13 @@ type PhonePreviewProps = {
   showApply?: boolean;
   /** 覆盖手机自适应框的高度（模板管理里要在视口内放下整台手机）。 */
   fitHeight?: string;
+  /**
+   * 手机里渲染的正文（Markdown）。
+   *
+   * 模板库用它默认的示例稿；排版预览页传这篇稿子的**真实正文**，
+   * 让用户看的是「这一篇排出来长什么样」，而不是示例稿。
+   */
+  content?: string;
 };
 
 type ApplyState = "idle" | "saving" | "done";
@@ -40,7 +47,7 @@ type ApplyState = "idle" | "saving" | "done";
 const PHONE_W = 456;
 const PHONE_H = 972;
 
-export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight }: PhonePreviewProps) {
+export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight, content }: PhonePreviewProps) {
   const router = useRouter();
   const fitRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.62);
@@ -74,17 +81,18 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
   /**
    * 屏幕内的正文渲染。
    *
-   * 换模板就重算一次；渲染是纯函数（拿模板 + 示例稿），
+   * 换模板就重算一次；渲染是纯函数（拿模板 + 正文），
    * 不需要走后端——真正的稿件要推到草稿时才走 /api/wechat/preview。
+   * 排版预览页传了 content（真实正文）就用它，模板库没传就用示例稿。
    */
   const previewHtml = useMemo(() => {
     if (!template) return "";
     try {
-      return renderTemplatePreview(PREVIEW_SAMPLE, template);
+      return renderTemplatePreview(content ?? PREVIEW_SAMPLE, template);
     } catch {
       return "";
     }
-  }, [template]);
+  }, [template, content]);
 
   async function onApply() {
     if (!template || !projectId || applyState === "saving") return;
