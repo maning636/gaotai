@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { renderTemplatePreview } from "../../../../lib/markdown";
 import type { LayoutTemplate } from "../../../../lib/layout-template";
+import { inlineCustomCss } from "../../../../lib/custom-css/inliner";
 import { PREVIEW_SAMPLE } from "../../../../lib/preview-sample";
 import { PhonePreview } from "../../../templates/phone-preview";
 import styles from "./preview.module.css";
@@ -73,6 +74,10 @@ export function PreviewPanel({
   const [channel, setChannel] = useState<ChannelCheck | null>(null);
   const [cover, setCover] = useState<CoverState>({ configured: false, image: "", previewUrl: "" });
   const [draftResult, setDraftResult] = useState<DraftResult>(null);
+  /** 用户粘贴的自定义 CSS（仅作用于右侧预览）。 */
+  const [customCss, setCustomCss] = useState("");
+  /** 自定义 CSS 折叠区是否展开。 */
+  const [cssOpen, setCssOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -150,7 +155,12 @@ export function PreviewPanel({
 
   function renderCardPreview(template: LayoutTemplate): string {
     try {
-      return renderTemplatePreview(PREVIEW_SAMPLE, template);
+      const html = renderTemplatePreview(PREVIEW_SAMPLE, template);
+      if (customCss.trim()) {
+        // 自定义 CSS 通过 inlineCustomCss 内联到预览里；fail-open，失败时原样返回。
+        return inlineCustomCss(html, customCss, { rootSelector: ".gt-article-root" });
+      }
+      return html;
     } catch {
       return "";
     }
@@ -370,6 +380,41 @@ export function PreviewPanel({
           )}
         </section>
 
+        {/* 自定义 CSS：折叠文本框，粘贴后应用到右侧预览 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>1.5</span>
+            <h2 className={styles.stepTitle}>自定义 CSS</h2>
+            <button
+              type="button"
+              className="gt-btn gt-btn--sm gt-btn--ghost"
+              style={{ marginLeft: "auto" }}
+              onClick={() => setCssOpen(prev => !prev)}
+            >
+              {cssOpen ? "收起" : "展开"}
+            </button>
+          </div>
+          {cssOpen ? (
+            <div className={styles.stepBlock}>
+              <p className={styles.stepDesc}>
+                粘贴 CSS 并内联到右侧预览。只影响预览效果，不写入稿件。
+              </p>
+              <textarea
+                value={customCss}
+                onChange={event => setCustomCss(event.target.value)}
+                placeholder={"例如：\n.gt-article-root p { color: #333; }\n.gt-article-root h2 { border-left: 4px solid #2563eb; }"}
+                rows={6}
+                spellCheck={false}
+                style={{ width: "100%", fontFamily: "monospace", fontSize: "12px", padding: "8px" }}
+              />
+            </div>
+          ) : (
+            <p className={styles.stepDesc}>
+              {customCss.trim() ? "已应用自定义 CSS（点击展开编辑）。" : "可粘贴 CSS 覆盖预览样式。"}
+            </p>
+          )}
+        </section>
+
         {/* ② 插入图表 + 配图提示词 */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
@@ -549,6 +594,7 @@ export function PreviewPanel({
           projectTitle={projectTitle}
           projectId={projectId}
           showApply={false}
+          customCss={customCss}
         />
       </aside>
     </div>

@@ -1016,3 +1016,201 @@ export function themeIdFromBuiltinId(id: string): ThemeId | null {
   const raw = id.startsWith("builtin:") ? id.slice("builtin:".length) : "";
   return raw === "default" || raw === "paper" || raw === "mist" ? raw : null;
 }
+
+/* ------------------------------------------------------------------ *
+ * 长文排版主题
+ * ------------------------------------------------------------------ */
+
+/**
+ * 长文主题标识。
+ *
+ * 现有 3 套配色（default/paper/mist）之外，新增 8 套长文主题。
+ * 注意：已有 paper，为避免冲突，新增的 8 套里与现有重名的改名为 long-paper。
+ */
+export type LongArticleThemeId =
+  | "github"
+  | "wechat"
+  | "serif"
+  | "long-paper"
+  | "grid"
+  | "typo"
+  | "media"
+  | "colorful";
+
+/**
+ * 一套长文主题的排版配置。
+ *
+ * 与 ThemePalette 的区别：长文主题管的是**结构节奏**（行距、段距、标题样式、
+ * 引用样式、表头底色），而不是单一色值表。每个字段是一段可内联的样式片段，
+ * 由 getLongArticleThemeStyle 按标签名拼装。
+ */
+export type LongArticleThemeStyle = {
+  /** 中文名，界面上显示。 */
+  name: string;
+  /** 正文行高。 */
+  lineHeight: string;
+  /** 段落间距（margin-bottom）。 */
+  paragraphGap: string;
+  /** 一级标题内联样式（不含 content 占位）。 */
+  h1: string;
+  /** 二级标题内联样式。 */
+  h2: string;
+  /** 三级标题内联样式。 */
+  h3: string;
+  /** 四级标题内联样式。 */
+  h4: string;
+  /** 引用块内联样式。 */
+  blockquote: string;
+  /** 行内代码内联样式。 */
+  code: string;
+  /** 表格表头底色。 */
+  tableHeaderBg: string;
+};
+
+/** 长文主题清单（按界面展示顺序）。 */
+export const LONG_ARTICLE_THEMES: Record<LongArticleThemeId, LongArticleThemeStyle> = {
+  github: {
+    name: "GitHub",
+    lineHeight: "1.75",
+    paragraphGap: "16px",
+    h1: "font-size: 24px; font-weight: 600; margin: 28px 0 16px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; color: #1f2328;",
+    h2: "font-size: 20px; font-weight: 600; margin: 24px 0 14px; padding-bottom: 6px; border-bottom: 1px solid #eaeef2; color: #1f2328;",
+    h3: "font-size: 17px; font-weight: 600; margin: 20px 0 12px; color: #1f2328;",
+    h4: "font-size: 15px; font-weight: 600; margin: 16px 0 10px; color: #1f2328;",
+    blockquote: "margin: 0 0 16px; padding: 2px 0 2px 16px; border-left: 4px solid #d0d7de; color: #59636e; font-size: 15px;",
+    code: "font-size: 13px; background: #f6f8fa; color: #c7254e; padding: 2px 5px; border-radius: 4px;",
+    tableHeaderBg: "#f6f8fa",
+  },
+  wechat: {
+    name: "公众号风",
+    lineHeight: "1.75",
+    paragraphGap: "16px",
+    h1: "font-size: 22px; font-weight: 500; margin: 28px 0 14px; color: #1a1a1a; letter-spacing: 0.01em;",
+    h2: "font-size: 19px; font-weight: 500; margin: 24px 0 12px; color: #1a1a1a; letter-spacing: 0.01em;",
+    h3: "font-size: 17px; font-weight: 500; margin: 20px 0 10px; color: #1a1a1a;",
+    h4: "font-size: 16px; font-weight: 500; margin: 16px 0 8px; color: #1a1a1a;",
+    blockquote: "margin: 0 0 16px; padding: 2px 0 2px 14px; border-left: 3px solid #d9d9d9; color: #767676; font-size: 15px;",
+    code: "font-size: 14px; background: #f5f5f5; color: #c7254e; padding: 2px 5px; border-radius: 3px;",
+    tableHeaderBg: "#ffffff",
+  },
+  serif: {
+    name: "衬线书卷",
+    lineHeight: "1.9",
+    paragraphGap: "20px",
+    h1: "font-size: 24px; font-weight: 700; margin: 32px 0 18px; color: #241c14; font-family: Georgia, 'Songti SC', 'Noto Serif SC', 'SimSun', serif;",
+    h2: "font-size: 21px; font-weight: 700; margin: 28px 0 16px; color: #241c14; font-family: Georgia, 'Songti SC', 'Noto Serif SC', 'SimSun', serif;",
+    h3: "font-size: 18px; font-weight: 700; margin: 24px 0 12px; color: #241c14; font-family: Georgia, 'Songti SC', 'Noto Serif SC', 'SimSun', serif;",
+    h4: "font-size: 16px; font-weight: 700; margin: 20px 0 10px; color: #241c14; font-family: Georgia, 'Songti SC', 'Noto Serif SC', 'SimSun', serif;",
+    blockquote: "margin: 0 0 20px; padding: 14px 18px; border-left: 3px solid #c9b18a; color: #7d6e5d; font-size: 15px; font-style: italic; background: #faf6ef;",
+    code: "font-size: 13px; background: #f2ead9; color: #9a5b33; padding: 2px 5px; border-radius: 3px; font-family: 'SFMono-Regular', Consolas, monospace;",
+    tableHeaderBg: "#faf6ef",
+  },
+  "long-paper": {
+    name: "暖纸阅读",
+    lineHeight: "1.85",
+    paragraphGap: "18px",
+    h1: "font-size: 23px; font-weight: 600; margin: 30px 0 16px; color: #241c14;",
+    h2: "font-size: 20px; font-weight: 600; margin: 26px 0 14px; color: #241c14;",
+    h3: "font-size: 17px; font-weight: 600; margin: 22px 0 12px; color: #241c14;",
+    h4: "font-size: 15px; font-weight: 600; margin: 18px 0 10px; color: #241c14;",
+    blockquote: "margin: 0 0 18px; padding: 12px 16px; border-left: 4px solid #c9b18a; color: #7d6e5d; font-size: 15px; background: #fdfaf3; border-radius: 0 6px 6px 0;",
+    code: "font-size: 13px; background: #f2ead9; color: #9a5b33; padding: 2px 5px; border-radius: 3px;",
+    tableHeaderBg: "#fdfaf3",
+  },
+  grid: {
+    name: "网格秩序",
+    lineHeight: "1.7",
+    paragraphGap: "14px",
+    h1: "font-size: 22px; font-weight: 700; margin: 28px 0 14px; color: #17222b; letter-spacing: 0.02em;",
+    h2: "font-size: 19px; font-weight: 700; margin: 24px 0 12px; color: #17222b; letter-spacing: 0.02em;",
+    h3: "font-size: 17px; font-weight: 700; margin: 20px 0 10px; color: #17222b;",
+    h4: "font-size: 15px; font-weight: 700; margin: 16px 0 8px; color: #17222b;",
+    blockquote: "margin: 0 0 14px; padding: 10px 14px; border-left: 4px solid #9fb9cb; color: #63727f; font-size: 15px; background: #f4f7fa;",
+    code: "font-size: 13px; background: #eef2f5; color: #38627f; padding: 2px 5px; border-radius: 2px; font-family: 'SFMono-Regular', Consolas, monospace;",
+    tableHeaderBg: "#eef2f5",
+  },
+  typo: {
+    name: "杂志排版",
+    lineHeight: "1.8",
+    paragraphGap: "22px",
+    h1: "font-size: 26px; font-weight: 800; margin: 34px 0 20px; color: #1a1a1a; letter-spacing: -0.01em;",
+    h2: "font-size: 21px; font-weight: 800; margin: 30px 0 16px; color: #1a1a1a; letter-spacing: -0.01em;",
+    h3: "font-size: 18px; font-weight: 700; margin: 26px 0 12px; color: #1a1a1a;",
+    h4: "font-size: 16px; font-weight: 700; margin: 22px 0 10px; color: #1a1a1a;",
+    blockquote: "margin: 0 0 22px; padding: 16px 20px; border-left: 4px solid #3D7BFF; color: #333333; font-size: 16px; font-style: italic; background: #f0f5ff; border-radius: 0 8px 8px 0;",
+    code: "font-size: 13px; background: #f5f5f5; color: #c7254e; padding: 2px 6px; border-radius: 3px; font-family: 'SFMono-Regular', Consolas, monospace;",
+    tableHeaderBg: "#f0f0f0",
+  },
+  media: {
+    name: "图片优先",
+    lineHeight: "1.75",
+    paragraphGap: "18px",
+    h1: "font-size: 24px; font-weight: 700; margin: 30px 0 16px; color: #1f2937;",
+    h2: "font-size: 20px; font-weight: 700; margin: 26px 0 14px; color: #1f2937;",
+    h3: "font-size: 17px; font-weight: 700; margin: 22px 0 12px; color: #1f2937;",
+    h4: "font-size: 15px; font-weight: 700; margin: 18px 0 10px; color: #1f2937;",
+    blockquote: "margin: 0 0 18px; padding: 12px 16px; border-left: 4px solid #ef4444; color: #6b7280; font-size: 15px; background: #fef2f2; border-radius: 0 6px 6px 0;",
+    code: "font-size: 13px; background: #f6f8fa; color: #c7254e; padding: 2px 5px; border-radius: 4px;",
+    tableHeaderBg: "#f6f8fa",
+  },
+  colorful: {
+    name: "多彩标题",
+    lineHeight: "1.8",
+    paragraphGap: "18px",
+    h1: "font-size: 23px; font-weight: 700; margin: 30px 0 16px; color: #b45309; padding-bottom: 8px; border-bottom: 3px solid #f59e0b;",
+    h2: "font-size: 20px; font-weight: 700; margin: 26px 0 14px; color: #1d4ed8; padding-left: 10px; border-left: 4px solid #2563eb;",
+    h3: "font-size: 17px; font-weight: 700; margin: 22px 0 12px; color: #15803d; padding-left: 9px; border-left: 3px solid #22c55e;",
+    h4: "font-size: 15px; font-weight: 700; margin: 18px 0 10px; color: #7c3aed;",
+    blockquote: "margin: 0 0 18px; padding: 12px 16px; border-left: 4px solid #2563eb; color: #475569; font-size: 15px; background: #eff6ff; border-radius: 0 6px 6px 0;",
+    code: "font-size: 13px; background: #f6f8fa; color: #c7254e; padding: 2px 5px; border-radius: 4px;",
+    tableHeaderBg: "#e0f2fe",
+  },
+};
+
+/** 长文主题 id 列表（不含内置 3 套配色）。 */
+export const LONG_ARTICLE_THEME_IDS: LongArticleThemeId[] = [
+  "github",
+  "wechat",
+  "serif",
+  "long-paper",
+  "grid",
+  "typo",
+  "media",
+  "colorful",
+];
+
+/** 长文主题 id → 中文名（界面展示用）。 */
+export const LONG_ARTICLE_THEME_NAMES: Record<LongArticleThemeId, string> = Object.fromEntries(
+  LONG_ARTICLE_THEME_IDS.map(id => [id, LONG_ARTICLE_THEMES[id].name]),
+) as Record<LongArticleThemeId, string>;
+
+/** 取一套长文主题；未知 id 回落默认 github。 */
+export function getLongArticleTheme(id: string): LongArticleThemeStyle {
+  return LONG_ARTICLE_THEMES[id as LongArticleThemeId] ?? LONG_ARTICLE_THEMES.github;
+}
+
+/** 长文主题里能按标签名取样式的标签。 */
+const LONG_ARTICLE_STYLED_TAGS = new Set(["h1", "h2", "h3", "h4", "blockquote", "code"]);
+
+/**
+ * 按标签名返回长文主题的内联样式字符串。
+ *
+ * 段落（p）、标题用 lineHeight / paragraphGap 拼基础节奏；
+ * 标题再叠加该主题的专属样式；引用、代码取主题样式。
+ * 不认识的标签返回空字符串（渲染器走自己的默认样式）。
+ */
+export function getLongArticleThemeStyle(tagName: string, themeId: string): string {
+  const theme = getLongArticleTheme(themeId);
+  const tag = tagName.toLowerCase();
+  if (!LONG_ARTICLE_STYLED_TAGS.has(tag)) return "";
+
+  const base = `line-height: ${theme.lineHeight};`;
+  if (tag === "p") return `${base} margin: 0 0 ${theme.paragraphGap};`;
+  if (tag === "h1") return theme.h1;
+  if (tag === "h2") return theme.h2;
+  if (tag === "h3") return theme.h3;
+  if (tag === "h4") return theme.h4;
+  if (tag === "blockquote") return theme.blockquote;
+  if (tag === "code") return theme.code;
+  return "";
+}

@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { renderTemplatePreview } from "../../lib/markdown";
 import type { LayoutTemplate } from "../../lib/layout-template";
+import { inlineCustomCss } from "../../lib/custom-css/inliner";
 import { PREVIEW_SAMPLE } from "../../lib/preview-sample";
 import styles from "./templates.module.css";
 
@@ -40,6 +41,11 @@ type PhonePreviewProps = {
    * 让用户看的是「这一篇排出来长什么样」，而不是示例稿。
    */
   content?: string;
+  /**
+   * 自定义 CSS：粘贴后内联到预览里。仅影响预览，不写入稿件。
+   * 排版预览页传用户粘贴的 CSS；模板库不传。
+   */
+  customCss?: string;
 };
 
 type ApplyState = "idle" | "saving" | "done";
@@ -47,7 +53,7 @@ type ApplyState = "idle" | "saving" | "done";
 const PHONE_W = 456;
 const PHONE_H = 972;
 
-export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight, content }: PhonePreviewProps) {
+export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight, content, customCss }: PhonePreviewProps) {
   const router = useRouter();
   const fitRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.62);
@@ -88,11 +94,16 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
   const previewHtml = useMemo(() => {
     if (!template) return "";
     try {
-      return renderTemplatePreview(content ?? PREVIEW_SAMPLE, template);
+      const html = renderTemplatePreview(content ?? PREVIEW_SAMPLE, template);
+      if (customCss && customCss.trim()) {
+        // 自定义 CSS 内联到预览；fail-open，失败时原样返回。
+        return inlineCustomCss(html, customCss, { rootSelector: ".gt-article-root" });
+      }
+      return html;
     } catch {
       return "";
     }
-  }, [template, content]);
+  }, [template, content, customCss]);
 
   async function onApply() {
     if (!template || !projectId || applyState === "saving") return;

@@ -39,6 +39,8 @@ import "./license-client.test";
 import "./license-gate.test";
 import "./app-update.test";
 import "./assets-sync.test";
+import "./test-card-themes";
+import "./test-custom-css";
 
 /**
  * 测试入口。
