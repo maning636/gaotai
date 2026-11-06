@@ -12,7 +12,7 @@ import styles from "./preview.module.css";
  * 排版预览面板（发布中心）。
  *
  * 文章签字确认后，所有排版到发布的操作按顺序收在这一页：
- *   ① 选模板 → ② 插入图表 → ③ 公众号通道 → ④ 封面图 → ⑤ 推草稿
+ *   ① 选模板 → ② 插入图表（含配图提示词）→ ③ 公众号通道 → ④ 封面图 → ⑤ 推草稿
  * 左侧功能区从上到下就是这条流程，右侧手机常驻显示真实正文。
  *
  * 用户不用在导航栏来回跳——通道没通就提示去配，封面没配就提示去配，
@@ -69,7 +69,7 @@ export function PreviewPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState<"" | "copy" | "draft" | "apply" | "test">("");
+  const [busy, setBusy] = useState<"" | "copy" | "draft" | "apply" | "test" | "prompt">("");
   const [channel, setChannel] = useState<ChannelCheck | null>(null);
   const [cover, setCover] = useState<CoverState>({ configured: false, image: "", previewUrl: "" });
   const [draftResult, setDraftResult] = useState<DraftResult>(null);
@@ -174,6 +174,31 @@ export function PreviewPanel({
       setNotice(`已把「${template.name}」应用到这篇稿子。`);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "应用模板失败。");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function onImagePrompt() {
+    if (busy) return;
+    if (!hasArticle) {
+      setError("这篇稿子还没有正文，先回编辑器把文章正文走完。");
+      return;
+    }
+    setBusy("prompt");
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/image-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: projectTitle, article: articleContent }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "生成配图提示词失败。");
+      setNotice(`配图提示词：${body.prompt}`);
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : "生成配图提示词失败。");
     } finally {
       setBusy("");
     }
@@ -345,7 +370,7 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* ② 插入图表（引导去编辑器做） */}
+        {/* ② 插入图表 + 配图提示词 */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
             <span className={styles.stepNum}>2</span>
@@ -355,13 +380,21 @@ export function PreviewPanel({
             在编辑器里插入图片和图表后，回到这里排版。图表会随正文一起推到公众号草稿。
           </p>
           <div className={styles.stepBlock}>
-            <div className="gt-row" style={{ gap: "8px" }}>
+            <div className="gt-row" style={{ gap: "8px", flexWrap: "wrap" }}>
               <Link className="gt-btn gt-btn--sm gt-btn--ghost" href={`/projects/${projectId}`}>
                 插入图片 →
               </Link>
               <Link className="gt-btn gt-btn--sm gt-btn--ghost" href={`/projects/${projectId}`}>
                 生成图解 →
               </Link>
+              <button
+                className="gt-btn gt-btn--sm gt-btn--ghost"
+                type="button"
+                onClick={() => void onImagePrompt()}
+                disabled={busy !== ""}
+              >
+                {busy === "prompt" ? "生成中…" : "配图提示词"}
+              </button>
             </div>
           </div>
         </section>

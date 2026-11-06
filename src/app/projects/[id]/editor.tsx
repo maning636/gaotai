@@ -471,24 +471,6 @@ export function ProjectEditor({
     }
   }
 
-  async function onImagePrompt() {
-    if (busy) return;
-    setBusy("prompt");
-    setError("");
-    try {
-      const response = await call("/api/image-prompts", {
-        method: "POST",
-        body: JSON.stringify({ title: project.title, article: current.content }),
-      });
-      const body = await response.json();
-      setNotice(`配图提示词：${body.prompt}`);
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "生成配图提示词失败。");
-    } finally {
-      setBusy("");
-    }
-  }
-
   /** 把界面上的文本解析成 ChartSpec；格式不对就返回错误。 */
   function parseIllustrationSpec(): { spec?: unknown; error?: string } {
     const title = illustrationTitle.trim();
@@ -1202,9 +1184,6 @@ export function ProjectEditor({
               </button>
               <button className="gt-btn gt-btn--sm" type="button" onClick={onCopy} disabled={!current.content}>
                 复制
-              </button>
-              <button className="gt-btn gt-btn--sm" type="button" onClick={onImagePrompt} disabled={busy !== ""}>
-                {busy === "prompt" ? "生成中…" : "配图提示词"}
               </button>
               {stage === "article" ? (
                 <button
