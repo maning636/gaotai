@@ -174,6 +174,10 @@ function renderNodes(
           src: escapeHtml(node.url),
           alt: escapeHtml(node.alt ?? ""),
           imageStyle,
+          // 给图补上懒加载标记：公众号后台编辑时按 data-s 认图。
+          // data-type 标出它是正文图，方便后续识别与统计。
+          dataS: `data-s="${escapeHtml(node.url)}"`,
+          dataType: 'data-type="image"',
         });
         break;
       }

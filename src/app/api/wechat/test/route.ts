@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { guard } from "../../../../lib/license/guard";
-import { maskAppId, readWechatCredentials } from "../../../../lib/wechat-config";
+import { maskAppId, readAccountById, readWechatCredentials } from "../../../../lib/wechat-config";
 import { checkWechatConnection } from "../../../../lib/wechat-check";
 
 export const runtime = "nodejs";
@@ -12,6 +12,8 @@ const bodySchema = z.object({
   appId: z.string().trim().max(80).optional(),
   /** 临时指定要测的 AppSecret。不传就测 .env 里存的那份。 */
   appSecret: z.string().trim().max(120).optional(),
+  /** 指定要测的公众号账号 id。传了就用那个账号，忽略上面两个字段。 */
+  accountId: z.string().trim().max(80).optional(),
 });
 
 /**
@@ -34,6 +36,26 @@ export async function POST(request: Request) {
   } catch {
     // 请求体格式不对就按「测已保存的那份」处理，
     // 免得一个手滑的按钮把整条通道卡住。
+  }
+
+  // 指定了账号 id，就测那个账号；否则看有没有临时传入的 AppID/AppSecret，
+  // 再没有就测 .env 里存的默认账号。
+  if (body.accountId) {
+    const account = readAccountById(body.accountId);
+    if (!account) {
+      return NextResponse.json({
+        ok: false,
+        reason: "公众号账号不存在",
+        hint: "回到「公众号」页面确认账号是否已保存。",
+      });
+    }
+    const result = await checkWechatConnection({ appId: account.appId, appSecret: account.appSecret });
+    return NextResponse.json({
+      ...result,
+      accountId: account.id,
+      appIdMasked: maskAppId(account.appId),
+      checkedAt: new Date().toISOString(),
+    });
   }
 
   const saved = readWechatCredentials();

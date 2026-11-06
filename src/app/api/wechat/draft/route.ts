@@ -5,7 +5,7 @@ import { guard } from "../../../../lib/license/guard";
 import { getProject, getStageResult, getWxPreference, saveWxPreference } from "../../../../lib/repo";
 import { extractSummary, extractTitle, markdownToWechatHtml, type ThemeId } from "../../../../lib/markdown";
 import { resolveTemplateForProject } from "../../../../lib/layout-store";
-import { readWechatCover, type WechatCredentials } from "../../../../lib/wechat-config";
+import { readWechatCover, readAccountById, type WechatCredentials } from "../../../../lib/wechat-config";
 import { cdnizeLocalImages } from "../../../../lib/wechat-images";
 import { checkWechatConnection } from "../../../../lib/wechat-check";
 import { createDraft, updateDraft } from "../../../../lib/wechat";
@@ -24,6 +24,8 @@ const bodySchema = z.object({
   theme: z.string().trim().optional(),
   /** 排版模板。传了就按这套模板排版；没传才看 theme。 */
   templateId: z.string().trim().optional(),
+  /** 指定公众号账号 id。不传就用默认账号（.env 里的 WECHAT_APPID）。 */
+  accountId: z.string().trim().max(80).optional(),
 });
 
 type Body = z.infer<typeof bodySchema>;
@@ -59,13 +61,29 @@ export type DraftPushResult = {
   title: string;
   digest: string;
   uploadedImages: number;
+  /** 命中指纹缓存、直接复用上次地址的图片数。 */
+  cachedImages: number;
   failedImages: { ref: string; reason: string }[];
   /** 这次的动作：新建 / 未变化没重推 / 更新已有那份。 */
   action: DraftAction;
   theme: ThemeId;
   /** 实际用的排版模板 id。 */
   templateId: string;
+  /** 实际用的公众号账号 id（没指定就是空串，表示默认账号）。 */
+  accountId: string;
 };
+
+/**
+ * 按 id 解析账号凭据。
+ *
+ * 账号不存在是**输入错误**（400），别让它沉到微信的 40164 之类报错里去——
+ * 用户明明没配这个账号，不该看到「IP 不在白名单」这种不相干的提示。
+ */
+function resolveAccountCreds(accountId: string): WechatCredentials {
+  const account = readAccountById(accountId);
+  if (!account) throw new DraftInputError(`公众号账号不存在：${accountId}`, 404);
+  return { appId: account.appId, appSecret: account.appSecret };
+}
 
 /**
  * 渲染正文并按指纹决定新建还是更新。
@@ -83,6 +101,10 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
     throw new DraftInputError("这篇稿子还没有正文，无法推送。");
   }
 
+  // 指定了账号就用那个账号的凭据；没指定就用调用方传的（测试里常见）或默认账号。
+  // readAccountById 找不到时抛输入错误，让用户看到「账号不存在」而不是微信的一串报错。
+  const resolvedCreds = input.accountId ? resolveAccountCreds(input.accountId) : creds;
+
   // 先测通道通不通，通不过就不推。
   //
   // 这是**硬闸门**，不是界面上的提示：直接打这个接口也一样推不出去。
@@ -93,7 +115,7 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
   //
   // 取 token 有两小时的有效期并被缓存，所以这一步几乎不额外发请求：
   // 刚测过就推，token 是缓存里那一份。
-  const check = await checkWechatConnection(creds);
+  const check = await checkWechatConnection(resolvedCreds);
   if (!check.ok) {
     throw new DraftInputError(`公众号还没测通：${check.reason}。${check.hint}`);
   }
@@ -120,7 +142,7 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
   }
 
   // 正文里的本机图片换成微信地址；个别失败不阻断整篇，失败项在响应里如实报回。
-  const images = await cdnizeLocalImages(article.content);
+  const images = await cdnizeLocalImages(article.content, resolvedCreds);
   const html = markdownToWechatHtml(images.markdown, {
     template: resolved.template,
     decorateImages: true,
@@ -141,7 +163,7 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
       digest,
       author: input.author,
       thumbMediaId,
-      creds,
+      creds: resolvedCreds,
     });
     saveWxPreference({
       projectId: input.projectId,
@@ -156,10 +178,12 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
       title,
       digest,
       uploadedImages: images.uploaded,
+      cachedImages: images.cached,
       failedImages: images.failed,
       action: "created",
       theme: resolved.theme ?? "default",
       templateId: resolved.templateId,
+      accountId: input.accountId ?? "",
     };
   }
 
@@ -172,10 +196,12 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
       title,
       digest,
       uploadedImages: images.uploaded,
+      cachedImages: images.cached,
       failedImages: images.failed,
       action: "unchanged",
       theme: resolved.theme ?? "default",
       templateId: resolved.templateId,
+      accountId: input.accountId ?? "",
     };
   }
 
@@ -187,7 +213,7 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
     digest,
     author: input.author,
     thumbMediaId,
-    creds,
+    creds: resolvedCreds,
   });
   saveWxPreference({
     projectId: input.projectId,
@@ -202,10 +228,12 @@ export async function pushDraft(input: Body, creds?: WechatCredentials): Promise
     title,
     digest,
     uploadedImages: images.uploaded,
+    cachedImages: images.cached,
     failedImages: images.failed,
     action: "updated",
     theme: resolved.theme ?? "default",
     templateId: resolved.templateId,
+    accountId: input.accountId ?? "",
   };
 }
 

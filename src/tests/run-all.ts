@@ -15,6 +15,8 @@ import "./import-article.test";
 import "./wechat-images.test";
 import "./wechat-api.test";
 import "./wechat-check.test";
+import "./test-image-cache";
+import "./test-wechat-accounts";
 import "./skills-pack.test";
 import "./confirm-content.test";
 import "./files-upload.test";

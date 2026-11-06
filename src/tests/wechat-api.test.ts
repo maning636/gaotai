@@ -4,6 +4,7 @@ import { assertEqual, assertMatch, assertTrue, suite } from "./harness";
 import { imagesDir } from "../lib/paths";
 import { clearAccessTokenCache, createDraft, uploadInlineImage, uploadPermanentImage } from "../lib/wechat";
 import { cdnizeLocalImages } from "../lib/wechat-images";
+import { clearImageCache } from "../lib/wechat/image-cache";
 
 /**
  * 微信接口的离线测试。
@@ -143,6 +144,7 @@ suite("微信公众号接口", ({ test }) => {
     const calls: Call[] = [];
     stubWechat(calls);
     clearAccessTokenCache();
+    clearImageCache();
     try {
       const dir = imagesDir();
       mkdirSync(dir, { recursive: true });
@@ -158,7 +160,7 @@ suite("微信公众号接口", ({ test }) => {
     }
   });
 
-  test("某张图上传失败不影响其它图，失败项被如实报回", async () => {
+  test("撞上 45009 调用太频繁：整篇熔断抛错，不再上传剩余图", async () => {
     const calls: Call[] = [];
     globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -168,6 +170,38 @@ suite("微信公众号接口", ({ test }) => {
       return jsonResponse({ errcode: 40001, errmsg: "unsupported" });
     }) as typeof globalThis.fetch;
     clearAccessTokenCache();
+    clearImageCache();
+    try {
+      const dir = imagesDir();
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(path.join(dir, "bad.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+      // 45009 是致命错误：剩下的图不传了，整篇抛 WechatError，而不是悄悄吞掉。
+      let threw = false;
+      try {
+        await cdnizeLocalImages("![图](/api/files/img/bad.png)", CREDENTIALS);
+      } catch (error) {
+        threw = true;
+        assertTrue(error instanceof Error, "应抛错");
+        assertMatch((error as Error).message, /45009|rate limit/);
+      }
+      assertTrue(threw, "45009 应该让整篇熔断");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("非致命失败（非 45009）不打断整篇，黄图占位且失败项如实报回", async () => {
+    const calls: Call[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.includes("/cgi-bin/token")) return jsonResponse({ access_token: "T", expires_in: 7200 });
+      if (url.includes("/cgi-bin/media/uploadimg")) return jsonResponse({ errcode: 40007, errmsg: "invalid media" });
+      return jsonResponse({ errcode: 40001, errmsg: "unsupported" });
+    }) as typeof globalThis.fetch;
+    clearAccessTokenCache();
+    clearImageCache();
     try {
       const dir = imagesDir();
       mkdirSync(dir, { recursive: true });
@@ -176,8 +210,9 @@ suite("微信公众号接口", ({ test }) => {
       const report = await cdnizeLocalImages("![图](/api/files/img/bad.png)", CREDENTIALS);
       assertEqual(report.uploaded, 0);
       assertEqual(report.failed.length, 1);
-      assertMatch(report.failed[0].reason, /45009|rate limit/);
-      assertTrue(report.markdown.includes("/api/files/img/bad.png"), "失败的图地址保持原样，不编造地址");
+      assertMatch(report.failed[0].reason, /40007|invalid media/);
+      // 非致命失败用黄图占位：地址不能还是本机的，否则整篇推不上去。
+      assertTrue(report.markdown.includes("data:image/png;base64,"), "失败的图该用黄图占位");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -187,6 +222,7 @@ suite("微信公众号接口", ({ test }) => {
     const calls: Call[] = [];
     stubWechat(calls);
     clearAccessTokenCache();
+    clearImageCache();
     try {
       const report = await cdnizeLocalImages("![图](/api/files/img/not-there.png)", CREDENTIALS);
       assertEqual(report.uploaded, 0);

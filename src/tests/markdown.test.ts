@@ -47,6 +47,12 @@ suite("Markdown 渲染", ({ test }) => {
     assertMatch(decorated, /border-radius: 4px/);
   });
 
+  test("图片带 data-s 与 data-type，供公众号后台认图", () => {
+    const html = markdownToWechatHtml("![说明](https://example.com/a.png)");
+    assertMatch(html, /data-s="https:\/\/example\.com\/a\.png"/);
+    assertMatch(html, /data-type="image"/);
+  });
+
   test("链接保留 href，属性被转义", () => {
     const html = markdownToWechatHtml('[点我](https://example.com/?a=1&b="2")');
     assertMatch(html, /<a href="https:\/\/example\.com\/\?a=1&amp;b=&quot;2&quot;"/);

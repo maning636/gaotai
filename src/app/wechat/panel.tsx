@@ -8,6 +8,21 @@ type Stat = { articleId: string; title: string; readCount: number; likeCount: nu
 type LocalImage = { path: string; size: number; mtime: string; url: string };
 type Cover = { configured: boolean; image: string; previewUrl: string };
 type FailedImage = { ref: string; reason: string };
+/** 公众号账号清单条目（secret 不进前端）。 */
+type WechatAccountView = {
+  id: string;
+  name: string;
+  appIdMasked: string;
+};
+/** 正在编辑的账号草稿：编辑框里的状态，保存时才真正落 .env。 */
+type AccountDraft = {
+  id: string;
+  name: string;
+  appId: string;
+  appSecret: string;
+};
+/** 公众号账号最多保存几个，与后端一致。 */
+const MAX_ACCOUNTS = 5;
 /** 公众号通道的检查结果。ok 为 false 时 reason/hint 说清是什么问题、下一步做什么。 */
 type ChannelCheck = {
   ok: boolean;
@@ -55,6 +70,10 @@ export default function WechatPanel() {
   const [images, setImages] = useState<LocalImage[]>([]);
   const [libraryPick, setLibraryPick] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  // 多账号管理
+  const [accounts, setAccounts] = useState<WechatAccountView[]>([]);
+  const [accountDrafts, setAccountDrafts] = useState<AccountDraft[]>([]);
+  const [busyAccounts, setBusyAccounts] = useState(false);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -63,6 +82,19 @@ export default function WechatPanel() {
       if (!response.ok) throw new Error(body.error ?? "读取配置失败。");
       setConfigured(Boolean(body.configured));
       setAppIdMasked(body.appIdMasked ?? "");
+      const saved = (Array.isArray(body.accounts) ? body.accounts : []) as WechatAccountView[];
+      setAccounts(saved);
+      // 编辑草稿初始化：已存账号带 id（AppID/Secret 留空，保存时沿用旧值）；
+      // 若编辑区已有未保存的行（prev 非空），只同步名称，不覆盖用户正在填的内容。
+      setAccountDrafts(prev => {
+        if (prev.length === 0) {
+          return saved.map(account => ({ id: account.id, name: account.name, appId: "", appSecret: "" }));
+        }
+        return prev.map(draft => {
+          const match = saved.find(account => account.id === draft.id);
+          return match ? { ...draft, name: match.name } : draft;
+        });
+      });
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "读取配置失败。");
     }
@@ -383,11 +415,13 @@ export default function WechatPanel() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "推送失败。");
       const uploaded = Number(body.uploadedImages ?? 0);
+      const cached = Number(body.cachedImages ?? 0);
       const failed: FailedImage[] = Array.isArray(body.failedImages) ? body.failedImages : [];
       setNotice(
         [
           `已放进草稿箱：${body.title}`,
           uploaded > 0 ? `正文图片已上传 ${uploaded} 张到微信。` : "",
+          cached > 0 ? `${cached} 张复用缓存。` : "",
         ]
           .filter(Boolean)
           .join(""),
@@ -401,6 +435,91 @@ export default function WechatPanel() {
       setError(issue instanceof Error ? issue.message : "推送失败。");
     } finally {
       setBusy("");
+    }
+  }
+
+  /* ---------------- 多账号管理 ---------------- */
+
+  /** 更新某个账号草稿的字段。 */
+  function updateAccountDraft(index: number, patch: Partial<AccountDraft>) {
+    setAccountDrafts(prev => prev.map((draft, i) => (i === index ? { ...draft, ...patch } : draft)));
+  }
+
+  /** 新增一行空账号草稿。 */
+  function addAccountDraft() {
+    setAccountDrafts(prev => (prev.length >= MAX_ACCOUNTS ? prev : [...prev, { id: "", name: "", appId: "", appSecret: "" }]));
+  }
+
+  /** 删掉一行账号草稿（只动编辑态，点了保存才落 .env）。 */
+  function removeAccountDraft(index: number) {
+    setAccountDrafts(prev => prev.filter((_, i) => i !== index));
+  }
+
+  /** 把编辑好的账号清单保存到后端（.env）。 */
+  async function onSaveAccounts() {
+    if (busyAccounts) return;
+    // 已有账号（带 id）允许 AppID/Secret 留空——后端会沿用旧值；
+    // 新账号必须填全，否则无从保存。
+    const incomplete = accountDrafts.find(draft => !draft.id && (!draft.appId.trim() || !draft.appSecret.trim()));
+    if (incomplete) {
+      setError("有账号还没填全 AppID / AppSecret，先补全或删掉。");
+      return;
+    }
+    setBusyAccounts(true);
+    setError("");
+    setNotice("");
+    setWarning("");
+    try {
+      const response = await fetch("/api/wechat/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accounts: accountDrafts.map(draft => ({
+            id: draft.id,
+            name: draft.name,
+            appId: draft.appId,
+            appSecret: draft.appSecret,
+          })),
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "保存账号失败。");
+      setAccounts(Array.isArray(body.accounts) ? body.accounts : []);
+      setNotice(`已保存 ${body.accounts?.length ?? 0} 个公众号账号。`);
+      await loadConfig();
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : "保存账号失败。");
+    } finally {
+      setBusyAccounts(false);
+    }
+  }
+
+  /** 测某个账号草稿的通道（只测不存）。 */
+  async function onTestAccount(index: number) {
+    if (busyAccounts) return;
+    const draft = accountDrafts[index];
+    if (!draft.appId || !draft.appSecret) {
+      setError("先填全这个账号的 AppID / AppSecret 再测。");
+      return;
+    }
+    setBusyAccounts(true);
+    setError("");
+    setNotice("");
+    setWarning("");
+    try {
+      const response = await fetch("/api/wechat/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appId: draft.appId, appSecret: draft.appSecret }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "测试失败。");
+      if (body.ok) setNotice(`账号「${draft.name || draft.appId}」测试通过。`);
+      else setWarning(`${draft.name || draft.appId}：${body.reason}。${body.hint}`);
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : "测试失败。");
+    } finally {
+      setBusyAccounts(false);
     }
   }
 
@@ -481,6 +600,97 @@ export default function WechatPanel() {
               : ""}
           </p>
         </form>
+      </section>
+
+      <section className="gt-panel gt-panel--flat">
+        <div className="gt-panel__head">
+          <h2 className="gt-panel__title">多账号管理</h2>
+          <span className="gt-tag gt-tag--green">
+            {accounts.length} / {MAX_ACCOUNTS}
+          </span>
+        </div>
+        <div className="gt-stack">
+          <p className="gt-hint" style={{ margin: 0 }}>
+            一个稿台可以接多个公众号。每个账号有自己的 AppID / AppSecret，
+            推草稿前在预览页选择要推给哪个公众号。
+          </p>
+          {accountDrafts.map((draft, index) => (
+            <div className="gt-grid gt-grid--2" key={draft.id || index} style={{ alignItems: "end" }}>
+              <label className="gt-field">
+                <span className="gt-label">账号名称</span>
+                <input
+                  className="gt-input"
+                  value={draft.name}
+                  onChange={event => updateAccountDraft(index, { name: event.target.value })}
+                  placeholder="例如：公司主号"
+                  autoComplete="off"
+                />
+              </label>
+              <div className="gt-field">
+                <span className="gt-label">AppID</span>
+                <input
+                  className="gt-input"
+                  value={draft.appId}
+                  onChange={event => updateAccountDraft(index, { appId: event.target.value })}
+                  placeholder={draft.id ? "已保存，留空则不变" : "wx…"}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="gt-field">
+                <span className="gt-label">AppSecret</span>
+                <input
+                  className="gt-input"
+                  type="password"
+                  value={draft.appSecret}
+                  onChange={event => updateAccountDraft(index, { appSecret: event.target.value })}
+                  placeholder={draft.id ? "已保存，留空则不变" : "只保存在本机 .env"}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="gt-row" style={{ gap: "8px" }}>
+                <button
+                  className="gt-btn gt-btn--sm gt-btn--ghost"
+                  type="button"
+                  disabled={busyAccounts}
+                  onClick={() => void onTestAccount(index)}
+                >
+                  测试
+                </button>
+                <button
+                  className="gt-btn gt-btn--sm gt-btn--ghost"
+                  type="button"
+                  disabled={busyAccounts || accountDrafts.length <= 1}
+                  onClick={() => removeAccountDraft(index)}
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          ))}
+          <div className="gt-row" style={{ gap: "8px" }}>
+            <button
+              className="gt-btn gt-btn--sm"
+              type="button"
+              disabled={busyAccounts || accountDrafts.length >= MAX_ACCOUNTS}
+              onClick={addAccountDraft}
+            >
+              + 添加账号
+            </button>
+            <button
+              className="gt-btn gt-btn--primary"
+              type="button"
+              disabled={busyAccounts || accountDrafts.length === 0}
+              onClick={() => void onSaveAccounts()}
+            >
+              {busyAccounts ? "保存中…" : "保存账号清单"}
+            </button>
+          </div>
+          {accountDrafts.length >= MAX_ACCOUNTS ? (
+            <p className="gt-hint" style={{ margin: 0 }}>
+              最多保存 {MAX_ACCOUNTS} 个公众号账号。
+            </p>
+          ) : null}
+        </div>
       </section>
 
       <section className="gt-panel gt-panel--flat">

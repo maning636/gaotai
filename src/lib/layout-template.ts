@@ -455,7 +455,9 @@ export function defaultPartTemplate(key: LayoutPartKey): string {
         "vertical-align": "top",
       })}">{{content}}</td>`;
     case "image":
-      return `<img src="{{src}}" alt="{{alt}}" style="{{imageStyle}}" />`;
+      // data-s / data-type 给公众号后台认图用：后台编辑时按 data-s 定位图片地址，
+      // data-type 标出正文图。默认模板带上；自定义模板若不带，图也能正常显示。
+      return `<img src="{{src}}" alt="{{alt}}" style="{{imageStyle}}" {{dataS}} {{dataType}} />`;
     case "divider":
       return `<hr style="${styleText({
         border: "none",
@@ -510,6 +512,8 @@ export const CONTEXT_PLACEHOLDERS = new Set([
   "src",
   "alt",
   "imageStyle",
+  "dataS",
+  "dataType",
   "thead",
   "tbody",
   "dots",
@@ -717,7 +721,7 @@ const ALLOWED_TAGS = new Set([
 
 /** 允许出现在特定标签上的属性（style 单独处理）。 */
 const ALLOWED_ATTRS: Record<string, Set<string>> = {
-  img: new Set(["src", "alt", "width", "height"]),
+  img: new Set(["src", "alt", "width", "height", "data-s", "data-type"]),
   ol: new Set(["start"]),
   a: new Set(["href"]),  td: new Set(["colspan", "rowspan"]),
   th: new Set(["colspan", "rowspan"]),

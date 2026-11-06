@@ -45,6 +45,12 @@ type CoverState = {
   previewUrl: string;
 };
 
+type WechatAccountView = {
+  id: string;
+  name: string;
+  appIdMasked: string;
+};
+
 type PreviewPanelProps = {
   projectId: string;
   projectTitle: string;
@@ -74,6 +80,10 @@ export function PreviewPanel({
   const [channel, setChannel] = useState<ChannelCheck | null>(null);
   const [cover, setCover] = useState<CoverState>({ configured: false, image: "", previewUrl: "" });
   const [draftResult, setDraftResult] = useState<DraftResult>(null);
+  /** 公众号账号清单（多账号）。只有 1 个以下时不显示选择下拉。 */
+  const [accounts, setAccounts] = useState<WechatAccountView[]>([]);
+  /** 当前选中的账号 id。空串表示用默认账号。 */
+  const [accountId, setAccountId] = useState("");
   /** 用户粘贴的自定义 CSS（仅作用于右侧预览）。 */
   const [customCss, setCustomCss] = useState("");
   /** 自定义 CSS 折叠区是否展开。 */
@@ -103,14 +113,14 @@ export function PreviewPanel({
     };
   }, []);
 
-  const checkChannel = useCallback(async () => {
+  const checkChannel = useCallback(async (forAccountId?: string) => {
     setBusy("test");
     setError("");
     try {
       const response = await fetch("/api/wechat/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: "{}",
+        body: JSON.stringify(forAccountId ? { accountId: forAccountId } : {}),
       });
       const body = (await response.json()) as ChannelCheck;
       setChannel(body);
@@ -141,6 +151,18 @@ export function PreviewPanel({
   useEffect(() => {
     void checkChannel();
     void checkCover();
+    // 账号清单：多账号时才有用。默认账号在通道检查里测（accountId 为空）。
+    (async () => {
+      try {
+        const response = await fetch("/api/wechat/config", { cache: "no-store" });
+        const body = await response.json();
+        if (!response.ok) return;
+        const list: WechatAccountView[] = Array.isArray(body.accounts) ? body.accounts : [];
+        setAccounts(list);
+      } catch {
+        // 账号清单读不到不影响主流程
+      }
+    })();
   }, [checkChannel, checkCover]);
 
   const selected = useMemo(
@@ -263,7 +285,8 @@ export function PreviewPanel({
       setError("这篇稿子还没有正文，先回编辑器把文章正文走完。");
       return;
     }
-    const check = await checkChannel();
+    // 推送前重测所选账号（多账号时）——「先测后发」对每个账号都成立。
+    const check = await checkChannel(accountId || undefined);
     if (!check?.ok) {
       setError(`公众号通道还没测通：${check?.reason ?? "还没测过"}。${check?.hint ?? ""}`);
       return;
@@ -280,14 +303,19 @@ export function PreviewPanel({
       const response = await fetch("/api/wechat/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, templateId: selected.id }),
+        body: JSON.stringify({ projectId, templateId: selected.id, ...(accountId ? { accountId } : {}) }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "推送失败。");
       const uploaded = Number(body.uploadedImages ?? 0);
+      const cached = Number(body.cachedImages ?? 0);
       setDraftResult({ ok: true, title: body.title, uploadedImages: uploaded });
       setNotice(
-        [`已放进草稿箱：${body.title}`, uploaded > 0 ? `正文图片已上传 ${uploaded} 张到微信。` : ""]
+        [
+          `已放进草稿箱：${body.title}`,
+          uploaded > 0 ? `正文图片已上传 ${uploaded} 张到微信。` : "",
+          cached > 0 ? `（${cached} 张复用缓存）` : "",
+        ]
           .filter(Boolean)
           .join(""),
       );
@@ -295,6 +323,18 @@ export function PreviewPanel({
       setError(issue instanceof Error ? issue.message : "推送失败。");
     } finally {
       setBusy("");
+    }
+  }
+
+  /** 切公众号账号：换账号就重新测通道，通道状态是跟账号走的。 */
+  async function onAccountChange(next: string) {
+    setAccountId(next);
+    setDraftResult(null);
+    setError("");
+    setNotice("");
+    const check = await checkChannel(next || undefined);
+    if (check && !check.ok) {
+      setError(`这个公众号还没测通：${check.reason}。${check.hint}`);
     }
   }
 
@@ -456,6 +496,26 @@ export function PreviewPanel({
               {channel === null ? "未测" : channel.ok ? "已通" : "不通"}
             </span>
           </div>
+          {accounts.length > 0 ? (
+            <div className={styles.stepBlock}>
+              <label className="gt-field" style={{ maxWidth: "320px" }}>
+                <span className="gt-label">推给哪个公众号</span>
+                <select
+                  className="gt-select"
+                  value={accountId}
+                  onChange={event => void onAccountChange(event.target.value)}
+                  disabled={busy !== ""}
+                >
+                  <option value="">默认账号（.env）</option>
+                  {accounts.map(account => (
+                    <option key={account.id} value={account.id}>
+                      {account.name || account.appIdMasked}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
           {channel && channel.ok ? (
             <p className={styles.stepDesc}>通道正常，可以推草稿。</p>
           ) : channel && !channel.ok ? (
@@ -464,7 +524,7 @@ export function PreviewPanel({
                 {channel.reason}。{channel.hint}
               </p>
               <div className="gt-row" style={{ gap: "8px" }}>
-                <button className="gt-btn gt-btn--sm" type="button" onClick={() => void checkChannel()} disabled={busy !== ""}>
+                <button className="gt-btn gt-btn--sm" type="button" onClick={() => void checkChannel(accountId || undefined)} disabled={busy !== ""}>
                   {busy === "test" ? "测试中…" : "重新测试"}
                 </button>
                 <Link className="gt-btn gt-btn--sm gt-btn--ghost" href="/wechat">
@@ -475,7 +535,7 @@ export function PreviewPanel({
           ) : (
             <div className={styles.stepBlock}>
               <p className={styles.stepDesc}>还没测过通道，先测一次。</p>
-              <button className="gt-btn gt-btn--sm" type="button" onClick={() => void checkChannel()} disabled={busy !== ""}>
+              <button className="gt-btn gt-btn--sm" type="button" onClick={() => void checkChannel(accountId || undefined)} disabled={busy !== ""}>
                 {busy === "test" ? "测试中…" : "测试通道"}
               </button>
             </div>

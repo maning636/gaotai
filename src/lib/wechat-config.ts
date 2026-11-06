@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { envFile } from "./paths";
+import { createId } from "./ids";
 
 /**
  * 公众号凭据的存取。
@@ -141,4 +142,103 @@ export async function saveWechatCover(cover: WechatCover): Promise<void> {
     WECHAT_THUMB_MEDIA_ID: cover.mediaId.trim(),
     WECHAT_THUMB_IMAGE: cover.image.trim(),
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * 多账号
+ *
+ * 一个稿台可以接多个公众号。账号清单整体存在 .env 的 WECHAT_ACCOUNTS 里，
+ * 是一段 JSON 数组；原有的 WECHAT_APPID / WECHAT_APPSECRET 仍然保留，
+ * 当作「默认账号」——没指定账号时推草稿、测通道都用它，向后兼容。
+ * ------------------------------------------------------------------ */
+
+const WECHAT_ACCOUNTS_KEY = "WECHAT_ACCOUNTS";
+
+/** 公众号账号最多保存几个。 */
+export const MAX_WECHAT_ACCOUNTS = 5;
+
+export type WechatAccount = {
+  /** 稳定标识，前端选择账号时传它。 */
+  id: string;
+  /** 用户给这个公众号起的名字，界面显示用。 */
+  name: string;
+  appId: string;
+  appSecret: string;
+};
+
+/** 账号的对外形态：AppSecret 永不返回。 */
+export type WechatAccountView = {
+  id: string;
+  name: string;
+  appIdMasked: string;
+};
+
+/** 从 .env 里读全部账号。没配、配错都是空数组，绝不抛错。 */
+export function readWechatAccounts(): WechatAccount[] {
+  const text = readEnvFile();
+  const raw = readKey(text, [WECHAT_ACCOUNTS_KEY]);
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const accounts: WechatAccount[] = [];
+  for (const item of parsed) {
+    if (typeof item !== "object" || item === null) continue;
+    const rec = item as Record<string, unknown>;
+    const id = typeof rec.id === "string" ? rec.id.trim() : "";
+    const name = typeof rec.name === "string" ? rec.name.trim() : "";
+    const appId = typeof rec.appId === "string" ? rec.appId.trim() : "";
+    const appSecret = typeof rec.appSecret === "string" ? rec.appSecret.trim() : "";
+    if (!id || !appId || !appSecret) continue;
+    accounts.push({ id, name, appId, appSecret });
+  }
+  return accounts.slice(0, MAX_WECHAT_ACCOUNTS);
+}
+
+/**
+ * 保存全部账号（整体覆盖）。
+ *
+ * 返回保存后的清单（新账号的 id 在这里补齐）。超过上限直接抛错——
+ * 账号是用户明确在配的东西，多了不该悄悄截断，宁可让它报出来。
+ *
+ * AppSecret / AppID 只进不出（读取侧只回掩码），所以编辑已有账号时前端
+ * 拿不到原值、只能留空。这里约定：**已有账号、且字段留空 → 沿用旧值**，
+ * 免得用户只是想改个名字，保存后把 secret 抹成空串。
+ */
+export async function saveWechatAccounts(accounts: WechatAccount[]): Promise<WechatAccount[]> {
+  if (accounts.length > MAX_WECHAT_ACCOUNTS) {
+    throw new Error(`公众号账号最多保存 ${MAX_WECHAT_ACCOUNTS} 个。`);
+  }
+  const existing = readWechatAccounts();
+  const cleaned = accounts.map(account => {
+    const id = account.id.trim() || createId("acc");
+    const prior = existing.find(item => item.id === id);
+    return {
+      id,
+      name: account.name.trim(),
+      appId: account.appId.trim() || prior?.appId || "",
+      appSecret: account.appSecret.trim() || prior?.appSecret || "",
+    };
+  });
+  await writeEnvValues({ [WECHAT_ACCOUNTS_KEY]: JSON.stringify(cleaned) });
+  return cleaned;
+}
+
+/** 按 id 取一个账号；不存在返回 null。 */
+export function readAccountById(id: string): WechatAccount | null {
+  if (!id.trim()) return null;
+  return readWechatAccounts().find(account => account.id === id) ?? null;
+}
+
+/** 把账号列表收敛成对外形态（secret 不出去）。 */
+export function toAccountViews(accounts: WechatAccount[]): WechatAccountView[] {
+  return accounts.map(account => ({
+    id: account.id,
+    name: account.name,
+    appIdMasked: maskAppId(account.appId),
+  }));
 }

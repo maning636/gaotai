@@ -135,6 +135,15 @@ CREATE TABLE IF NOT EXISTS drafts (
   updated_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_drafts_category ON drafts(category);
+
+-- 正文图片的指纹缓存：指纹（图片内容 sha256）→ 微信图片地址。
+-- 推草稿时同一张图内容没变就直接复用地址，不再重复上传，
+-- 省接口调用频率，也快。见 lib/wechat/image-cache.ts。
+CREATE TABLE IF NOT EXISTS wechat_image_cache (
+  fingerprint TEXT PRIMARY KEY,
+  wechat_url  TEXT NOT NULL,
+  created_at  INTEGER NOT NULL
+);
 `;
 
 /**
