@@ -46,6 +46,8 @@ import "./test-custom-css";
 import "./test-math";
 import "./test-mermaid";
 import "./test-code-highlight";
+import "./test-card-render";
+import "./test-card-capture";
 
 /**
  * 测试入口。

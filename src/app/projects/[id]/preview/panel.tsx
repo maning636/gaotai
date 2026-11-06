@@ -369,8 +369,8 @@ export function PreviewPanel({
           <div className={styles.stepHead}>
             <span className={styles.stepNum}>1</span>
             <h2 className={styles.stepTitle}>选排版模板</h2>
-            <Link className="gt-small" href="/templates?tab=manage" style={{ marginLeft: "auto" }}>
-              模板管理 →
+            <Link className="gt-small" href={`/projects/${projectId}/cards`} style={{ marginLeft: "auto" }}>
+              卡片模式 →
             </Link>
           </div>
           {loading ? (

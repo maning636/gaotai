@@ -32,6 +32,7 @@
     "mdast-util-gfm-table": "^2.0.0",
     "mermaid": "^12.3.0",
     "micromark-extension-gfm-table": "^2.1.2",
+    "modern-screenshot": "^4.7.0",
     "next": "^16.3.5",
     "postcss": "^8.5.32",
     "postcss-selector-parser": "^7.1.7",

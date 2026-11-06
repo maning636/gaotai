@@ -1,0 +1,408 @@
+/* ==========================================================================
+   知识卡片模式
+   Neo-Brutalist 纸感主题，跟项目现有 --gt-* 设计令牌一致。
+   布局：左侧面板 360px + 右侧预览 flex:1，底部操作栏横贯。
+   ========================================================================== */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- 左侧面板 + 右侧预览 双栏 ---------------------------------------- */
+
+/* 双栏：用 grid 让左面板固定宽、右预览自适应。 */
+.layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* 操作栏横贯整行（第 3 行）。 */
+.actionBar {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--gt-surface);
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--gt-line);
+}
+
+/* --- 左面板 ----------------------------------------------------------- */
+
+.gridWrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.infoBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--gt-line);
+}
+
+.step {
+  background: var(--gt-surface);
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--gt-line);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stepHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepNum {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gt-ink);
+  color: var(--gt-paper);
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 2px;
+}
+
+.stepTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.stepMeta {
+  font-size: 11px;
+  color: var(--gt-muted);
+}
+
+.stepDesc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gt-muted);
+}
+
+/* --- 主题选择：方块网格点选 ------------------------------------------ */
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.themeItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px;
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  background: var(--gt-surface);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 80ms ease, box-shadow 80ms ease;
+  font: inherit;
+  color: inherit;
+}
+
+.themeItem:hover {
+  background: var(--gt-sunken);
+}
+
+.themeItemActive {
+  border-color: var(--gt-blue);
+  box-shadow: inset 0 0 0 1px var(--gt-blue);
+}
+
+.themeItemActive:hover {
+  background: var(--gt-sunken);
+}
+
+.themeSwatch {
+  position: relative;
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--gt-line);
+  border-radius: 2px;
+  overflow: hidden;
+  display: block;
+}
+
+.themeSwatchDot {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: block;
+}
+
+.themeName {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- 比例选择 --------------------------------------------------------- */
+
+.ratioRow {
+  display: flex;
+  gap: 8px;
+}
+
+.ratioItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  background: var(--gt-surface);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: background 80ms ease, box-shadow 80ms ease;
+}
+
+.ratioItem:hover {
+  background: var(--gt-sunken);
+}
+
+.ratioItemActive {
+  border-color: var(--gt-blue);
+  box-shadow: inset 0 0 0 1px var(--gt-blue);
+}
+
+.ratioBox {
+  width: 34px;
+  border: 1px solid var(--gt-line);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--gt-muted);
+  background: var(--gt-paper);
+}
+
+.ratioItemActive .ratioBox {
+  color: var(--gt-ink);
+  font-weight: 700;
+  border-color: var(--gt-blue);
+}
+
+/* --- 排版 Token ------------------------------------------------------- */
+
+.tokenBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tokenRow {
+  display: grid;
+  grid-template-columns: 64px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.tokenLabel {
+  color: var(--gt-muted);
+}
+
+.tokenValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--gt-ink);
+}
+
+.tokenRow input[type="range"] {
+  width: 100%;
+  accent-color: var(--gt-blue);
+}
+
+/* --- 封面选图 --------------------------------------------------------- */
+
+.coverBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.coverPreview {
+  width: 120px;
+  height: auto;
+  border: 2px solid var(--gt-line);
+  box-shadow: 2px 2px 0 var(--gt-line);
+  display: block;
+}
+
+/* --- 右侧预览 --------------------------------------------------------- */
+
+.previewCol {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.previewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--gt-line);
+}
+
+.previewCount {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gt-ink);
+}
+
+.previewList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px;
+}
+
+/* 卡片缩略图 */
+.cardThumb {
+  position: relative;
+  cursor: zoom-in;
+  padding: 8px;
+  background: var(--gt-surface);
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--gt-line);
+  transition: transform 80ms ease;
+}
+
+.cardThumb:hover {
+  transform: translateY(-2px);
+}
+
+.cardThumbStage {
+  position: relative;
+  overflow: hidden;
+  background: var(--gt-paper);
+  border: 1px solid var(--gt-line);
+  border-radius: 2px;
+}
+
+.cardThumbHost {
+  position: absolute;
+  inset: 0;
+}
+
+.cardThumbHost > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.cardIndex {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gt-ink);
+  color: var(--gt-paper);
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 2px;
+}
+
+/* --- 放大弹层 --------------------------------------------------------- */
+
+.zoomOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(15, 15, 15, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.zoomCard {
+  background: var(--gt-surface);
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  box-shadow: var(--gt-shadow-lg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(480px, 90vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.zoomCard img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--gt-line);
+  border-radius: 2px;
+}
+
+/* --- 响应式 ----------------------------------------------------------- */
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .previewCol {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .actionBar {
+    grid-column: auto;
+  }
+}
