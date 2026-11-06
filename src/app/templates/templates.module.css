@@ -213,11 +213,13 @@
 
 .phoneFit {
   /* 用这个框量出可用高度，让手机 fit 缩放。
-     外层 previewCol 是 sticky，这里给它一个可测的高度。 */
+     外层 previewCol 是 sticky，这里给它一个可测的高度。
+     排版预览页传了 fitHeight 时用它；模板库用默认的 78vh。 */
   position: relative;
   width: 100%;
   height: min(78vh, 720px);
   min-height: 420px;
+  flex: 1 1 auto;
   overflow: hidden;
   display: flex;
   align-items: flex-start;
