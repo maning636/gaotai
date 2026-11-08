@@ -45,6 +45,95 @@
   font-family: var(--gt-mono);
 }
 
+/* --- 搜索框 ------------------------------------------------------------ */
+
+.toolbar {
+  display: flex;
+}
+
+.search {
+  flex: 1;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--gt-ink);
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+  border-radius: var(--gt-radius);
+}
+
+.search::placeholder {
+  color: var(--gt-muted);
+}
+
+.search:focus {
+  outline: 3px solid var(--gt-yellow);
+  outline-offset: 2px;
+}
+
+/* --- 分类标签栏 -------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gt-ink);
+  background: var(--gt-surface);
+  border: var(--gt-border-thin);
+  box-shadow: var(--gt-shadow-sm);
+  border-radius: var(--gt-radius);
+  cursor: pointer;
+}
+
+.tab:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--gt-line);
+}
+
+.tabActive {
+  background: var(--gt-yellow);
+  box-shadow: var(--gt-shadow-sm);
+}
+
+/* --- 常用组合 ---------------------------------------------------------- */
+
+.combos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.combosLabel {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--gt-muted);
+}
+
+.comboBtn {
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gt-ink);
+  background: var(--gt-sunken);
+  border: var(--gt-border-thin);
+  border-radius: var(--gt-radius);
+  cursor: pointer;
+}
+
+.comboBtn:hover {
+  background: var(--gt-yellow);
+}
+
 /* --- 分区 -------------------------------------------------------------- */
 
 .section {
@@ -54,10 +143,29 @@
 }
 
 .sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-size: 15px;
   font-weight: 900;
   letter-spacing: 0.02em;
+}
+
+.count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gt-muted);
+  font-family: var(--gt-mono);
+}
+
+.empty {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--gt-muted);
+  background: var(--gt-sunken);
+  border: var(--gt-border-thin);
 }
 
 /* --- 平台卡片墙 --------------------------------------------------------- */
@@ -97,6 +205,13 @@
   outline-offset: 2px;
 }
 
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+}
+
 .cardMark {
   display: inline-flex;
   align-items: center;
@@ -110,24 +225,116 @@
   border-radius: var(--gt-radius);
 }
 
+.cardCheck {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--gt-green);
+  line-height: 1;
+}
+
 .cardName {
   font-size: 15px;
   font-weight: 900;
 }
 
-.cardHint {
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardCat {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  color: var(--gt-muted);
+  background: var(--gt-sunken);
+  border: 1px solid var(--gt-line);
+  border-radius: var(--gt-radius);
+}
+
+.cardSync {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--gt-mono);
+  color: var(--gt-muted);
+}
+
+/* --- 底部已选栏（sticky） ---------------------------------------------- */
+
+.selectedBar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow);
+}
+
+.selectedInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.selectedCount {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.selectedHint {
   font-size: 12px;
   color: var(--gt-muted);
-  line-height: 1.4;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gt-ink);
+  background: var(--gt-yellow);
+  border: var(--gt-border-thin);
+  border-radius: var(--gt-radius);
+}
+
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--gt-ink);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.chipRemove:hover {
+  color: var(--gt-red);
 }
 
 /* --- 操作与结果 --------------------------------------------------------- */
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 
 .notice {
   padding: 10px 14px;
@@ -144,6 +351,12 @@
   border: var(--gt-border-thin);
   font-size: 13px;
   font-weight: 700;
+}
+
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .result {
@@ -179,4 +392,21 @@
 
 .resultFail p {
   color: #ffffff;
+}
+
+/* --- 响应式：窗口窄时每行 2-3 个 ---------------------------------------- */
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .selectedBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .selectedBar :global(.gt-btn) {
+    width: 100%;
+  }
 }

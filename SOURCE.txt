@@ -1,0 +1,19 @@
+稿台（Gaotai）源码声明
+======================
+
+本项目基于 GPL-3.0 协议开源。
+
+源码获取方式：
+1. GitHub 私有仓库（需邀请）：联系作者获取访问权限
+2. 随本安装包附带的源码 ZIP（如有）
+
+本项目融合了以下开源项目的代码：
+- Wechatsync (GPL-3.0): https://github.com/wechatsync/Wechatsync
+  用于多平台文章同步（知乎/掘金/CSDN等29+平台）
+- rico-md (MIT): https://github.com/ricocc/rico-md
+  用于公众号排版主题模板
+
+各组件的版权声明保留在对应文件中。
+
+作者：maning
+联系：微信群聊 / 飞书群聊

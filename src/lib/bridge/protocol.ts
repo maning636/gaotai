@@ -15,9 +15,19 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
+import { getAllPlatforms } from "./platform-registry";
 
-/** 支持的分发平台。扩展按这份列表展示平台墙。 */
-export const PLATFORMS = ["zhihu", "juejin", "csdn", "xiaohongshu", "feishu"] as const;
+/**
+ * 支持的分发平台。扩展按这份列表展示平台墙。
+ *
+ * 由平台注册表动态生成（含 31 个平台），并追加稿台自有平台 feishu——
+ * 注册表未收录 feishu，但现有链路（content-script.js、multi-platform-panel、
+ * electron/ws-bridge.js）都依赖它，保留以保持向后兼容。
+ */
+export const PLATFORMS = [
+  ...getAllPlatforms().map((p) => p.id),
+  "feishu",
+] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
 export function isPlatform(value: unknown): value is Platform {

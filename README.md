@@ -115,11 +115,17 @@ prepare-resources → electron-builder`。产物在 `release/`：
 | [`SECURITY.md`](SECURITY.md) | 漏洞报告渠道与安全边界 |
 | [`CHANGELOG.md`](CHANGELOG.md) | 版本变化 |
 
-## 许可证与第三方
+## License
 
-本项目以**专有许可**发布（见 [`LICENSE`](LICENSE)，稿台软件许可协议，非开源许可）。
-代码、提示词、专题内容、界面与文案，除下述明确标注的第三方部分外，均为本仓库自有，
-按专有许可条款使用；本仓库不含任何第三方项目的源代码或文案表达。
+本项目采用 [GPL-3.0](./LICENSE) 协议（因融合了 Wechatsync 的 GPL-3.0 代码）。
+
+融合了以下开源项目：
+- [Wechatsync](https://github.com/wechatsync/Wechatsync) (GPL-3.0) — 多平台文章同步
+- [rico-md](https://github.com/ricocc/rico-md) (MIT) — 公众号排版主题
+
+分发安装包时请同时提供本声明文件（[`SOURCE.txt`](SOURCE.txt)）。
+
+### 第三方组件清单
 
 - **随包技能包 `human-writing`**：原样引入自
   [KKKKhazix/human-writing](https://github.com/KKKKhazix/human-writing)（v1.1.0，commit
@@ -138,7 +144,7 @@ prepare-resources → electron-builder`。产物在 `release/`：
   按 ADR-0004 的映射表转换，装饰能力（`headingNumber` / `quoteMark` / `imageCaption` / `reference*`）
   第一版不引入，作为已知限制记录。MIT 版权与许可声明随包保留在 `resources/layout-packs/`
   （`LICENSE-wedraft` + `SOURCE-wedraft.json`）。
-- **`gaotai-longform` / `gaotai-editorial`**：本仓库自研，随主仓库按**专有许可**发布（见 `LICENSE`）。
+- **`gaotai-longform` / `gaotai-editorial`**：本仓库自研，随主仓库按 GPL-3.0 发布（见 `LICENSE`）。
   `gaotai-longform` 去掉了作者的个人偏好记忆，来路见 `resources/skills/gaotai-longform/NOTICE`。
 - 其余第三方依赖以 npm 依赖引入，各自许可文本保留在安装后的 `node_modules` 内，不随仓库分发。
 

@@ -13,7 +13,23 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "js": [
+        "platform-adapters/types.js",
+        "platform-adapters/zhihu.js",
+        "platform-adapters/juejin.js",
+        "platform-adapters/csdn.js",
+        "platform-adapters/xiaohongshu.js",
+        "platform-adapters/feishu.js",
+        "platform-adapters/weibo.js",
+        "platform-adapters/toutiao.js",
+        "platform-adapters/bilibili.js",
+        "platform-adapters/baijiahao.js",
+        "platform-adapters/segmentfault.js",
+        "platform-adapters/oschina.js",
+        "platform-adapters/cnblogs.js",
+        "platform-adapters/index.js",
+        "content-script.js"
+      ],
       "run_at": "document_idle"
     }
   ]

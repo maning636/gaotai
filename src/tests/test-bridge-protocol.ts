@@ -210,10 +210,10 @@ suite("桥协议 · JSON-RPC 派发", ({ test }) => {
     const session = core.addSession({ role: "backend", clientId: "test" });
     const response = core.handleMessage(session!.sessionId, JSON.stringify({
       jsonrpc: "2.0", id: 8, method: "syncArticle",
-      params: { platform: "weibo", title: "t", content: "c" },
+      params: { platform: "unknown-platform", title: "t", content: "c" },
     }));
     const parsed = JSON.parse(response!) as { error?: { code?: number } };
     assertEqual(parsed.error?.code, -32602);
-    assertMatch(response!, /weibo/);
+    assertMatch(response!, /unknown-platform/);
   });
 });
