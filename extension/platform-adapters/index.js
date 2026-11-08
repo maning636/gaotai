@@ -3,7 +3,8 @@
 // 汇总所有平台适配器。浏览器内容脚本由 manifest 按序注入：
 // types.js → zhihu.js → juejin.js → csdn.js → xiaohongshu.js → feishu.js
 // → weibo.js → toutiao.js → bilibili.js → baijiahao.js → segmentfault.js
-// → oschina.js → cnblogs.js → index.js → content-script.js。
+// → oschina.js → cnblogs.js → douyin.js → douban.js → xueqiu.js
+// → woshipm.js → dayu.js → x.js → index.js → content-script.js。
 // 各适配器文件通过 IIFE 把自身注册到 globalThis.__GAOTAI_ADAPTERS__.registry；
 // 本文件只负责读取和导出访问器。
 //
@@ -28,6 +29,12 @@
     nodeRegistry.segmentfault = require("./segmentfault");
     nodeRegistry.oschina = require("./oschina");
     nodeRegistry.cnblogs = require("./cnblogs");
+    nodeRegistry.douyin = require("./douyin");
+    nodeRegistry.douban = require("./douban");
+    nodeRegistry.xueqiu = require("./xueqiu");
+    nodeRegistry.woshipm = require("./woshipm");
+    nodeRegistry.dayu = require("./dayu");
+    nodeRegistry.x = require("./x");
     for (const id of Object.keys(nodeRegistry)) {
       if (!registry[id]) registry[id] = nodeRegistry[id];
     }
