@@ -34,6 +34,7 @@
         "platform-adapters/dayu.js",
         "platform-adapters/x.js",
         "platform-adapters/index.js",
+        "wechatsync-bridge.js",
         "content-script.js"
       ],
       "run_at": "document_idle"
