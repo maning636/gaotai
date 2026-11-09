@@ -138,7 +138,7 @@ export function PreviewPanel({
   useEffect(() => {
     let alive = true;
     fetch("/api/layout-templates", { cache: "no-store" })
-      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取模板失败"))))
+      .then(response => (response.ok ? response.json().catch(() => ({})) : Promise.reject(new Error("读取模板失败"))))
       .then((body: { templates?: LayoutTemplate[] }) => {
         if (!alive) return;
         const list = Array.isArray(body.templates) ? body.templates : [];
@@ -179,7 +179,7 @@ export function PreviewPanel({
     if (!showIllustration || chartSamples) return;
     let alive = true;
     fetch("/api/illustration/samples", { cache: "no-store" })
-      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取图解样例失败"))))
+      .then(response => (response.ok ? response.json().catch(() => ({})) : Promise.reject(new Error("读取图解样例失败"))))
       .then((body: { samples?: Record<string, string> }) => {
         if (alive && body.samples) setChartSamples(body.samples);
       })

@@ -186,7 +186,7 @@ export function ProjectEditor({
   useEffect(() => {
     let alive = true;
     fetch("/api/skills", { cache: "no-store" })
-      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取技能包失败"))))
+      .then(response => (response.ok ? response.json().catch(() => ({})) : Promise.reject(new Error("读取技能包失败"))))
       .then((body: { skills?: EditorSkill[] }) => {
         if (alive) setSkillCatalog(Array.isArray(body.skills) ? body.skills : []);
       })
@@ -287,7 +287,7 @@ export function ProjectEditor({
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (body.skillWarning) setSkillWarning(body.skillWarning);
       // 输出被额度截断时稿子是半截的，但文字连贯、看不出异常，必须单独提醒。
       setTruncated(body.finishReason === "length");
@@ -401,7 +401,7 @@ export function ProjectEditor({
         method: "POST",
         body: JSON.stringify({ content: current.content }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setState(currentState => ({
         ...currentState,
         [stage]: { ...currentState[stage], status: "confirmed" },
@@ -439,7 +439,7 @@ export function ProjectEditor({
         method: "POST",
         body: JSON.stringify({ content: current.content }),
       });
-      const body = (await response.json()) as ProseResult;
+      const body = (await response.json().catch(() => ({}))) as ProseResult;
       setProse(body);
       const fails = body.findings.filter(item => item.level === "fail").length;
       const warns = body.findings.filter(item => item.level === "warn").length;
