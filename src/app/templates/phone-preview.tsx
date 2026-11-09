@@ -52,10 +52,10 @@ type PhonePreviewProps = {
   dragOver?: boolean;
   /** 通知父组件拖拽悬停状态变化。 */
   onDragOverChange?: (over: boolean) => void;
-  /** 从素材库拖入图片 URL 时回调。 */
-  onDropImage?: (url: string) => void;
-  /** 从本机拖入文件时回调。 */
-  onDropFiles?: (files: File[]) => void;
+  /** 从素材库拖入图片 URL 时回调（dropIndex = 段落索引，插到该段落后）。 */
+  onDropImage?: (url: string, dropIndex?: number) => void;
+  /** 从本机拖入文件时回调（dropIndex 同上）。 */
+  onDropFiles?: (files: File[], dropIndex?: number) => void;
 };
 
 type ApplyState = "idle" | "saving" | "done";
@@ -70,6 +70,8 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
   const [applyState, setApplyState] = useState<ApplyState>("idle");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  /** 防止 drop 事件在短时间内重复触发。 */
+  const lastDropRef = useRef(0);
 
   /**
    * 按容器尺寸算出缩放系数。
@@ -190,17 +192,48 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
             <div
               className={`${styles.phoneScreen}${droppable && dragOver ? " " + styles.phoneScreenDrop : ""}`}
               dangerouslySetInnerHTML={{ __html: previewHtml }}
-              onDragOver={droppable ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; if (!dragOver) onDragOverChange?.(true); } : undefined}
-              onDragLeave={droppable ? () => onDragOverChange?.(false) : undefined}
+              onDragOver={droppable ? (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                if (!dragOver) onDragOverChange?.(true);
+              } : undefined}
+              onDragLeave={droppable ? (e) => {
+                // 只在真正离开 phoneScreen 时才清除（不是进入子元素时）
+                if (e.currentTarget === e.target) onDragOverChange?.(false);
+              } : undefined}
               onDrop={droppable ? (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 onDragOverChange?.(false);
+
+                // 防重复：用时间戳去重，300ms 内只处理一次 drop
+                const now = Date.now();
+                if (now - lastDropRef.current < 300) return;
+                lastDropRef.current = now;
+
+                // 算出 drop 位置对应的段落索引
+                const screen = e.currentTarget as HTMLElement;
+                const blockElements = Array.from(screen.children);
+                let dropIndex: number | undefined;
+
+                if (blockElements.length > 0) {
+                  // 找 drop target 最近的顶层块级子元素
+                  let target = e.target as HTMLElement | null;
+                    while (target && target.parentElement !== screen) {
+                    target = target.parentElement;
+                  }
+                  if (target) {
+                    const idx = blockElements.indexOf(target);
+                    if (idx >= 0) dropIndex = idx;
+                  }
+                }
+
                 // 优先从素材库拖出（自定义 dataTransfer）
                 const url = e.dataTransfer.getData("text/x-gaotai-image");
-                if (url) { onDropImage?.(url); return; }
+                if (url) { onDropImage?.(url, dropIndex); return; }
                 // 从本机拖文件
                 if (e.dataTransfer.files.length > 0) {
-                  onDropFiles?.(Array.from(e.dataTransfer.files));
+                  onDropFiles?.(Array.from(e.dataTransfer.files), dropIndex);
                 }
               } : undefined}
             />

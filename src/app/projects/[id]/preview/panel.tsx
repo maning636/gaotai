@@ -136,16 +136,30 @@ export function PreviewPanel({
   }, [loadLibrary]);
 
   /**
-   * 从素材库拖一张图到手机预览：把 Markdown 图片语法追加到正文末尾，
-   * 然后 PATCH 保存到稿件。预览自动刷新（editableContent 变了）。
+   * 从素材库拖一张图到手机预览的指定位置：
+   * 根据 drop 事件的目标元素算出插入位置（第几个段落之后），
+   * 把 Markdown 图片语法插到正文对应位置，然后 PATCH 保存。
+   *
+   * 段落定位逻辑：phoneScreen 渲染后的 HTML 每个顶层块级元素算一个段落，
+   * 找到 drop target 最近的顶层块级元素，算它的索引，
+   * 然后在 Markdown 里按段落分割后插到那个索引后面。
    */
-  async function onDropImage(url: string) {
-    if (!url || !editableContent) return;
+  async function onDropImage(url: string, dropIndex?: number) {
+    if (!url) return;
     const snippet = `\n\n![配图](${url})\n`;
-    const newContent = editableContent + snippet;
+    const paragraphs = editableContent.split(/\n\n+/);
+    let newContent: string;
+    if (dropIndex !== undefined && dropIndex >= 0 && dropIndex < paragraphs.length) {
+      // 插到目标段落后面
+      paragraphs.splice(dropIndex + 1, 0, snippet.trim());
+      newContent = paragraphs.join("\n\n");
+    } else {
+      // 没有定位信息就追加到末尾
+      newContent = editableContent + snippet;
+    }
     setEditableContent(newContent);
     setDragOver(false);
-    setNotice("图已插入正文末尾，正在保存…");
+    setNotice("图已插入，正在保存…");
     try {
       const response = await fetch(`/api/projects/${projectId}/stages/article`, {
         method: "PATCH",
@@ -162,8 +176,8 @@ export function PreviewPanel({
     }
   }
 
-  /** 从本机拖文件到手机预览：并行上传后逐张插入正文末尾。 */
-  async function onDropFiles(files: File[]) {
+  /** 从本机拖文件到手机预览指定位置：并行上传后逐张插入。 */
+  async function onDropFiles(files: File[], dropIndex?: number) {
     if (!files.length) return;
     setBusy("upload");
     setDragOver(false);
@@ -179,12 +193,15 @@ export function PreviewPanel({
           return body.image?.url as string | undefined;
         }),
       );
-      let newContent = editableContent;
+      const paragraphs = editableContent.split(/\n\n+/);
+      const insertIdx = dropIndex !== undefined && dropIndex >= 0 && dropIndex < paragraphs.length
+        ? dropIndex + 1
+        : paragraphs.length;
       for (const url of urls) {
-        if (url) newContent += `\n\n![配图](${url})\n`;
+        if (url) paragraphs.splice(insertIdx, 0, `![配图](${url})`);
       }
+      const newContent = paragraphs.join("\n\n");
       setEditableContent(newContent);
-      // 保存到稿件
       const saveResp = await fetch(`/api/projects/${projectId}/stages/article`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
