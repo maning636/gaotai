@@ -68,3 +68,6 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   artifactName: "Gaotai-Setup-${version}.${ext}"
+  # 覆盖安装时不要清空 %APPDATA%/稿台：NSIS 卸载器默认会删除应用数据目录，
+  # 导致覆盖安装后历史数据（项目、素材库、风格记忆）全部丢失。
+  deleteAppDataOnUninstall: false

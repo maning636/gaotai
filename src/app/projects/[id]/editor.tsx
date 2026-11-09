@@ -758,8 +758,7 @@ export function ProjectEditor({
       el.focus();
       el.setSelectionRange(caret, caret);
     });
-    setNotice("图已插到光标位置。记得点「保存修改」把它存下来。");
-    setShowImages(false);
+    setNotice("图已插到光标位置。");
   }
 
   /** 拉素材库列表。 */
@@ -801,16 +800,44 @@ export function ProjectEditor({
     setBusy("upload");
     setError("");
     try {
-      for (const file of files) {
-        const form = new FormData();
-        form.append("file", file);
-        const response = await fetch("/api/files", { method: "POST", body: form });
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(body.error ?? `「${file.name}」上传失败。`);
-        const url = body.image?.url as string | undefined;
-        if (url) insertImage(url, "配图");
+      // 并行上传所有图片：不再逐张串行等待，多张一起传，总耗时只看最慢那张。
+      const uploadResults = await Promise.all(
+        files.map(async (file) => {
+          const form = new FormData();
+          form.append("file", file);
+          const response = await fetch("/api/files", { method: "POST", body: form });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error ?? `「${file.name}」上传失败。`);
+          return body.image?.url as string | undefined;
+        }),
+      );
+      const urls = uploadResults.filter((url): url is string => Boolean(url));
+      // 批量插入：在本地累积内容与光标，最后一次性写回。
+      // 不能逐张 setState——insertImage 读的是渲染闭包里的 state，
+      // 循环里第二次起会拿到旧内容，前面的图会被覆盖。
+      let content = state.article?.content ?? "";
+      let caret = contentCaret.current;
+      for (const url of urls) {
+        const snippet = `![配图](${url})`;
+        const result = insertMarkdownAt(content, caret, snippet);
+        content = result.content;
+        caret = result.caret;
+      }
+      if (urls.length) {
+        setState(currentState => ({
+          ...currentState,
+          article: { ...currentState.article, content },
+        }));
+        contentCaret.current = caret;
+        requestAnimationFrame(() => {
+          const el = contentRef.current;
+          if (!el) return;
+          el.focus();
+          el.setSelectionRange(caret ?? 0, caret ?? 0);
+        });
       }
       await loadLibrary();
+      setNotice(`已上传 ${files.length} 张图片并插入正文。`);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "上传失败。");
     } finally {
