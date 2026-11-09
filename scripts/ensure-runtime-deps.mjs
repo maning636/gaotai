@@ -138,13 +138,17 @@ if (unresolvable.length) {
 // tough-cookie 和 data-urls 是已知的两个漏网之鱼——
 // 缺了它们，微信草稿渲染管线（markdownToWechatHtmlAsync → jsdom）会崩溃，
 // API 返回空 body，前端报 "Unexpected end of JSON input"。
+// Turbopack 对 jsdom 的间接依赖追踪不完整：
+// 它可能把 tough-cookie/ 目录放进来，但只有 package.json，缺 dist/index.cjs。
+// 所以不能靠 existsSync(dst) 判断——目录"存在"不等于"完整"。
+// 强制覆盖复制，cpSync 的 recursive 模式会合并目录并覆盖同名文件。
 const INDIRECT_DEPS = ["tough-cookie", "data-urls"];
 const patched = [];
 for (const dep of INDIRECT_DEPS) {
   const src = path.join(projectModules, dep);
   const dst = path.join(standaloneModules, dep);
-  if (existsSync(src) && !existsSync(dst)) {
-    cpSync(src, dst, { recursive: true });
+  if (existsSync(src)) {
+    cpSync(src, dst, { recursive: true, dereference: true });
     patched.push(dep);
   }
 }
