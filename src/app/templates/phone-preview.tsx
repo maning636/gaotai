@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { renderTemplatePreview } from "../../lib/markdown";
 import type { LayoutTemplate } from "../../lib/layout-template";
@@ -56,6 +56,8 @@ type PhonePreviewProps = {
   onDropImage?: (url: string, dropIndex?: number) => void;
   /** 从本机拖入文件时回调（dropIndex 同上）。 */
   onDropFiles?: (files: File[], dropIndex?: number) => void;
+  /** 删除正文中的某张图片（url 匹配）。 */
+  onDeleteImage?: (url: string) => void;
 };
 
 type ApplyState = "idle" | "saving" | "done";
@@ -63,9 +65,10 @@ type ApplyState = "idle" | "saving" | "done";
 const PHONE_W = 456;
 const PHONE_H = 972;
 
-export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight, content, customCss, droppable, dragOver, onDragOverChange, onDropImage, onDropFiles }: PhonePreviewProps) {
+export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight, content, customCss, droppable, dragOver, onDragOverChange, onDropImage, onDropFiles, onDeleteImage }: PhonePreviewProps) {
   const router = useRouter();
   const fitRef = useRef<HTMLDivElement | null>(null);
+  const screenRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.62);
   const [applyState, setApplyState] = useState<ApplyState>("idle");
   const [notice, setNotice] = useState("");
@@ -116,6 +119,53 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
       return "";
     }
   }, [template, content, customCss]);
+
+  /**
+   * DOM 增强：渲染完 HTML 后，给每张图片加删除按钮。
+   *
+   * 手机预览里的正文是渲染后的 HTML，用户没法直接操作底层 Markdown。
+   * 这个 useEffect 在每次内容变化后遍历 screenRef 里的 <img>，
+   * 给每张图包一层 .gt-img-wrap 容器，右上角加 × 按钮。
+   * 点 × 调 onDeleteImage(url) 从 Markdown 正文移除该图。
+   */
+  useEffect(() => {
+    const screen = screenRef.current;
+    if (!screen || !previewHtml) return;
+    // 只处理 droppable 模式（排版预览页），模板库不需要删除按钮
+    if (!droppable || !onDeleteImage) return;
+
+    const imgs = screen.querySelectorAll("img");
+    imgs.forEach(img => {
+      // 已包过的跳过
+      if (img.parentElement && img.parentElement.classList.contains("gt-img-wrap")) return;
+
+      const src = img.getAttribute("src") || "";
+      if (!src) return;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "gt-img-wrap";
+      wrapper.style.position = "relative";
+      wrapper.style.display = "inline-block";
+      wrapper.style.width = "100%";
+
+      // 删除按钮
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "gt-img-delete";
+      btn.textContent = "×";
+      btn.style.cssText = "position:absolute;top:2px;right:2px;width:24px;height:24px;border:none;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;font-size:16px;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;";
+      btn.title = "删除这张图";
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDeleteImage(src);
+      });
+
+      img.parentElement?.insertBefore(wrapper, img);
+      wrapper.appendChild(img);
+      wrapper.appendChild(btn);
+    });
+  }, [previewHtml, droppable, onDeleteImage]);
 
   async function onApply() {
     if (!template || !projectId || applyState === "saving") return;
@@ -188,8 +238,9 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
               </svg>
             </div>
 
-            {/* 屏幕内容：滚动展示渲染结果（droppable 时可接收拖拽图片） */}
+            {/* 屏幕内容：滚动展示渲染结果（droppable 时可接收拖拽图片 + 图片可删除） */}
             <div
+              ref={screenRef}
               className={`${styles.phoneScreen}${droppable && dragOver ? " " + styles.phoneScreenDrop : ""}`}
               dangerouslySetInnerHTML={{ __html: previewHtml }}
               onDragOver={droppable ? (e) => {
@@ -198,40 +249,40 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
                 if (!dragOver) onDragOverChange?.(true);
               } : undefined}
               onDragLeave={droppable ? (e) => {
-                // 只在真正离开 phoneScreen 时才清除（不是进入子元素时）
                 if (e.currentTarget === e.target) onDragOverChange?.(false);
               } : undefined}
               onDrop={droppable ? (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onDragOverChange?.(false);
-
-                // 防重复：用时间戳去重，300ms 内只处理一次 drop
                 const now = Date.now();
                 if (now - lastDropRef.current < 300) return;
                 lastDropRef.current = now;
 
-                // 算出 drop 位置对应的段落索引
+                // 精准定位：找鼠标位置在哪个段落块上
                 const screen = e.currentTarget as HTMLElement;
-                const blockElements = Array.from(screen.children);
+                const blocks = Array.from(screen.children);
                 let dropIndex: number | undefined;
 
-                if (blockElements.length > 0) {
-                  // 找 drop target 最近的顶层块级子元素
-                  let target = e.target as HTMLElement | null;
-                    while (target && target.parentElement !== screen) {
-                    target = target.parentElement;
-                  }
-                  if (target) {
-                    const idx = blockElements.indexOf(target);
-                    if (idx >= 0) dropIndex = idx;
-                  }
+                if (blocks.length > 0) {
+                  // 用鼠标 Y 坐标和每个块的 getBoundingClientRect 算出最近的那块
+                  const mouseY = e.clientY;
+                  let closestIdx = -1;
+                  let closestDist = Infinity;
+                  blocks.forEach((block, i) => {
+                    const rect = (block as HTMLElement).getBoundingClientRect();
+                    const blockMid = rect.top + rect.height / 2;
+                    const dist = Math.abs(mouseY - blockMid);
+                    if (dist < closestDist) {
+                      closestDist = dist;
+                      closestIdx = i;
+                    }
+                  });
+                  if (closestIdx >= 0) dropIndex = closestIdx;
                 }
 
-                // 优先从素材库拖出（自定义 dataTransfer）
                 const url = e.dataTransfer.getData("text/x-gaotai-image");
                 if (url) { onDropImage?.(url, dropIndex); return; }
-                // 从本机拖文件
                 if (e.dataTransfer.files.length > 0) {
                   onDropFiles?.(Array.from(e.dataTransfer.files), dropIndex);
                 }

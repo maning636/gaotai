@@ -137,29 +137,42 @@ export function PreviewPanel({
 
   /**
    * 从素材库拖一张图到手机预览的指定位置：
-   * 根据 drop 事件的目标元素算出插入位置（第几个段落之后），
-   * 把 Markdown 图片语法插到正文对应位置，然后 PATCH 保存。
-   *
-   * 段落定位逻辑：phoneScreen 渲染后的 HTML 每个顶层块级元素算一个段落，
-   * 找到 drop target 最近的顶层块级元素，算它的索引，
-   * 然后在 Markdown 里按段落分割后插到那个索引后面。
+   * dropIndex 是鼠标所在段落块的索引（从 0 开始），图片插到该块后面。
    */
   async function onDropImage(url: string, dropIndex?: number) {
     if (!url) return;
-    const snippet = `\n\n![配图](${url})\n`;
-    const paragraphs = editableContent.split(/\n\n+/);
-    let newContent: string;
-    if (dropIndex !== undefined && dropIndex >= 0 && dropIndex < paragraphs.length) {
-      // 插到目标段落后面
-      paragraphs.splice(dropIndex + 1, 0, snippet.trim());
-      newContent = paragraphs.join("\n\n");
-    } else {
-      // 没有定位信息就追加到末尾
-      newContent = editableContent + snippet;
-    }
+    const snippet = `![配图](${url})`;
+    const blocks = editableContent.split(/\n\n+/);
+    const insertAt = dropIndex !== undefined && dropIndex >= 0 && dropIndex < blocks.length
+      ? dropIndex + 1
+      : blocks.length;
+    blocks.splice(insertAt, 0, snippet);
+    const newContent = blocks.join("\n\n");
+    await saveContent(newContent, "图已插入正文并保存。");
+  }
+
+  /**
+   * 删除正文中的某张图片。
+   * imageUrl 是图片在正文 Markdown 里的 URL，
+   * 从 editableContent 中移除包含该 URL 的 `![...](url)` 行。
+   */
+  async function onDeleteImage(imageUrl: string) {
+    if (!imageUrl) return;
+    // 移除包含该 URL 的图片 Markdown 行（可能有空行包裹）
+    const regex = new RegExp(
+      `\\n*!\\[[^\\]]*\\]\\(${imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)\\n*`,
+      "g",
+    );
+    const newContent = editableContent.replace(regex, "\n\n").replace(/\n{3,}/g, "\n\n").trim();
+    if (newContent === editableContent) return;
+    await saveContent(newContent, "图片已删除并保存。");
+  }
+
+  /** 保存正文到后端并更新本地状态。 */
+  async function saveContent(newContent: string, successMsg: string) {
     setEditableContent(newContent);
     setDragOver(false);
-    setNotice("图已插入，正在保存…");
+    setNotice("正在保存…");
     try {
       const response = await fetch(`/api/projects/${projectId}/stages/article`, {
         method: "PATCH",
@@ -170,7 +183,7 @@ export function PreviewPanel({
         const body = await response.json().catch(() => ({}));
         throw new Error(body.error ?? "保存失败");
       }
-      setNotice("图已插入正文并保存。");
+      setNotice(successMsg);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "保存失败");
     }
@@ -193,14 +206,14 @@ export function PreviewPanel({
           return body.image?.url as string | undefined;
         }),
       );
-      const paragraphs = editableContent.split(/\n\n+/);
-      const insertIdx = dropIndex !== undefined && dropIndex >= 0 && dropIndex < paragraphs.length
+      const blocks = editableContent.split(/\n\n+/);
+      const insertIdx = dropIndex !== undefined && dropIndex >= 0 && dropIndex < blocks.length
         ? dropIndex + 1
-        : paragraphs.length;
+        : blocks.length;
       for (const url of urls) {
-        if (url) paragraphs.splice(insertIdx, 0, `![配图](${url})`);
+        if (url) blocks.splice(insertIdx, 0, `![配图](${url})`);
       }
-      const newContent = paragraphs.join("\n\n");
+      const newContent = blocks.join("\n\n");
       setEditableContent(newContent);
       const saveResp = await fetch(`/api/projects/${projectId}/stages/article`, {
         method: "PATCH",
@@ -837,6 +850,7 @@ export function PreviewPanel({
           onDragOverChange={setDragOver}
           onDropImage={onDropImage}
           onDropFiles={onDropFiles}
+          onDeleteImage={onDeleteImage}
         />
       </aside>
     </div>
