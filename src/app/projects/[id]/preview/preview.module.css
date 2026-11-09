@@ -204,6 +204,46 @@
   color: var(--gt-blue);
 }
 
+/* --- 素材库面板 ------------------------------------------------------- */
+
+.imageLibrary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--gt-line);
+  border-radius: 2px;
+  background: var(--gt-sunken);
+}
+
+.libraryItem {
+  cursor: grab;
+  border: 2px solid var(--gt-line);
+  border-radius: 3px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: var(--gt-surface);
+  transition: border-color 80ms ease, box-shadow 80ms ease;
+}
+
+.libraryItem:hover {
+  border-color: var(--gt-blue);
+  box-shadow: 2px 2px 0 var(--gt-line);
+}
+
+.libraryItem:active {
+  cursor: grabbing;
+}
+
+.libraryItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
 /* --- 封面预览 --------------------------------------------------------- */
 
 .coverPreview {

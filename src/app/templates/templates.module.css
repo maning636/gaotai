@@ -360,6 +360,13 @@
   background: #ffffff;
 }
 
+/* 拖拽图片悬停时高亮提示 */
+.phoneScreenDrop {
+  outline: 3px dashed var(--gt-blue, #2563eb);
+  outline-offset: -6px;
+  background: rgba(37, 99, 235, 0.04);
+}
+
 /* --- 底部操作条 ------------------------------------------------------- */
 
 .phoneActions {

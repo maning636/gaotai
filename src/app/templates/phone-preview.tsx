@@ -46,6 +46,16 @@ type PhonePreviewProps = {
    * 排版预览页传用户粘贴的 CSS；模板库不传。
    */
   customCss?: string;
+  /** 是否允许拖拽图片到手机屏幕。 */
+  droppable?: boolean;
+  /** 拖拽悬停时高亮提示（父组件控制状态）。 */
+  dragOver?: boolean;
+  /** 通知父组件拖拽悬停状态变化。 */
+  onDragOverChange?: (over: boolean) => void;
+  /** 从素材库拖入图片 URL 时回调。 */
+  onDropImage?: (url: string) => void;
+  /** 从本机拖入文件时回调。 */
+  onDropFiles?: (files: File[]) => void;
 };
 
 type ApplyState = "idle" | "saving" | "done";
@@ -53,7 +63,7 @@ type ApplyState = "idle" | "saving" | "done";
 const PHONE_W = 456;
 const PHONE_H = 972;
 
-export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight, content, customCss }: PhonePreviewProps) {
+export function PhonePreview({ template, projectTitle, projectId, showApply = true, fitHeight, content, customCss, droppable, dragOver, onDragOverChange, onDropImage, onDropFiles }: PhonePreviewProps) {
   const router = useRouter();
   const fitRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.62);
@@ -176,8 +186,24 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
               </svg>
             </div>
 
-            {/* 屏幕内容：滚动展示渲染结果 */}
-            <div className={styles.phoneScreen} dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            {/* 屏幕内容：滚动展示渲染结果（droppable 时可接收拖拽图片） */}
+            <div
+              className={`${styles.phoneScreen}${droppable && dragOver ? " " + styles.phoneScreenDrop : ""}`}
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+              onDragOver={droppable ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; if (!dragOver) onDragOverChange?.(true); } : undefined}
+              onDragLeave={droppable ? () => onDragOverChange?.(false) : undefined}
+              onDrop={droppable ? (e) => {
+                e.preventDefault();
+                onDragOverChange?.(false);
+                // 优先从素材库拖出（自定义 dataTransfer）
+                const url = e.dataTransfer.getData("text/x-gaotai-image");
+                if (url) { onDropImage?.(url); return; }
+                // 从本机拖文件
+                if (e.dataTransfer.files.length > 0) {
+                  onDropFiles?.(Array.from(e.dataTransfer.files));
+                }
+              } : undefined}
+            />
           </div>
         </div>
       </div>

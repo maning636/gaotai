@@ -76,7 +76,7 @@ export function PreviewPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState<"" | "copy" | "draft" | "apply" | "test" | "prompt">("");
+  const [busy, setBusy] = useState<"" | "copy" | "draft" | "apply" | "test" | "prompt" | "upload">("");
   const [channel, setChannel] = useState<ChannelCheck | null>(null);
   const [cover, setCover] = useState<CoverState>({ configured: false, image: "", previewUrl: "" });
   const [draftResult, setDraftResult] = useState<DraftResult>(null);
@@ -88,6 +88,12 @@ export function PreviewPanel({
   const [customCss, setCustomCss] = useState("");
   /** 自定义 CSS 折叠区是否展开。 */
   const [cssOpen, setCssOpen] = useState(false);
+  /** 可变正文：拖入图片后实时更新，不需要跳回编辑器。 */
+  const [editableContent, setEditableContent] = useState(articleContent);
+  /** 素材库图片列表。 */
+  const [library, setLibrary] = useState<{ path: string; url: string }[]>([]);
+  /** 拖拽时手机预览高亮提示。 */
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -112,6 +118,110 @@ export function PreviewPanel({
       alive = false;
     };
   }, []);
+
+  /** 加载素材库。 */
+  const loadLibrary = useCallback(async () => {
+    try {
+      const response = await fetch("/api/files", { cache: "no-store" });
+      if (!response.ok) return;
+      const body = await response.json().catch(() => ({}));
+      if (Array.isArray(body)) setLibrary(body);
+    } catch {
+      // 读不到不阻断主流程
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLibrary();
+  }, [loadLibrary]);
+
+  /**
+   * 从素材库拖一张图到手机预览：把 Markdown 图片语法追加到正文末尾，
+   * 然后 PATCH 保存到稿件。预览自动刷新（editableContent 变了）。
+   */
+  async function onDropImage(url: string) {
+    if (!url || !editableContent) return;
+    const snippet = `\n\n![配图](${url})\n`;
+    const newContent = editableContent + snippet;
+    setEditableContent(newContent);
+    setDragOver(false);
+    setNotice("图已插入正文末尾，正在保存…");
+    try {
+      const response = await fetch(`/api/projects/${projectId}/stages/article`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newContent }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error ?? "保存失败");
+      }
+      setNotice("图已插入正文并保存。");
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : "保存失败");
+    }
+  }
+
+  /** 从本机拖文件到手机预览：并行上传后逐张插入正文末尾。 */
+  async function onDropFiles(files: File[]) {
+    if (!files.length) return;
+    setBusy("upload");
+    setDragOver(false);
+    setError("");
+    try {
+      const urls = await Promise.all(
+        files.map(async (file) => {
+          const form = new FormData();
+          form.append("file", file);
+          const response = await fetch("/api/files", { method: "POST", body: form });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error ?? `「${file.name}」上传失败`);
+          return body.image?.url as string | undefined;
+        }),
+      );
+      let newContent = editableContent;
+      for (const url of urls) {
+        if (url) newContent += `\n\n![配图](${url})\n`;
+      }
+      setEditableContent(newContent);
+      // 保存到稿件
+      const saveResp = await fetch(`/api/projects/${projectId}/stages/article`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newContent }),
+      });
+      if (!saveResp.ok) throw new Error("图片已插入但保存失败");
+      await loadLibrary();
+      setNotice(`已插入 ${files.length} 张图片并保存。`);
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : "上传失败");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  /** 上传按钮：从本机选图上传到素材库。 */
+  async function onUploadToLibrary(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    setBusy("upload");
+    try {
+      await Promise.all(
+        files.map(async (file) => {
+          const form = new FormData();
+          form.append("file", file);
+          await fetch("/api/files", { method: "POST", body: form });
+        }),
+      );
+      await loadLibrary();
+      setNotice(`已上传 ${files.length} 张图片到素材库。`);
+    } catch {
+      setError("上传失败");
+    } finally {
+      setBusy("");
+      if (event.target) event.target.value = "";
+    }
+  }
 
   const checkChannel = useCallback(async (forAccountId?: string) => {
     setBusy("test");
@@ -170,7 +280,7 @@ export function PreviewPanel({
     [templates, selectedId],
   );
 
-  const hasArticle = articleContent.trim().length > 0;
+  const hasArticle = editableContent.trim().length > 0;
   const channelReady = channel?.ok ?? false;
   const coverReady = cover.configured;
   const draftReady = hasArticle && channelReady && coverReady;
@@ -224,7 +334,7 @@ export function PreviewPanel({
       const response = await fetch("/api/image-prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: projectTitle, article: articleContent }),
+        body: JSON.stringify({ title: projectTitle, article: editableContent }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error((body as { error?: string }).error ?? `生成配图提示词失败（HTTP ${response.status}）`);
@@ -250,7 +360,7 @@ export function PreviewPanel({
       const response = await fetch("/api/wechat/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, templateId: selected.id, content: articleContent }),
+        body: JSON.stringify({ projectId, templateId: selected.id, content: editableContent }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error((body as { error?: string }).error ?? `预览失败（HTTP ${response.status}）`);
@@ -356,6 +466,55 @@ export function PreviewPanel({
           </span>
           <span className="gt-small gt-muted" title={topicName}>{projectTitle}</span>
         </div>
+
+        {/* 素材库：拖图到右侧手机预览即可插入正文 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <h2 className={styles.stepTitle}>素材库</h2>
+            <span className="gt-small gt-muted" style={{ marginLeft: "auto" }}>
+              拖到右侧手机预览即可插入正文
+            </span>
+          </div>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            style={{ display: "none" }}
+            onChange={onUploadToLibrary}
+            id="library-upload-input"
+          />
+          <div className={styles.stepBlock}>
+            {library.length > 0 ? (
+              <div className={styles.imageLibrary}>
+                {library.map(image => (
+                  <div
+                    key={image.path}
+                    className={styles.libraryItem}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/x-gaotai-image", image.url);
+                      e.dataTransfer.effectAllowed = "copy";
+                    }}
+                    title={image.path}
+                  >
+                    <img src={image.url} alt={image.path} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="gt-small gt-muted" style={{ margin: 0 }}>
+                素材库是空的——上传几张图，然后拖到右边手机里。
+              </p>
+            )}
+            <label
+              className="gt-btn gt-btn--sm gt-btn--ghost"
+              htmlFor="library-upload-input"
+              style={{ cursor: "pointer", alignSelf: "flex-start" }}
+            >
+              {busy === "upload" ? "上传中…" : "+ 上传图片到素材库"}
+            </label>
+          </div>
+        </section>
 
         {error ? <div className="gt-alert gt-alert--error">{error}</div> : null}
         {notice ? <div className="gt-alert gt-alert--ok">{notice}</div> : null}
@@ -647,15 +806,20 @@ export function PreviewPanel({
         </section>
       </div>
 
-      {/* ============ 右侧：手机预览（常驻） ============ */}
+      {/* ============ 右侧：手机预览（常驻，支持拖拽插图） ============ */}
       <aside className={styles.previewCol}>
         <PhonePreview
           template={selected}
-          content={articleContent}
+          content={editableContent}
           projectTitle={projectTitle}
           projectId={projectId}
           showApply={false}
           customCss={customCss}
+          droppable
+          dragOver={dragOver}
+          onDragOverChange={setDragOver}
+          onDropImage={onDropImage}
+          onDropFiles={onDropFiles}
         />
       </aside>
     </div>
