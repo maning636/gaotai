@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { assertEqual, assertMatch, assertTrue, suite } from "./harness";
 import { imagesDir } from "../lib/paths";
-import { clearAccessTokenCache, createDraft, uploadInlineImage, uploadPermanentImage } from "../lib/wechat";
+import { clearAccessTokenCache, createDraft, updateDraft, uploadInlineImage, uploadPermanentImage } from "../lib/wechat";
 import { cdnizeLocalImages } from "../lib/wechat-images";
 import { clearImageCache } from "../lib/wechat/image-cache";
 
@@ -39,6 +39,9 @@ function stubWechat(calls: Call[]) {
     }
     if (url.includes("/cgi-bin/draft/add")) {
       return jsonResponse({ media_id: "DRAFT-MEDIA-ID" });
+    }
+    if (url.includes("/cgi-bin/draft/update")) {
+      return jsonResponse({ errcode: 0, errmsg: "ok" });
     }
     return jsonResponse({ errcode: 40001, errmsg: "unsupported in stub" });
   }) as typeof globalThis.fetch;
@@ -115,6 +118,40 @@ suite("微信公众号接口", ({ test }) => {
       assertEqual(body.articles[0].thumb_media_id, "COVER-MEDIA-ID");
       assertEqual(body.articles[0].title, "一篇稿子");
       assertMatch(body.articles[0].content, /<section>/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("更新草稿时 articles 必须是对象，不是数组", async () => {
+    const calls: Call[] = [];
+    stubWechat(calls);
+    clearAccessTokenCache();
+    try {
+      await updateDraft({
+        mediaId: "DRAFT-MEDIA-ID",
+        title: "改过的标题",
+        content: "<section>改过的正文</section>",
+        thumbMediaId: "COVER-MEDIA-ID",
+        creds: CREDENTIALS,
+      });
+
+      const update = calls.find(call => call.url.includes("/cgi-bin/draft/update"));
+      assertTrue(update !== undefined, "应该调用草稿更新接口");
+      const body = JSON.parse(String(update!.init?.body)) as {
+        media_id: string;
+        index: number;
+        articles: unknown;
+      };
+      assertEqual(body.media_id, "DRAFT-MEDIA-ID");
+      assertEqual(body.index, 0);
+      // 微信这个接口和 draft/add 不一致：add 用数组，update 用单个对象。
+      // 写成数组会稳定返回 47001 data format error。
+      assertTrue(!Array.isArray(body.articles), "articles 必须是对象，数组会被微信拒绝");
+      const article = body.articles as { title: string; content: string; thumb_media_id: string };
+      assertEqual(article.title, "改过的标题");
+      assertMatch(article.content, /改过的正文/);
+      assertEqual(article.thumb_media_id, "COVER-MEDIA-ID");
     } finally {
       globalThis.fetch = originalFetch;
     }

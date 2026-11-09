@@ -317,21 +317,22 @@ export async function updateDraft(input: {
 
   const token = await getAccessToken(input.creds);
 
+  // 注意：draft/update 与 draft/add 的 body 形状**不一样**。
+  // add 的 articles 是数组，update 的 articles 是**单个对象**（配合 index 指定更新第几篇）。
+  // 照抄 add 的数组形状会稳定返回 47001 data format error——这个坑踩过一次。
   const payload = {
     media_id: input.mediaId.trim(),
     index: 0,
-    articles: [
-      {
-        title: input.title.trim(),
-        author: input.author?.trim() || "",
-        digest: input.digest?.trim() || "",
-        content: input.content,
-        content_source_url: input.contentSourceUrl?.trim() || "",
-        thumb_media_id: input.thumbMediaId?.trim() || "",
-        need_open_comment: input.needOpenComment ?? 0,
-        only_fans_can_comment: input.onlyFansCanComment ?? 0,
-      },
-    ],
+    articles: {
+      title: input.title.trim(),
+      author: input.author?.trim() || "",
+      digest: input.digest?.trim() || "",
+      content: input.content,
+      content_source_url: input.contentSourceUrl?.trim() || "",
+      thumb_media_id: input.thumbMediaId?.trim() || "",
+      need_open_comment: input.needOpenComment ?? 0,
+      only_fans_can_comment: input.onlyFansCanComment ?? 0,
+    },
   };
 
   const url = `${API_BASE}/cgi-bin/draft/update?access_token=${encodeURIComponent(token)}`;

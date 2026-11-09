@@ -128,12 +128,14 @@ suite("草稿推送幂等", ({ test }) => {
       const body = JSON.parse(String(update!.init?.body)) as {
         media_id: string;
         index: number;
-        articles: { title: string; content: string; thumb_media_id: string }[];
+        articles: { title: string; content: string; thumb_media_id: string };
       };
       assertEqual(body.media_id, "DRAFT-MEDIA-ID");
       assertEqual(body.index, 0, "单篇草稿的更新位置固定是 0");
-      assertMatch(body.articles[0].content, /改了一个字/);
-      assertEqual(body.articles[0].thumb_media_id, "COVER-1");
+      // draft/update 的 articles 是单个对象（不是数组），写错微信会回 47001。
+      assertTrue(!Array.isArray(body.articles), "articles 必须是对象");
+      assertMatch(body.articles.content, /改了一个字/);
+      assertEqual(body.articles.thumb_media_id, "COVER-1");
 
       // 只调过 draft/add 一次，draft/update 一次——没有多余的新建
       assertEqual(calls.filter(call => call.url.includes("/cgi-bin/draft/add")).length, 1);

@@ -6,11 +6,15 @@
 // 靠人肉检查迟早漏，所以让构建直接失败。
 //
 // 检查对象：release/win-unpacked（安装包与便携版都由它生成）。
+// 可用参数覆盖：node scripts/verify-package.mjs release-new
+// 构建时用 -c.directories.output=别的目录 时，这里也要跟着指过去，
+// 否则会扫描残留的旧产物、得出"通过"的假结论。
 import { readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const APP_DIR = path.join(ROOT, "release", "win-unpacked");
+const OUTPUT_DIR = process.argv[2]?.trim() || "release";
+const APP_DIR = path.join(ROOT, OUTPUT_DIR, "win-unpacked");
 
 /** 任何位置出现都算事故（必须带值，空模板另说）。 */
 const FATAL_ANYWHERE = [
@@ -43,7 +47,7 @@ function walk(dir, out = []) {
 
 function main() {
   if (!existsSync(APP_DIR)) {
-    console.error("[verify-package] 找不到 release/win-unpacked，先跑一次 desktop:build。");
+    console.error("[verify-package] 找不到 ${OUTPUT_DIR}/win-unpacked，先跑一次 desktop:build。");
     process.exit(1);
   }
 

@@ -4,6 +4,7 @@ node_modules/
 out/
 dist/
 release/
+release-new/
 *.tsbuildinfo
 
 # 本地数据目录：数据库、本地专题、登录日志、配图
