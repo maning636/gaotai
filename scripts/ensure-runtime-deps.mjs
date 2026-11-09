@@ -138,20 +138,51 @@ if (unresolvable.length) {
 // tough-cookie 和 data-urls 是已知的两个漏网之鱼——
 // 缺了它们，微信草稿渲染管线（markdownToWechatHtmlAsync → jsdom）会崩溃，
 // API 返回空 body，前端报 "Unexpected end of JSON input"。
-// Turbopack 对 jsdom 的间接依赖追踪不完整：
-// 它可能把 tough-cookie/ 目录放进来，但只有 package.json，缺 dist/index.cjs。
-// 所以不能靠 existsSync(dst) 判断——目录"存在"不等于"完整"。
-// 强制覆盖复制，cpSync 的 recursive 模式会合并目录并覆盖同名文件。
-const INDIRECT_DEPS = ["tough-cookie", "data-urls"];
+// Turbopack 把 jsdom 打成哈希名（如 jsdom-4cccfac9827ebcfe），
+// 它的间接依赖不会被文件追踪扫到，但运行时 require 会找到它们。
+// jsdom 的依赖链很深（tough-cookie → tldts → tldts-core，parse5 → entities，
+// lru-cache → yallist，data-urls → whatwg-url → …），
+// 手工维护清单永远补不全。改为递归遍历种子包的完整依赖树，
+// 把所有在 standalone 里缺失的包一次性全部补进。
+//
+// 种子包：jsdom（微信草稿渲染核心）及其已知需要完整补齐的间接依赖。
+const SEED_PACKAGES = ["jsdom", "tough-cookie", "data-urls"];
 const patched = [];
-for (const dep of INDIRECT_DEPS) {
-  const src = path.join(projectModules, dep);
-  const dst = path.join(standaloneModules, dep);
-  if (existsSync(src)) {
-    cpSync(src, dst, { recursive: true, dereference: true });
-    patched.push(dep);
+const seen = new Set();
+
+function getDependencies(pkgName) {
+  try {
+    const pkgJsonPath = path.join(projectModules, pkgName, "package.json");
+    if (!existsSync(pkgJsonPath)) return [];
+    const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+    return Object.keys(pkg.dependencies || {});
+  } catch {
+    return [];
   }
 }
+
+function ensurePackageRecursive(pkgName) {
+  if (seen.has(pkgName)) return;
+  seen.add(pkgName);
+
+  const src = path.join(projectModules, pkgName);
+  if (!existsSync(src)) return;
+
+  const dst = path.join(standaloneModules, pkgName);
+  // 强制复制——目录可能"存在"但不完整（只有 package.json，缺 dist/）
+  cpSync(src, dst, { recursive: true, dereference: true });
+  patched.push(pkgName);
+
+  // 递归处理这个包自己的依赖
+  for (const dep of getDependencies(pkgName)) {
+    ensurePackageRecursive(dep);
+  }
+}
+
+for (const seed of SEED_PACKAGES) {
+  ensurePackageRecursive(seed);
+}
+
 if (patched.length) {
   console.log("[ensure-runtime-deps] 已补进间接依赖（Turbopack 漏追踪）：");
   for (const dep of patched) console.log(`  - ${dep}`);
