@@ -18,7 +18,7 @@ export default function FilesPanel() {
   const load = useCallback(async () => {
     try {
       const response = await fetch("/api/files", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取素材失败。");
       setImages(Array.isArray(body) ? body : []);
     } catch (issue) {

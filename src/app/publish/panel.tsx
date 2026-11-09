@@ -107,7 +107,7 @@ function ImageTab() {
   const loadCover = useCallback(async () => {
     try {
       const response = await fetch("/api/wechat/cover", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取封面失败。");
       setCover({
         configured: Boolean(body.configured),
@@ -122,7 +122,7 @@ function ImageTab() {
   const loadImages = useCallback(async () => {
     try {
       const response = await fetch("/api/files", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) return;
       setImages(Array.isArray(body) ? body : []);
     } catch {
@@ -136,7 +136,7 @@ function ImageTab() {
     (async () => {
       try {
         const response = await fetch("/api/projects", { cache: "no-store" });
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         const list: Project[] = body.projects ?? [];
         setProjects(list);
         const ready = list.find(project => project.stage === "article");
@@ -154,7 +154,7 @@ function ImageTab() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),
         });
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         if (alive && body && typeof body.ok === "boolean") setChannel(body);
       } catch {
         // 测不了就先不管，用户可手动点「测试连接」。
@@ -170,7 +170,7 @@ function ImageTab() {
     if (!projectId) return;
     let alive = true;
     fetch(`/api/projects/${encodeURIComponent(projectId)}`, { cache: "no-store" })
-      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取稿件失败"))))
+      .then(response => (response.ok ? response.json().catch(() => ({})) : Promise.reject(new Error("读取稿件失败"))))
       .then((body: { current?: { stage: string; content: string } }) => {
         if (alive && body.current?.stage === "article" && body.current.content) {
           setContent(body.current.content);
@@ -197,7 +197,7 @@ function ImageTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "测试失败。");
       const result: ChannelCheck = body;
       setChannel(result);
@@ -223,7 +223,7 @@ function ImageTab() {
       const form = new FormData();
       form.append("file", file);
       const response = await fetch("/api/files", { method: "POST", body: form });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "上传失败。");
       setNotice(`「${file.name}」已进素材库。`);
       await loadImages();
@@ -247,7 +247,7 @@ function ImageTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: libraryPick }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "设置封面失败。");
       setCover({ configured: true, image: body.image ?? "", previewUrl: body.previewUrl ?? "" });
       setNotice("封面已更新。");
@@ -266,7 +266,7 @@ function ImageTab() {
     setWarning("");
     try {
       const response = await fetch("/api/wechat/cover", { method: "DELETE" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "清空封面失败。");
       setCover({ configured: false, image: "", previewUrl: "" });
       setNotice("封面已清空。");
@@ -326,7 +326,7 @@ function ImageTab() {
           ...(digest.trim() ? { digest: digest.trim() } : {}),
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "推送失败。");
       setNotice(`已放进草稿箱：${body.title}`);
       if (body.failedImages?.length) {
@@ -549,7 +549,7 @@ function VideoTab() {
   const load = useCallback(async () => {
     try {
       const response = await fetch("/api/publish/videos", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取视频库失败。");
       setVideos(Array.isArray(body) ? body : []);
     } catch (issue) {
@@ -573,7 +573,7 @@ function VideoTab() {
       const form = new FormData();
       form.append("file", file);
       const response = await fetch("/api/publish/videos", { method: "POST", body: form });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? `「${file.name}」上传失败。`);
       setNotice(`「${file.name}」已进本地视频库。`);
       await load();
@@ -632,7 +632,7 @@ function VideoTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: pick, title: title.trim(), description: description.trim() }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "上传到微信失败。");
       setMediaId(body.mediaId ?? "");
       setNotice("视频已上传到微信永久素材库。下面拿到 media_id，推草稿时用它。");
@@ -792,7 +792,7 @@ function DraftTab() {
     try {
       const url = filter ? `/api/publish/drafts?category=${encodeURIComponent(filter)}` : "/api/publish/drafts";
       const response = await fetch(url, { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取文案失败。");
       setDrafts(Array.isArray(body.drafts) ? body.drafts : []);
     } catch (issue) {
@@ -824,7 +824,7 @@ function DraftTab() {
           category: form.category.trim() || "general",
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "新建失败。");
       setNotice("文案已新建。");
       setForm({ title: "", content: "", category: "general" });
@@ -861,7 +861,7 @@ function DraftTab() {
           category: form.category.trim() || "general",
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "保存失败。");
       setNotice("文案已更新。");
       setEditingId("");

@@ -84,7 +84,7 @@ export function MediaPicker({ articleContent, onSelect }: MediaPickerProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: articleContent }),
       });
-      const body = (await response.json()) as { topics?: string[]; error?: string };
+      const body = (await response.json().catch(() => ({}))) as { topics?: string[]; error?: string };
       if (!response.ok) throw new Error(body.error ?? "提取主题失败。");
       setTopics(body.topics ?? []);
       // 自动填第一个主题，省一次点击。
@@ -126,7 +126,7 @@ export function MediaPicker({ articleContent, onSelect }: MediaPickerProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, style, size: "1024x1024", n: 2 }),
       });
-      const body = (await response.json()) as { images?: GeneratedImage[]; error?: string };
+      const body = (await response.json().catch(() => ({}))) as { images?: GeneratedImage[]; error?: string };
       if (!response.ok) throw new Error(body.error ?? "AI 生图失败。");
       const got = body.images ?? [];
       setImages(got);
@@ -166,7 +166,7 @@ export function MediaPicker({ articleContent, onSelect }: MediaPickerProps) {
         const response = await fetch(
           `/api/ai-image/unsplash?q=${encodeURIComponent(term)}&page=1&orientation=landscape`,
         );
-        const body = (await response.json()) as { photos?: UnsplashPhoto[]; error?: string };
+        const body = (await response.json().catch(() => ({}))) as { photos?: UnsplashPhoto[]; error?: string };
         if (!response.ok) throw new Error(body.error ?? "搜索失败。");
         const got = body.photos ?? [];
         unsplashCache.set(term, { photos: got, expiresAt: Date.now() + UNSPLASH_CACHE_TTL_MS });

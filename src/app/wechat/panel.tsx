@@ -78,7 +78,7 @@ export default function WechatPanel() {
   const loadConfig = useCallback(async () => {
     try {
       const response = await fetch("/api/wechat/config", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取配置失败。");
       setConfigured(Boolean(body.configured));
       setAppIdMasked(body.appIdMasked ?? "");
@@ -103,7 +103,7 @@ export default function WechatPanel() {
   const loadCover = useCallback(async () => {
     try {
       const response = await fetch("/api/wechat/cover", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取封面失败。");
       setCover({
         configured: Boolean(body.configured),
@@ -118,7 +118,7 @@ export default function WechatPanel() {
   const loadImages = useCallback(async () => {
     try {
       const response = await fetch("/api/files", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) return;
       setImages(Array.isArray(body) ? body : []);
     } catch {
@@ -133,7 +133,7 @@ export default function WechatPanel() {
     (async () => {
       try {
         const response = await fetch("/api/projects", { cache: "no-store" });
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         const list: Project[] = body.projects ?? [];
         setProjects(list);
         const ready = list.find(project => project.stage === "article");
@@ -156,7 +156,7 @@ export default function WechatPanel() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),
         });
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         if (alive && body && typeof body.ok === "boolean") setChannel(body);
       } catch {
         // 测不了就先不管，用户可以手动点「测试连接」。
@@ -171,7 +171,7 @@ export default function WechatPanel() {
   useEffect(() => {
     let alive = true;
     fetch("/api/layout-templates", { cache: "no-store" })
-      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取模板失败"))))
+      .then(response => (response.ok ? response.json().catch(() => ({})) : Promise.reject(new Error("读取模板失败"))))
       .then((body: { templates?: LayoutTemplateItem[] }) => {
         if (alive) setTemplates(Array.isArray(body.templates) ? body.templates : []);
       })
@@ -189,7 +189,7 @@ export default function WechatPanel() {
     if (!projectId) return;
     let alive = true;
     fetch(`/api/wechat/theme?projectId=${encodeURIComponent(projectId)}`, { cache: "no-store" })
-      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取排版失败"))))
+      .then(response => (response.ok ? response.json().catch(() => ({})) : Promise.reject(new Error("读取排版失败"))))
       .then((body: { templateId?: string }) => {
         if (alive) setTemplateId(body.templateId || "builtin:default");
       })
@@ -214,7 +214,7 @@ export default function WechatPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error ?? "测试失败。");
     const result: ChannelCheck = body;
     setChannel(result);
@@ -255,7 +255,7 @@ export default function WechatPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appId, appSecret }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "保存失败。");
       setConfigured(true);
       setAppIdMasked(body.appIdMasked ?? "");
@@ -289,7 +289,7 @@ export default function WechatPanel() {
       const form = new FormData();
       form.append("file", file);
       const response = await fetch("/api/wechat/cover", { method: "POST", body: form });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "设置封面失败。");
       setCover({ configured: true, image: body.image ?? "", previewUrl: body.previewUrl ?? "" });
       setNotice("封面已更新。");
@@ -314,7 +314,7 @@ export default function WechatPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: libraryPick }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "设置封面失败。");
       setCover({ configured: true, image: body.image ?? "", previewUrl: body.previewUrl ?? "" });
       setNotice("封面已更新。");
@@ -333,7 +333,7 @@ export default function WechatPanel() {
     setWarning("");
     try {
       const response = await fetch("/api/wechat/cover", { method: "DELETE" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "清空封面失败。");
       setCover({ configured: false, image: "", previewUrl: "" });
       setNotice("封面已清空。");
@@ -352,7 +352,7 @@ export default function WechatPanel() {
     setWarning("");
     try {
       const response = await fetch("/api/wechat/sync", { method: "POST" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "同步失败。");
       setPublished(body.items ?? []);
       setNotice(`同步到 ${body.items?.length ?? 0} 篇已发布文章。`);
@@ -371,7 +371,7 @@ export default function WechatPanel() {
     setWarning("");
     try {
       const response = await fetch("/api/wechat/statistics", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "拉取统计失败。");
       setStats(body.stats ?? []);
       setNotice(`拿到 ${body.stats?.length ?? 0} 天的数据。`);
@@ -412,7 +412,7 @@ export default function WechatPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, templateId }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "推送失败。");
       const uploaded = Number(body.uploadedImages ?? 0);
       const cached = Number(body.cachedImages ?? 0);
@@ -482,7 +482,7 @@ export default function WechatPanel() {
           })),
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "保存账号失败。");
       setAccounts(Array.isArray(body.accounts) ? body.accounts : []);
       setNotice(`已保存 ${body.accounts?.length ?? 0} 个公众号账号。`);
@@ -512,7 +512,7 @@ export default function WechatPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appId: draft.appId, appSecret: draft.appSecret }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "测试失败。");
       if (body.ok) setNotice(`账号「${draft.name || draft.appId}」测试通过。`);
       else setWarning(`${draft.name || draft.appId}：${body.reason}。${body.hint}`);

@@ -136,7 +136,7 @@ export function MultiPlatformPanel() {
   const loadProjects = useCallback(async () => {
     try {
       const response = await fetch("/api/projects", { cache: "no-store" });
-      const body = (await response.json()) as { projects?: Project[] };
+      const body = (await response.json().catch(() => ({}))) as { projects?: Project[] };
       const list = body.projects ?? [];
       setProjects(list);
       setProjectId((current) => current || (list.find((p) => p.stage === "article")?.id ?? ""));
@@ -149,7 +149,7 @@ export function MultiPlatformPanel() {
   const pollStatus = useCallback(async () => {
     try {
       const response = await fetch("/api/bridge/status", { cache: "no-store" });
-      const body = (await response.json()) as BridgeStatus;
+      const body = (await response.json().catch(() => ({}))) as BridgeStatus;
       if (aliveRef.current) setStatus(body);
     } catch {
       if (aliveRef.current) setStatus({ running: false, port: 0, clients: 0 });
@@ -181,7 +181,7 @@ export function MultiPlatformPanel() {
           const response = await fetch(`/api/bridge/task?taskId=${encodeURIComponent(taskId)}`, {
             cache: "no-store",
           });
-          const body = (await response.json()) as SyncOutcome & { error?: string };
+          const body = (await response.json().catch(() => ({}))) as SyncOutcome & { error?: string };
           if (body.status === "done" || body.status === "failed") {
             resolve({ status: body.status, result: body.result });
             return;
@@ -209,7 +209,7 @@ export function MultiPlatformPanel() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ platform: platformId, projectId }),
         });
-        const body = (await response.json()) as { ok?: boolean; taskId?: string; error?: string };
+        const body = (await response.json().catch(() => ({}))) as { ok?: boolean; taskId?: string; error?: string };
         if (!body.ok || !body.taskId) {
           return { status: "failed", result: { ok: false, reason: body.error ?? "推送失败" } };
         }

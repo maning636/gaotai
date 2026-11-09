@@ -59,7 +59,7 @@ export function Gallery({ projectId }: GalleryProps) {
     setError("");
     try {
       const response = await fetch("/api/layout-templates", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取模板失败。");
       const list: LayoutTemplate[] = Array.isArray(body.templates) ? body.templates : [];
       setTemplates(list);

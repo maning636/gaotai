@@ -217,7 +217,7 @@ export function CardsPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pages: dataUrls, dir: safeDir }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "写盘失败。");
       setNotice(`已导出 ${ok} 张 PNG${fail ? `，${fail} 张失败` : ""}。`);
     } catch (issue) {

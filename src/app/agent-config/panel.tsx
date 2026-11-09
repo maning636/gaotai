@@ -44,7 +44,7 @@ export default function AgentConfigPanel() {
   const load = useCallback(async () => {
     try {
       const response = await fetch("/api/agent-config", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取配置失败。");
       const config = body.config as PublicConfig | undefined;
       if (!config) return;
@@ -90,7 +90,7 @@ export default function AgentConfigPanel() {
           },
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "保存失败。");
       setMaskedKey(body.config?.apiKeyMasked ?? "");
       setUpdatedAt(body.config?.updatedAt);
@@ -123,7 +123,7 @@ export default function AgentConfigPanel() {
           },
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "测试失败。");
       setNotice({ tone: body.ok ? "ok" : "error", text: body.message ?? (body.ok ? "连接成功。" : "连接失败") });
     } catch (issue) {

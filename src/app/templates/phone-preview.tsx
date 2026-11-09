@@ -178,7 +178,7 @@ export function PhonePreview({ template, projectTitle, projectId, showApply = tr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, templateId: template.id }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "应用模板失败。");
       setApplyState("done");
       setNotice(`已把「${template.name}」应用到这篇稿子。`);

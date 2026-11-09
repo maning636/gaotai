@@ -85,7 +85,7 @@ export default function LayoutPanel() {
     setError("");
     try {
       const response = await fetch("/api/layout-templates", { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取模板失败。");
       const list: LayoutTemplate[] = body.templates ?? [];
       setTemplates(list);
@@ -207,7 +207,7 @@ export default function LayoutPanel() {
           template: draft,
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "保存失败。");
       setNotice("模板已存下。");
       setDirty(false);
@@ -243,7 +243,7 @@ export default function LayoutPanel() {
           template: copy,
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "复制失败。");
       setNotice("复制好了，改完记得保存。");
       await load();
@@ -259,7 +259,7 @@ export default function LayoutPanel() {
       const response = await fetch(`/api/layout-templates?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "删除失败。");
       setNotice("删掉了。");
       await load();
@@ -277,7 +277,7 @@ export default function LayoutPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: importText }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "样式包解析失败。");
       setImported({ template: body.template, warnings: body.warnings ?? [] });
     } catch (issue) {
@@ -307,7 +307,7 @@ export default function LayoutPanel() {
           template,
         }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "保存失败。");
       setNotice("样式包已经收进模板库。");
       setImported(null);

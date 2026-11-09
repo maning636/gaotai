@@ -27,7 +27,7 @@ export default function StyleMemoryPanel() {
     setError("");
     try {
       const response = await fetch(`/api/style-memory?topicId=${encodeURIComponent(id)}`, { cache: "no-store" });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "读取失败。");
       setProfile(body.profile ?? "");
       setEditCount(body.editCount ?? 0);
@@ -42,7 +42,7 @@ export default function StyleMemoryPanel() {
     (async () => {
       try {
         const response = await fetch("/api/topics", { cache: "no-store" });
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error ?? "读取专题失败。");
         const list: Topic[] = body.topics ?? [];
         setTopics(list);
@@ -67,7 +67,7 @@ export default function StyleMemoryPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topicId }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "生成失败。");
       setProfile(body.profile ?? "");
       setEditCount(body.editCount ?? 0);

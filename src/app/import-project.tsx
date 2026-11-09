@@ -45,7 +45,7 @@ export default function ImportProjectPanel({ topics }: { topics: TopicOption[] }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, content, topicId }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? "导入失败。");
       if (body.converted) {
         setNotice(`已把 ${body.converted} 处 HTML 转成 Markdown，正文 ${body.hanCount} 字。`);
