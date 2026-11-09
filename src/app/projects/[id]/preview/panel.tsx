@@ -122,7 +122,7 @@ export function PreviewPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(forAccountId ? { accountId: forAccountId } : {}),
       });
-      const body = (await response.json()) as ChannelCheck;
+      const body = (await response.json().catch(() => ({}))) as ChannelCheck;
       setChannel(body);
       return body;
     } catch {
@@ -137,7 +137,7 @@ export function PreviewPanel({
     try {
       const response = await fetch("/api/wechat/cover", { cache: "no-store" });
       if (!response.ok) return;
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setCover({
         configured: Boolean(body.configured),
         image: body.image ?? "",
@@ -155,7 +155,7 @@ export function PreviewPanel({
     (async () => {
       try {
         const response = await fetch("/api/wechat/config", { cache: "no-store" });
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         if (!response.ok) return;
         const list: WechatAccountView[] = Array.isArray(body.accounts) ? body.accounts : [];
         setAccounts(list);
@@ -201,8 +201,8 @@ export function PreviewPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, templateId: template.id }),
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "应用模板失败。");
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error((body as { error?: string }).error ?? `应用模板失败（HTTP ${response.status}）`);
       setNotice(`已把「${template.name}」应用到这篇稿子。`);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "应用模板失败。");
@@ -226,9 +226,9 @@ export function PreviewPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: projectTitle, article: articleContent }),
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "生成配图提示词失败。");
-      setNotice(`配图提示词：${body.prompt}`);
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error((body as { error?: string }).error ?? `生成配图提示词失败（HTTP ${response.status}）`);
+      setNotice(`配图提示词：${(body as { prompt?: string }).prompt ?? ""}`);
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "生成配图提示词失败。");
     } finally {
@@ -252,10 +252,10 @@ export function PreviewPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, templateId: selected.id, content: articleContent }),
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "预览失败。");
-      const html = String(body.html ?? "");
-      const text = String(body.text ?? "");
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error((body as { error?: string }).error ?? `预览失败（HTTP ${response.status}）`);
+      const html = String((body as { html?: string }).html ?? "");
+      const text = String((body as { text?: string }).text ?? "");
       if (!html) throw new Error("这篇稿子还没有正文。");
       await navigator.clipboard.writeText(text);
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
@@ -305,14 +305,15 @@ export function PreviewPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, templateId: selected.id, ...(accountId ? { accountId } : {}) }),
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "推送失败。");
-      const uploaded = Number(body.uploadedImages ?? 0);
-      const cached = Number(body.cachedImages ?? 0);
-      setDraftResult({ ok: true, title: body.title, uploadedImages: uploaded });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error((body as { error?: string }).error ?? `推送失败（HTTP ${response.status}）`);
+      const result = body as { title?: string; uploadedImages?: number; cachedImages?: number };
+      const uploaded = Number(result.uploadedImages ?? 0);
+      const cached = Number(result.cachedImages ?? 0);
+      setDraftResult({ ok: true, title: result.title ?? "", uploadedImages: uploaded });
       setNotice(
         [
-          `已放进草稿箱：${body.title}`,
+          `已放进草稿箱：${result.title ?? "未命名"}`,
           uploaded > 0 ? `正文图片已上传 ${uploaded} 张到微信。` : "",
           cached > 0 ? `（${cached} 张复用缓存）` : "",
         ]
