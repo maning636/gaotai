@@ -133,4 +133,24 @@ if (unresolvable.length) {
   for (const spec of unresolvable) console.log(`  ? ${spec}`);
 }
 
+// Turbopack 把 jsdom 打成哈希名（如 jsdom-4cccfac9827ebcfe），
+// 它的间接依赖不会被文件追踪扫到，但运行时 require 会找到它们。
+// tough-cookie 和 data-urls 是已知的两个漏网之鱼——
+// 缺了它们，微信草稿渲染管线（markdownToWechatHtmlAsync → jsdom）会崩溃，
+// API 返回空 body，前端报 "Unexpected end of JSON input"。
+const INDIRECT_DEPS = ["tough-cookie", "data-urls"];
+const patched = [];
+for (const dep of INDIRECT_DEPS) {
+  const src = path.join(projectModules, dep);
+  const dst = path.join(standaloneModules, dep);
+  if (existsSync(src) && !existsSync(dst)) {
+    cpSync(src, dst, { recursive: true });
+    patched.push(dep);
+  }
+}
+if (patched.length) {
+  console.log("[ensure-runtime-deps] 已补进间接依赖（Turbopack 漏追踪）：");
+  for (const dep of patched) console.log(`  - ${dep}`);
+}
+
 console.log("[ensure-runtime-deps] done");
