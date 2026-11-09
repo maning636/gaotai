@@ -1,7 +1,4 @@
-import { JSDOM } from "jsdom";
-import { createCanvas, loadImage } from "canvas";
 import type { Canvas } from "canvas";
-import mermaid from "mermaid";
 
 /**
  * Mermaid 图表 → PNG dataURL。
@@ -13,6 +10,12 @@ import mermaid from "mermaid";
  * mermaid 在 Node 环境需要 DOM（它内部用 document/navigator/SVGElement 等），
  * 所以这里起一个 jsdom 实例垫底，并补上 canvas 缺的 getBBox/getCTM。
  * 只做一次：DOM 是全局单例，mermaid 也全局只初始化一次。
+ *
+ * 为什么全部用动态 import：
+ *   jsdom / canvas / mermaid 三者加起来依赖树很深，打包后任何一环缺失都会
+ *   让**整个后端进程**在模块加载阶段崩掉——连不画图的文章也推不出去。
+ *   改成按需加载后，最坏情况只是 mermaid 渲染失败、由调用方降级成代码块，
+ *   其余排版与推送照常工作。
  */
 
 /**
@@ -24,7 +27,9 @@ import mermaid from "mermaid";
  * mermaid 布局时拿它量节点，补一个固定 100×100 的近似值即可（布局
  * 只关心相对位置，绝对值由 viewBox 决定）。
  */
-function ensureDom(): void {
+async function ensureDom(): Promise<void> {
+  if (domReady) return;
+  const { JSDOM } = await import("jsdom");
   const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
     url: "http://localhost/",
   });
@@ -66,7 +71,11 @@ function ensureDom(): void {
   proto.getScreenCTM = function getScreenCTM() {
     return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   };
+  domReady = true;
 }
+
+/** DOM 垫底只做一次；重复 import jsdom 会白建实例。 */
+let domReady = false;
 
 /** 每个 mermaid 渲染实例的 id 必须唯一，否则 mermaid 内部状态串台。 */
 let nextId = 0;
@@ -83,6 +92,20 @@ export type MermaidTheme = {
 // mermaid 全局只在第一次调用时初始化一次（重复 initialize 会警告并重置）。
 let initialized = false;
 
+/** 懒加载 mermaid：不在模块顶层 import，避免拖垮整个后端。 */
+type MermaidApi = {
+  initialize: (config: Record<string, unknown>) => void;
+  render: (id: string, source: string) => Promise<{ svg: string }>;
+};
+let mermaidApi: MermaidApi | null = null;
+
+async function getMermaid(): Promise<MermaidApi> {
+  if (mermaidApi) return mermaidApi;
+  const mod = (await import("mermaid")) as unknown as { default?: MermaidApi } & MermaidApi;
+  mermaidApi = (mod.default ?? mod) as MermaidApi;
+  return mermaidApi;
+}
+
 /**
  * 渲染 Mermaid 源码为 SVG 字符串。
  *
@@ -90,9 +113,10 @@ let initialized = false;
  * mermaid.render 转成 SVG。失败时抛错，由调用方兜底成代码原文。
  */
 export async function renderMermaidToSvg(source: string, theme?: Partial<MermaidTheme>): Promise<string> {
-  ensureDom();
+  await ensureDom();
+  const api = await getMermaid();
   if (!initialized) {
-    mermaid.initialize({
+    api.initialize({
       startOnLoad: false,
       theme: "base",
       securityLevel: "loose",
@@ -102,16 +126,13 @@ export async function renderMermaidToSvg(source: string, theme?: Partial<Mermaid
     });
     initialized = true;
   }
-  const mermaidApi = mermaid as unknown as {
-    render: (id: string, source: string) => Promise<{ svg: string }>;
-  };
 
   // 注入主题：base 主题 + 一组与稿台一致的色值。mermaid 的 base 主题
   // 支持用 init 覆盖 primaryColor / primaryTextColor / lineColor / background。
   const init = theme && Object.keys(theme).length ? theme : defaultTheme();
   const directive = `%%{init: ${JSON.stringify({ theme: "base", ...init })}}%%`;
   const id = `gm-${nextId++}`;
-  const result = await mermaidApi.render(id, `${directive}\n${source}`);
+  const result = await api.render(id, `${directive}\n${source}`);
   return result.svg;
 }
 
@@ -134,6 +155,7 @@ function defaultTheme(): MermaidTheme {
  * 知道位图尺寸。scale 控制输出分辨率（2 = 2x，导出更清晰）。
  */
 export async function rasterizeSvgToPng(svg: string, scale = 2): Promise<string> {
+  const { createCanvas, loadImage } = await import("canvas");
   const sized = normalizeSvgSize(svg);
   const dataUrl = `data:image/svg+xml;base64,${Buffer.from(sized, "utf8").toString("base64")}`;
   const img = await loadImage(dataUrl);
