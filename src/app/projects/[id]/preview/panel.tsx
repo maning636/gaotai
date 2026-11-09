@@ -7,17 +7,36 @@ import type { LayoutTemplate } from "../../../../lib/layout-template";
 import { inlineCustomCss } from "../../../../lib/custom-css/inliner";
 import { PREVIEW_SAMPLE } from "../../../../lib/preview-sample";
 import { PhonePreview } from "../../../templates/phone-preview";
+import {
+  CHART_KIND_HINTS,
+  CHART_KIND_LABELS,
+  CHART_KIND_PURPOSES,
+  chartSpecSchema,
+  type ChartKind,
+} from "../../../../lib/chart-spec";
+import { paragraphInsertOffset } from "../../../../lib/illustration-plan";
+import { insertMarkdownAt } from "../../../../lib/editor-insert";
 import styles from "./preview.module.css";
+
+type IllustrationPlanItem = {
+  id: string;
+  kind: ChartKind;
+  title: string;
+  afterParagraph: number;
+  anchorText: string;
+  data: unknown;
+  rationale: string;
+};
 
 /**
  * 排版预览面板（发布中心）。
  *
- * 文章签字确认后，所有排版到发布的操作按顺序收在这一页：
- *   ① 选模板 → ② 插入图表（含配图提示词）→ ③ 公众号通道 → ④ 封面图 → ⑤ 推草稿
+ * 编辑器只管文字；所有图片、图解和排版操作都在这里：
+ *   ② AI 生图（手动制图 / 全文自动配图）→ ③ 配图提示词 → ④ 选模板 → ⑤ 自定义 CSS
+ *   → ⑥ 公众号通道 → ⑦ 封面图 → ⑧ 推草稿
  * 左侧功能区从上到下就是这条流程，右侧手机常驻显示真实正文。
  *
- * 用户不用在导航栏来回跳——通道没通就提示去配，封面没配就提示去配，
- * 都就绪了「推到草稿箱」才能点；推完了出现「去公众号后台发布」。
+ * 素材库在顶部——拖图到右侧手机预览即可插入正文，也可以在 AI 生图里生成图解。
  */
 
 const SOURCE_LABEL: Record<LayoutTemplate["source"], string> = {
@@ -94,6 +113,27 @@ export function PreviewPanel({
   const [library, setLibrary] = useState<{ path: string; url: string }[]>([]);
   /** 拖拽时手机预览高亮提示。 */
   const [dragOver, setDragOver] = useState(false);
+  /** 图解生成面板是否展开。 */
+  const [showIllustration, setShowIllustration] = useState(false);
+  const [illustrationKind, setIllustrationKind] = useState<ChartKind>("bar");
+  const [illustrationTitle, setIllustrationTitle] = useState("");
+  const [illustrationUnit, setIllustrationUnit] = useState("");
+  const [illustrationSource, setIllustrationSource] = useState("");
+  const [illustrationData, setIllustrationData] = useState("");
+  const [illustrationPreview, setIllustrationPreview] = useState<{ url: string; width: number; height: number } | null>(null);
+  const [illustrationBusy, setIllustrationBusy] = useState(false);
+  const [illustrationError, setIllustrationError] = useState("");
+  const [chartSamples, setChartSamples] = useState<Record<string, string> | null>(null);
+  const [illustrationMode, setIllustrationMode] = useState<"manual" | "auto">("manual");
+  const [autoPlanBusy, setAutoPlanBusy] = useState(false);
+  const [autoPlanError, setAutoPlanError] = useState("");
+  const [autoPlan, setAutoPlan] = useState<IllustrationPlanItem[]>([]);
+  const [autoPlanSelected, setAutoPlanSelected] = useState<Record<string, boolean>>({});
+  const [autoInsertBusy, setAutoInsertBusy] = useState(false);
+  const [autoInsertResult, setAutoInsertResult] = useState<{ ok: number; fail: number; messages: string[] } | null>(null);
+  const [autoWarnings, setAutoWarnings] = useState<string[]>([]);
+  const [autoArticleLength, setAutoArticleLength] = useState(0);
+  const [autoHasNumbers, setAutoHasNumbers] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -134,6 +174,19 @@ export function PreviewPanel({
   useEffect(() => {
     void loadLibrary();
   }, [loadLibrary]);
+
+  useEffect(() => {
+    if (!showIllustration || chartSamples) return;
+    let alive = true;
+    fetch("/api/illustration/samples", { cache: "no-store" })
+      .then(response => (response.ok ? response.json() : Promise.reject(new Error("读取图解样例失败"))))
+      .then((body: { samples?: Record<string, string> }) => {
+        if (alive && body.samples) setChartSamples(body.samples);
+      })
+      .catch(() => {})
+      .finally(() => { /* done */ });
+    return () => { alive = false; };
+  }, [showIllustration, chartSamples]);
 
   /**
    * 从素材库拖一张图到手机预览的指定位置：
@@ -250,6 +303,178 @@ export function PreviewPanel({
     } finally {
       setBusy("");
       if (event.target) event.target.value = "";
+    }
+  }
+
+  /** 解析图解数据为 ChartSpec。 */
+  function parseIllustrationSpec(): { spec?: unknown; error?: string } {
+    const data = illustrationData.trim();
+    if (!data) return { error: "数据不能为空。" };
+    try {
+      const json = JSON.parse(data);
+      const parsed = chartSpecSchema.safeParse({ ...json, kind: illustrationKind, title: illustrationTitle, unit: illustrationUnit, source: illustrationSource });
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        return { error: `${issue?.path?.join(".") ?? ""} ${issue?.message ?? "数据不对"}`.trim() };
+      }
+      return { spec: parsed.data };
+    } catch {
+      return { error: "数据不是合法 JSON。" };
+    }
+  }
+
+  async function onGenerateIllustration() {
+    if (illustrationBusy) return;
+    const spec = parseIllustrationSpec();
+    if (!spec.spec) {
+      setIllustrationError(spec.error ?? "数据格式不对。");
+      return;
+    }
+    setIllustrationBusy(true);
+    setIllustrationError("");
+    try {
+      const response = await fetch("/api/illustration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(spec.spec),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error ?? "生成图解失败。");
+      setIllustrationPreview({ url: body.url, width: body.width, height: body.height });
+    } catch (issue) {
+      setIllustrationError(issue instanceof Error ? issue.message : "生成图解失败。");
+    } finally {
+      setIllustrationBusy(false);
+    }
+  }
+
+  function onInsertIllustration() {
+    if (!illustrationPreview) return;
+    const snippet = `![图解](${illustrationPreview.url})`;
+    const blocks = editableContent.split(/\n\n+/);
+    blocks.push(snippet);
+    const newContent = blocks.join("\n\n");
+    void saveContent(newContent, "图解已插入正文末尾。可在预览中拖动调整位置。");
+    setIllustrationPreview(null);
+    void loadLibrary();
+  }
+
+  async function onAnalyzeIllustration() {
+    if (autoPlanBusy) return;
+    setAutoPlanBusy(true);
+    setAutoPlanError("");
+    setAutoInsertResult(null);
+    setAutoWarnings([]);
+    setAutoPlan([]);
+    setAutoPlanSelected({});
+    try {
+      const response = await fetch("/api/illustration/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error ?? "分析全文失败。");
+      const plan = Array.isArray(body.plan) ? body.plan : [];
+      setAutoPlan(plan);
+      setAutoPlanSelected(Object.fromEntries(plan.map((item: IllustrationPlanItem) => [item.id, true])));
+      setAutoWarnings(Array.isArray(body.warnings) ? body.warnings : []);
+      setAutoArticleLength(typeof body.articleLength === "number" ? body.articleLength : 0);
+      setAutoHasNumbers(body.hasNumbers !== false);
+    } catch (issue) {
+      setAutoPlanError(issue instanceof Error ? issue.message : "分析全文失败。");
+    } finally {
+      setAutoPlanBusy(false);
+    }
+  }
+
+  function onTogglePlanItem(id: string) {
+    setAutoPlanSelected(current => ({ ...current, [id]: !current[id] }));
+  }
+
+  function onEditPlanData(id: string, value: string) {
+    setAutoPlan(current => current.map(item => (item.id === id ? { ...item, data: value } : item)));
+  }
+
+  function planDataText(item: IllustrationPlanItem): string {
+    if (typeof item.data === "string") return item.data;
+    try { return JSON.stringify(item.data, null, 2); } catch { return String(item.data); }
+  }
+
+  function parsePlanData(item: IllustrationPlanItem): { spec?: unknown; error?: string } {
+    const raw = item.data;
+    if (typeof raw !== "string") {
+      const parsed = chartSpecSchema.safeParse(raw);
+      return parsed.success ? { spec: parsed.data } : { error: "这份数据不是合法的图解数据。" };
+    }
+    try {
+      const json = JSON.parse(raw);
+      const parsed = chartSpecSchema.safeParse(json);
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        return { error: `${issue?.path?.join(".") ?? ""} ${issue?.message ?? "数据不对"}`.trim() };
+      }
+      return { spec: parsed.data };
+    } catch {
+      return { error: "编辑后的数据不是合法 JSON。" };
+    }
+  }
+
+  async function onGenerateAutoIllustration() {
+    if (autoInsertBusy) return;
+    const selectedItems = autoPlan.filter(item => autoPlanSelected[item.id]);
+    if (!selectedItems.length) {
+      setAutoPlanError("还没有勾选任何一条。");
+      return;
+    }
+    setAutoInsertBusy(true);
+    setAutoInsertResult(null);
+    setAutoPlanError("");
+    const ok: string[] = [];
+    const fail: { title: string; reason: string }[] = [];
+    let content = editableContent;
+
+    try {
+      for (const item of selectedItems) {
+        const parsed = parsePlanData(item);
+        if (!parsed.spec) {
+          fail.push({ title: item.title, reason: parsed.error ?? "数据不对" });
+          continue;
+        }
+        try {
+          const response = await fetch("/api/illustration", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(parsed.spec),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error ?? "生成图解失败。");
+          const snippet = `![${item.title}](${body.url})`;
+          const offset = paragraphInsertOffset(content, item.afterParagraph);
+          const { content: next } = insertMarkdownAt(content, offset, snippet);
+          content = next;
+          ok.push(item.title);
+        } catch (issue) {
+          fail.push({ title: item.title, reason: issue instanceof Error ? issue.message : "生成失败" });
+        }
+      }
+
+      if (ok.length) {
+        await saveContent(content, `已生成 ${ok.length} 张图并插入正文${fail.length ? `，${fail.length} 张失败` : ""}。`);
+        void loadLibrary();
+      }
+      setAutoInsertResult({
+        ok: ok.length,
+        fail: fail.length,
+        messages: [
+          ...ok.map(title => `✓ ${title}`),
+          ...fail.map(item => `✗ ${item.title}：${item.reason}`),
+        ],
+      });
+      setAutoPlan([]);
+      setAutoPlanSelected({});
+    } finally {
+      setAutoInsertBusy(false);
     }
   }
 
@@ -554,10 +779,184 @@ export function PreviewPanel({
           </div>
         ) : null}
 
-        {/* ① 选模板 */}
+        {/* ② AI 生图：手动制图 + 全文自动配图 */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
-            <span className={styles.stepNum}>1</span>
+            <span className={styles.stepNum}>2</span>
+            <h2 className={styles.stepTitle}>AI 生图</h2>
+            <button
+              type="button"
+              className="gt-btn gt-btn--sm gt-btn--ghost"
+              style={{ marginLeft: "auto" }}
+              onClick={() => setShowIllustration(prev => !prev)}
+            >
+              {showIllustration ? "收起" : "展开"}
+            </button>
+          </div>
+          {showIllustration ? (
+            <div className={styles.stepBlock}>
+              <div className="gt-row" style={{ gap: "6px", marginBottom: "12px" }}>
+                <button
+                  type="button"
+                  className={`gt-btn gt-btn--sm${illustrationMode === "manual" ? " gt-btn--primary" : ""}`}
+                  onClick={() => { setIllustrationMode("manual"); setAutoPlanError(""); }}
+                >
+                  手动制图
+                </button>
+                <button
+                  type="button"
+                  className={`gt-btn gt-btn--sm${illustrationMode === "auto" ? " gt-btn--primary" : ""}`}
+                  onClick={() => { setIllustrationMode("auto"); setIllustrationError(""); }}
+                >
+                  全文自动配图
+                </button>
+              </div>
+
+              {illustrationMode === "manual" ? (
+                <div className="gt-stack gt-stack--sm">
+                  <div className="gt-chart-grid">
+                    {(Object.keys(CHART_KIND_LABELS) as ChartKind[]).map(kind => (
+                      <button
+                        key={kind}
+                        type="button"
+                        className={`gt-chart-card${illustrationKind === kind ? " gt-chart-card--active" : ""}`}
+                        onClick={() => { setIllustrationKind(kind); setIllustrationPreview(null); setIllustrationError(""); }}
+                      >
+                        <span className="gt-chart-card__thumb">
+                          {chartSamples?.[kind] ? (
+                            <img src={chartSamples[kind]} alt={CHART_KIND_LABELS[kind]} loading="lazy" />
+                          ) : (
+                            <span className="gt-chart-card__placeholder">{CHART_KIND_LABELS[kind]}</span>
+                          )}
+                        </span>
+                        <span className="gt-chart-card__name">{CHART_KIND_LABELS[kind]}</span>
+                        <span className="gt-chart-card__purpose">{CHART_KIND_PURPOSES[kind]}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="gt-field">
+                    <span className="gt-label">标题</span>
+                    <input className="gt-input" value={illustrationTitle} onChange={e => setIllustrationTitle(e.target.value)} placeholder="一句话说清这张图" />
+                  </label>
+
+                  <div className="gt-row" style={{ gap: "8px" }}>
+                    <label className="gt-field" style={{ flex: 1 }}>
+                      <span className="gt-label">单位（可选）</span>
+                      <input className="gt-input" value={illustrationUnit} onChange={e => setIllustrationUnit(e.target.value)} placeholder="分钟 / 篇 / %" />
+                    </label>
+                    <label className="gt-field" style={{ flex: 1 }}>
+                      <span className="gt-label">来源（可选）</span>
+                      <input className="gt-input" value={illustrationSource} onChange={e => setIllustrationSource(e.target.value)} placeholder="2026-10 内部统计" />
+                    </label>
+                  </div>
+
+                  <label className="gt-field">
+                    <span className="gt-label">数据</span>
+                    <textarea className="gt-textarea gt-textarea--mono" rows={6} value={illustrationData} onChange={e => setIllustrationData(e.target.value)} placeholder={CHART_KIND_HINTS[illustrationKind]} />
+                  </label>
+
+                  {illustrationError ? <div className="gt-alert gt-alert--error">{illustrationError}</div> : null}
+
+                  <div className="gt-row">
+                    <button className="gt-btn gt-btn--primary" type="button" onClick={() => void onGenerateIllustration()} disabled={illustrationBusy}>
+                      {illustrationBusy ? "生成中…" : "生成预览"}
+                    </button>
+                    {illustrationPreview ? (
+                      <button className="gt-btn" type="button" onClick={onInsertIllustration}>插入到正文</button>
+                    ) : null}
+                  </div>
+
+                  {illustrationPreview ? (
+                    <img src={illustrationPreview.url} alt="图解预览" style={{ width: "100%", border: "2px solid #1A1A1A", background: "#fff" }} />
+                  ) : null}
+                </div>
+              ) : (
+                <div className="gt-stack gt-stack--sm">
+                  <div className="gt-row" style={{ gap: "8px" }}>
+                    <button className="gt-btn gt-btn--primary" type="button" onClick={() => void onAnalyzeIllustration()} disabled={autoPlanBusy}>
+                      {autoPlanBusy ? "正在通读全文…" : "分析全文"}
+                    </button>
+                    <span className="gt-small gt-muted">稿台通读正文，自动决定配几张图、配在什么位置。</span>
+                  </div>
+
+                  {autoArticleLength > 0 ? (
+                    <p className="gt-small gt-muted" style={{ margin: 0 }}>
+                      正文 {autoArticleLength} 字{autoHasNumbers ? "" : "，没有数字——只配结构类图。"}。
+                    </p>
+                  ) : null}
+
+                  {autoPlanError ? <div className="gt-alert gt-alert--error">{autoPlanError}</div> : null}
+
+                  {autoPlan.length ? (
+                    <>
+                      <div className="gt-stack gt-stack--sm">
+                        {autoPlan.map(item => (
+                          <div key={item.id} className="gt-chart-plan-card">
+                            <label className="gt-chart-plan-card__head">
+                              <input type="checkbox" checked={Boolean(autoPlanSelected[item.id])} onChange={() => onTogglePlanItem(item.id)} />
+                              <span className="gt-chart-plan-card__kind">{CHART_KIND_LABELS[item.kind]}</span>
+                              <span className="gt-chart-plan-card__title">{item.title}</span>
+                            </label>
+                            <p className="gt-chart-plan-card__where">插在第 {item.afterParagraph} 段之后：{item.anchorText || "（段落在文末）"}</p>
+                            <p className="gt-chart-plan-card__why">为什么这里要图：{item.rationale}</p>
+                            <details className="gt-chart-plan-card__data">
+                              <summary>编辑数据</summary>
+                              <textarea className="gt-textarea gt-textarea--mono" rows={4} value={planDataText(item)} onChange={e => onEditPlanData(item.id, e.target.value)} />
+                            </details>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="gt-row">
+                        <button className="gt-btn gt-btn--primary" type="button" onClick={() => void onGenerateAutoIllustration()} disabled={autoInsertBusy}>
+                          {autoInsertBusy ? "生成并插入中…" : `生成并插入已选（${autoPlan.filter(item => autoPlanSelected[item.id]).length} 张）`}
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {autoWarnings.length ? (
+                    <div className="gt-alert gt-alert--warn">
+                      {autoWarnings.map((w, i) => <div key={i}>{w}</div>)}
+                    </div>
+                  ) : null}
+
+                  {autoInsertResult ? (
+                    <div className="gt-alert gt-alert--info">
+                      <div>成功 {autoInsertResult.ok} 张、失败 {autoInsertResult.fail} 张。</div>
+                      {autoInsertResult.messages.map((m, i) => <div key={i}>{m}</div>)}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className={styles.stepDesc}>手动制图或全文自动配图，生成的图直接插入正文。</p>
+          )}
+        </section>
+
+        {/* ③ 配图提示词 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>3</span>
+            <h2 className={styles.stepTitle}>配图提示词</h2>
+          </div>
+          <div className={styles.stepBlock}>
+            <button
+              className="gt-btn gt-btn--sm gt-btn--ghost"
+              type="button"
+              onClick={() => void onImagePrompt()}
+              disabled={busy !== ""}
+            >
+              {busy === "prompt" ? "生成中…" : "生成配图提示词"}
+            </button>
+          </div>
+        </section>
+
+        {/* ④ 选模板 */}
+        <section className={styles.step}>
+          <div className={styles.stepHead}>
+            <span className={styles.stepNum}>4</span>
             <h2 className={styles.stepTitle}>选排版模板</h2>
             <Link className="gt-small" href={`/projects/${projectId}/cards`} style={{ marginLeft: "auto" }}>
               卡片模式 →
@@ -610,10 +1009,10 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* 自定义 CSS：折叠文本框，粘贴后应用到右侧预览 */}
+        {/* ⑤ 自定义 CSS：折叠文本框，粘贴后应用到右侧预览 */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
-            <span className={styles.stepNum}>1.5</span>
+            <span className={styles.stepNum}>5</span>
             <h2 className={styles.stepTitle}>自定义 CSS</h2>
             <button
               type="button"
@@ -645,39 +1044,10 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* ② 插入图表 + 配图提示词 */}
+        {/* ⑥ 公众号通道 */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
-            <span className={styles.stepNum}>2</span>
-            <h2 className={styles.stepTitle}>插入图表</h2>
-          </div>
-          <p className={styles.stepDesc}>
-            在编辑器里插入图片和图表后，回到这里排版。图表会随正文一起推到公众号草稿。
-          </p>
-          <div className={styles.stepBlock}>
-            <div className="gt-row" style={{ gap: "8px", flexWrap: "wrap" }}>
-              <Link className="gt-btn gt-btn--sm gt-btn--ghost" href={`/projects/${projectId}`}>
-                插入图片 →
-              </Link>
-              <Link className="gt-btn gt-btn--sm gt-btn--ghost" href={`/projects/${projectId}`}>
-                生成图解 →
-              </Link>
-              <button
-                className="gt-btn gt-btn--sm gt-btn--ghost"
-                type="button"
-                onClick={() => void onImagePrompt()}
-                disabled={busy !== ""}
-              >
-                {busy === "prompt" ? "生成中…" : "配图提示词"}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* ③ 公众号通道 */}
-        <section className={styles.step}>
-          <div className={styles.stepHead}>
-            <span className={styles.stepNum}>3</span>
+            <span className={styles.stepNum}>6</span>
             <h2 className={styles.stepTitle}>公众号通道</h2>
             <span
               className={`gt-tag ${channel === null ? "gt-tag--yellow" : channel.ok ? "gt-tag--green" : "gt-tag--pink"}`}
@@ -732,10 +1102,10 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* ④ 封面图 */}
+        {/* ⑦ 封面图 */}
         <section className={styles.step}>
           <div className={styles.stepHead}>
-            <span className={styles.stepNum}>4</span>
+            <span className={styles.stepNum}>7</span>
             <h2 className={styles.stepTitle}>封面图</h2>
             <span className={`gt-tag ${coverReady ? "gt-tag--green" : "gt-tag--yellow"}`} style={{ marginLeft: "auto" }}>
               {coverReady ? "已配" : "未配"}
@@ -764,10 +1134,10 @@ export function PreviewPanel({
           )}
         </section>
 
-        {/* ⑤ 推草稿箱 */}
+        {/* ⑧ 推草稿箱 */}
         <section className={`${styles.step} ${styles.stepFinal}`}>
           <div className={styles.stepHead}>
-            <span className={styles.stepNum}>5</span>
+            <span className={styles.stepNum}>8</span>
             <h2 className={styles.stepTitle}>推到草稿箱</h2>
           </div>
           {draftResult ? (
