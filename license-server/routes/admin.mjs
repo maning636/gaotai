@@ -413,12 +413,21 @@ export function createAdminRoute({ config, store, randomInt, now }) {
       }
       // 表单只改 welcome/fallback/faq/products，listKeywords 与 menu 沿用当前生效值，
       // 合并后校验结构再落盘。
+      // products：表单只收集已知字段；按 key 把当前配置里的扩展字段
+      // （issueBackend / validityDays 等表单不收集的）透传保留，防止保存文案时抹掉。
+      const prevBykey = new Map(
+        (currentWechatConfig(config).products || []).map((p) => [p.key, p]),
+      );
+      const productsMerged = parsed.config.products.map((p) => {
+        const prev = prevBykey.get(p.key);
+        return prev ? { ...prev, ...p } : p;
+      });
       const merged = {
         ...currentWechatConfig(config),
         welcome: parsed.config.welcome,
         fallback: parsed.config.fallback,
         faq: parsed.config.faq,
-        products: parsed.config.products,
+        products: productsMerged,
       };
       const saved = saveWechatConfig(config.dataDir, merged);
       if (!saved.ok) {

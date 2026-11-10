@@ -108,6 +108,14 @@ export function validateWechatConfig(obj) {
       if (p.replySuffix !== undefined && typeof p.replySuffix !== 'string') {
         errors.push(`products[${i}].replySuffix 必须是字符串`);
       }
+      // 可选扩展：发码后端与有效期（标书 15 天试用码用）。
+      // issueBackend 缺省 = 'local'（稿台码，本地 store）；'bidmaster-api' = 调标书服务器建码。
+      if (p.issueBackend !== undefined && !['local', 'bidmaster-api'].includes(p.issueBackend)) {
+        errors.push(`products[${i}].issueBackend 必须是 'local' 或 'bidmaster-api'`);
+      }
+      if (p.validityDays !== undefined && (!Number.isInteger(p.validityDays) || p.validityDays < 1 || p.validityDays > 365)) {
+        errors.push(`products[${i}].validityDays 必须是 1~365 的整数`);
+      }
     });
   }
   if (!Array.isArray(obj.faq)) {

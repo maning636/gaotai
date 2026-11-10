@@ -1,13 +1,16 @@
 // 微信公众号回调路由：GET /wechat（验签回 echostr）与 POST /wechat（收消息回被动回复）。
 //
 // 约束：
-//  - 5 秒内必须返回：微信对回调有时限。本路由所有逻辑都是内存/本地 JSON，
-//    不发外部请求，天然满足。
+//  - 5 秒内必须返回：微信对回调有时限。稿台码路径全部是内存/本地 JSON，天然满足。
+//    标书码路径（issueBackend='bidmaster-api'）会向同机标书服务发一次 HTTP
+//    （127.0.0.1:8093，登录+建码 <300ms），仍在时限内；失败降级为提示不发码。
 //  - 重复推送幂等：微信会重试同一消息。用进程内 Map 记最近 200 个消息指纹，
-//    重复的直接返回空串，不重复回话/发码。（发码本身经 contact 已幂等。）
+//    重复的直接返回空串，不重复回话/发码。（稿台码经 contact 幂等；标书码经
+//    bidmaster-issued.json 映射幂等。）
 import { checkSignature, parseXml, textReplyXml } from '../lib/wechat.mjs';
 import { handleWechatMessage } from '../lib/wechat-router.mjs';
 import { generateCode } from '../lib/store.mjs';
+import { createBidmasterIssuer } from '../lib/bidmaster-issuer.mjs';
 import { createHash } from 'node:crypto';
 
 // 去重窗口：记住最近 200 个已处理的消息指纹。
@@ -82,6 +85,12 @@ export function createWechatRoute({ config, store, randomInt }) {
     return record.code;
   }
 
+  // 标书产品发码桥：调标书服务器管理 API 在其 licenses 表落 15 天试用码。
+  // 同机部署（127.0.0.1:8093），耗时 <300ms，满足微信 5 秒回调时限。
+  // 未配置 BIDMASTER_ADMIN_USER/PASS 时 configured()=false，发码会抛错 →
+  // 路由层降级为兜底提示（不让回调 500），稿台码不受影响。
+  const bidmasterIssuer = createBidmasterIssuer({ dataDir: config.dataDir, env: process.env });
+
   async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const token = config.wechatToken || '';
@@ -145,7 +154,13 @@ export function createWechatRoute({ config, store, randomInt }) {
         message: msg,
         config: config.wechat,
         openid,
-        issue: (oid, product) => issueCodeForOpenid(oid, product),
+        // 产品级发码后端分发：默认本地 store（稿台码）；
+        // issueBackend === 'bidmaster-api' 走标书服务器管理 API（15 天试用码，
+        // 落在标书自己的 licenses 表，客户端激活才认）。见 lib/bidmaster-issuer.mjs。
+        issue: (oid, product) =>
+          product && product.issueBackend === 'bidmaster-api'
+            ? bidmasterIssuer.issueForOpenid(oid, product)
+            : issueCodeForOpenid(oid, product),
       });
 
       if (!result.reply) {
