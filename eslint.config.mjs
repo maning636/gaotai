@@ -126,6 +126,7 @@ export default tseslint.config(
       "node_modules/**",
       ".next/**",
       "release/**",
+      "release-new/**",
       "dist/**",
       ".tmp/**",
       "data/**",
@@ -170,6 +171,60 @@ export default tseslint.config(
     name: "gaotai/scripts",
     files: ["scripts/**/*.mjs", "scripts/**/*.mts", "license-server/**/*.mjs", "next.config.ts"],
     languageOptions: { sourceType: "module", globals: nodeGlobals },
+  },
+  {
+    // 截图类脚本仍是 CommonJS：它们直接 require Electron 并同步跑，
+    // 改成 ESM 会牵动 electron 启动方式，属于无关改动。这里只补上
+    // commonjs 与 Node 全局，让它们不再整片报 no-undef。
+    name: "gaotai/scripts-cjs",
+    files: ["scripts/**/*.cjs"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: { ...nodeGlobals, require: "readonly", module: "writable", exports: "writable", __dirname: "readonly", __filename: "readonly" },
+    },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
+    // 浏览器扩展：MV3 的 service worker + content script，跑在浏览器里而不是 Node。
+    // 必须单独声明浏览器/扩展全局，否则 chrome/window 全是 no-undef。
+    // 这份配置还有个更重要的用途：它让 ESLint 真正解析 extension/**，
+    // 语法错误（比如某个回调里误用了 await）会在 lint 阶段就炸出来——
+    // 这类错误浏览器只会在加载 service worker 时静默拒绝，界面上毫无提示。
+    name: "gaotai/browser-extension",
+    files: ["extension/**/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: {
+        // 兼容两套运行时：浏览器里跑 content script / service worker，
+        // Node 测试里会被 require 进来（文件末尾有 module.exports 分支）。
+        ...browserGlobals,
+        ...nodeGlobals,
+        chrome: "readonly",
+        browser: "readonly",
+        WebSocket: "readonly",
+        XMLHttpRequest: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
+        Blob: "readonly",
+        File: "readonly",
+        FileReader: "readonly",
+        FormData: "readonly",
+        MutationObserver: "readonly",
+        requestAnimationFrame: "readonly",
+        cancelAnimationFrame: "readonly",
+        getComputedStyle: "readonly",
+        module: "writable",
+        exports: "writable",
+      },
+    },
+    rules: {
+      // 这些是不打包的胶水脚本：多个文件按 manifest 顺序拼接执行，
+      // 变量跨文件共享；`_template.js` 还是留给适配器作者的骨架，
+      // 本身就带未使用示例。未使用变量在这里不是缺陷信号，关掉。
+      "@typescript-eslint/no-unused-vars": "off",
+      // 允许 require("...") 之外的 CommonJS 写法（末尾的 module.exports）。
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
   {
     // React hooks 规则：rules-of-hooks（调用顺序）+ exhaustive-deps（依赖数组）。

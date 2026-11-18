@@ -8,12 +8,17 @@
 // 注意：Chrome MV3 的 service worker 会在空闲时被回收，所有状态都放
 // chrome.storage.local 而不是内存变量，重活后能恢复。
 
-const WS_PORT = 9527; // 与 Electron 主进程默认一致；冲突时服务端会 +1，这里靠重连兜底。
+// 端口范围与 Electron 主进程一致：优先 9527，被占用时服务端最多 +10。
+// 只写死一个端口的话，用户机器上 9527 一旦被别的程序占了，
+// 插件就永远连不上，而界面上只会显示「没连上」——排查起来毫无线索。
+const PORT_CANDIDATES = Array.from({ length: 11 }, (_, i) => 9527 + i);
 const RECONNECT_MS = 2000;
 
 let socket = null;
 let reconnectTimer = null;
 let handshakeDone = false;
+// 上一次成功的端口，下次优先试它：多数时候端口不会变。
+let preferredPort = 9527;
 
 // 当前推送任务的等待器：taskId -> { resolve, reject }。
 const pendingSyncs = new Map();
@@ -35,73 +40,132 @@ function scheduleReconnect() {
   }, RECONNECT_MS);
 }
 
-function connect() {
-  if (socket) {
-    try {
-      socket.close();
-    } catch {
-      /* 忽略 */
-    }
-    socket = null;
+/**
+ * 依次尝试端口，直到握手成功。
+ *
+ * 为什么不是「连上 9527 就完事」：主进程端口被占用时会自动 +1（见
+ * electron/ws-bridge.js），而用户机器上 9527 被别的程序占着是常见情况。
+ * 只试一个端口的话，插件会一直停在「未连接」，界面上又没有任何线索。
+ */
+async function connect() {
+  teardownSocket();
+
+  const ports = [preferredPort, ...PORT_CANDIDATES].filter(
+    (port, index, list) => list.indexOf(port) === index,
+  );
+
+  for (const port of ports) {
+    const ok = await tryPort(port);
+    if (ok) return;
   }
-  handshakeDone = false;
 
-  try {
-    socket = new WebSocket(`ws://127.0.0.1:${WS_PORT}/extension`);
-  } catch (err) {
-    void setState({ connected: false, port: WS_PORT, sessionId: null, error: String(err) });
-    scheduleReconnect();
-    return;
-  }
-
-  socket.onopen = () => {
-    // 握手：hello。
-    send({
-      jsonrpc: "2.0",
-      id: "hello",
-      method: "hello",
-      params: { clientId: "extension" },
-    });
-  };
-
-  socket.onmessage = (event) => {
-    let msg;
-    try {
-      msg = JSON.parse(event.data);
-    } catch {
-      return;
-    }
-    if (!msg || typeof msg !== "object") return;
-
-    if (msg.id === "hello") {
-      handshakeDone = true;
-      const sessionId = msg.result && msg.result.sessionId ? msg.result.sessionId : null;
-      void setState({ connected: true, port: WS_PORT, sessionId });
-      return;
-    }
-
-    if (msg.method === "syncArticle" && msg.params) {
-      void handleSyncArticle(msg.params);
-      return;
-    }
-    if (msg.method === "state") {
-      // 服务端状态通知：只更新端口展示。
-      void setState({ connected: true, port: WS_PORT, sessionId: (await getState()).sessionId });
-      return;
-    }
-  };
-
-  socket.onclose = () => {
-    socket = null;
-    handshakeDone = false;
-    void setState({ connected: false, port: WS_PORT, sessionId: null });
-    scheduleReconnect();
-  };
-
-  socket.onerror = () => {
-    // onclose 会跟着来，统一在那里重连。
-  };
+  void setState({ connected: false, port: 0, sessionId: null, error: "没找到稿台的桥接服务" });
+  scheduleReconnect();
 }
+
+/** 断开旧连接并清掉定时器，避免多个 socket 同时存在。 */
+function teardownSocket() {
+  if (!socket) return;
+  const old = socket;
+  socket = null;
+  try {
+    old.close();
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/**
+ * 试一个端口：握手成功返回 true；连不上或超时返回 false，由上层换下一个。
+ *
+ * 注意 onmessage 里不能直接 await（回调不是 async 函数），
+ * 需要读状态就在里面调 .then——这个文件之前因为这一处 `await` 是语法错误，
+ * Chrome 直接拒绝加载 service worker，表现是「插件装了但永远连不上」。
+ */
+function tryPort(port) {
+  return new Promise((resolve) => {
+    let settled = false;
+    let ws;
+    try {
+      ws = new WebSocket(`ws://127.0.0.1:${port}/extension`);
+    } catch {
+      resolve(false);
+      return;
+    }
+    socket = ws;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try {
+        ws.close();
+      } catch {
+        /* 忽略 */
+      }
+      resolve(false);
+    }, 2500);
+
+    const settle = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+
+    ws.onopen = () => {
+      try {
+        ws.send(JSON.stringify({ jsonrpc: "2.0", id: "hello", method: "hello", params: { clientId: "extension" } }));
+      } catch {
+        /* 忽略 */
+      }
+    };
+
+    ws.onmessage = (event) => {
+      let msg;
+      try {
+        msg = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+      if (!msg || typeof msg !== "object") return;
+
+      if (msg.id === "hello") {
+        handshakeDone = true;
+        preferredPort = port;
+        const sessionId = msg.result && msg.result.sessionId ? msg.result.sessionId : null;
+        void setState({ connected: true, port, sessionId });
+        settle(true);
+        return;
+      }
+
+      if (msg.method === "syncArticle" && msg.params) {
+        void handleSyncArticle(msg.params);
+        return;
+      }
+      if (msg.method === "state") {
+        // 服务端状态通知：只更新端口展示。
+        void getState().then((previous) =>
+          setState({ connected: true, port, sessionId: previous.sessionId || null }),
+        );
+      }
+    };
+
+    ws.onclose = () => {
+      if (socket === ws) socket = null;
+      handshakeDone = false;
+      void setState({ connected: false, port: 0, sessionId: null });
+      // 已经连通过再断，说明稿台还在，只是连接掉了——重连。
+      // 还在探测阶段时由 settle(false) 让上层换下一个端口。
+      if (settled) scheduleReconnect();
+      settle(false);
+    };
+
+    ws.onerror = () => {
+      // onclose 会跟着来，统一在那里处理。
+    };
+  });
+}
+
 
 function send(payload) {
   if (!socket || socket.readyState !== WebSocket.OPEN) return;

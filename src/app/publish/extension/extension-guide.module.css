@@ -1,0 +1,270 @@
+/* ==========================================================================
+   浏览器插件安装指导 · Neo-Brutalist 纸感主题
+   与多平台分发页同一套 --gt-* 变量与描边风格，深色模式自动适配。
+   ========================================================================== */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 820px;
+}
+
+/* --- 顶部状态横幅 ------------------------------------------------------ */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+}
+
+.bannerOk {
+  border-left: 8px solid var(--gt-green);
+}
+
+.bannerWarn {
+  border-left: 8px solid var(--gt-yellow);
+}
+
+.bannerBad {
+  border-left: 8px solid var(--gt-red);
+}
+
+.bannerDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--gt-line);
+  flex: 0 0 auto;
+}
+
+.bannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.bannerTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gt-ink);
+}
+
+.bannerMeta {
+  font-size: 12px;
+  color: var(--gt-muted);
+  font-family: var(--gt-mono);
+  word-break: break-all;
+}
+
+/* --- 通用卡片 ---------------------------------------------------------- */
+
+.card {
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gt-ink);
+  margin: 0;
+}
+
+.cardHint {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--gt-muted);
+  margin: 0;
+}
+
+/* --- 步骤 -------------------------------------------------------------- */
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--gt-bg, var(--gt-surface));
+  border: 1px solid var(--gt-line);
+}
+
+.stepNo {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+  background: var(--gt-blue);
+  border: 2px solid var(--gt-line);
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.stepTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gt-ink);
+}
+
+.stepDesc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--gt-ink);
+  margin: 0;
+}
+
+.code {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: var(--gt-mono);
+  font-size: 12px;
+  background: var(--gt-yellow);
+  color: #1a1a1a;
+  border: 1px solid var(--gt-line);
+}
+
+.pathBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.path {
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 8px 12px;
+  font-family: var(--gt-mono);
+  font-size: 12px;
+  color: var(--gt-ink);
+  background: var(--gt-bg, var(--gt-surface));
+  border: 1px solid var(--gt-line);
+  word-break: break-all;
+}
+
+/* --- 按钮 -------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn {
+  padding: 9px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gt-ink);
+  background: var(--gt-surface);
+  border: var(--gt-border);
+  box-shadow: var(--gt-shadow-sm);
+  cursor: pointer;
+}
+
+.btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--gt-shadow);
+}
+
+.btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnPrimary {
+  background: var(--gt-blue);
+  color: #fff;
+}
+
+.btnGreen {
+  background: var(--gt-green);
+  color: #12321f;
+}
+
+/* --- 验证结果 ---------------------------------------------------------- */
+
+.result {
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  border: 1px solid var(--gt-line);
+}
+
+.resultOk {
+  background: color-mix(in srgb, var(--gt-green) 22%, transparent);
+  color: var(--gt-ink);
+}
+
+.resultBad {
+  background: color-mix(in srgb, var(--gt-red) 18%, transparent);
+  color: var(--gt-ink);
+}
+
+.reasons {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--gt-ink);
+}
+
+/* --- 平台 chips -------------------------------------------------------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gt-ink);
+  background: var(--gt-bg, var(--gt-surface));
+  border: 1px solid var(--gt-line);
+}
+
+/* --- 底部提示 ---------------------------------------------------------- */
+
+.footnote {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--gt-muted);
+  margin: 0;
+}

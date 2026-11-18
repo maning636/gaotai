@@ -51,6 +51,7 @@ function extractSpecs(code: string): string[] {
     /import\s+["']([^"']+)["']/g, // import "x"（副作用导入）
     /export\s+[^"';]*?from\s+["']([^"']+)["']/g, // export ... from "x"
     /require\(\s*["']([^"']+)["']\s*\)/g, // require("x")
+    /import\(\s*["']([^"']+)["']\s*\)/g, // 动态 import("x")——按需加载也算真引用
   ];
   for (const re of patterns) {
     let m: RegExpExecArray | null;
@@ -62,6 +63,8 @@ function extractSpecs(code: string): string[] {
 /** 说明符 → 第三方包名；内置/相对/Node: 前缀返回 null。 */
 function packageNameOf(spec: string): string | null {
   if (!spec || spec.startsWith(".") || spec.startsWith("/")) return null; // 相对/绝对
+  // tsconfig 的 @/* 别名指向 src/*，它不是 npm 包；当成包会报「未声明」。
+  if (spec.startsWith("@/")) return null;
   if (spec.startsWith("node:")) return null; // Node 内置（显式前缀）
   const parts = spec.split("/");
   // @scope/name 取前两段；裸包名取第一段；node: 内置在 ts 里也可能裸写

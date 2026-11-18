@@ -45,6 +45,24 @@
   font-family: var(--gt-mono);
 }
 
+/* 未连接时的行动指引：用户不需要自己找安装入口。 */
+.guideLink {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--gt-blue);
+  border: 2px solid var(--gt-line);
+  text-decoration: none;
+}
+
+.guideLink:hover {
+  color: #fff;
+  transform: translate(-1px, -1px);
+  box-shadow: var(--gt-shadow-sm);
+}
+
 /* --- 搜索框 ------------------------------------------------------------ */
 
 .toolbar {

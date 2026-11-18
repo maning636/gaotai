@@ -25,4 +25,13 @@ contextBridge.exposeInMainWorld("gaotai", {
    * 由本应用自己的窗口触发。
    */
   revealLocalPassword: () => ipcRenderer.invoke("gaotai:reveal-local-password"),
+  /**
+   * 浏览器扩展相关。
+   *
+   * 多平台分发依赖一个 Chrome/Edge 扩展，用户必须自己在扩展管理页里
+   * 「加载已解压的扩展程序」并选中这个目录——浏览器不提供任何静默安装方式。
+   * 所以要把真实目录告诉他，并能一键打开，省得他在安装目录里翻。
+   */
+  extensionDir: () => ipcRenderer.invoke("gaotai:extension-dir"),
+  openExtensionDir: () => ipcRenderer.invoke("gaotai:open-extension-dir"),
 });

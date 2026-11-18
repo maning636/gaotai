@@ -1,6 +1,6 @@
 {
   "name": "gaotai",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "private": true,
   "license": "GPL-3.0",
   "description": "稿台 —— 面向公众号创作者的本地写作工作台（桌面版）",
@@ -18,8 +18,9 @@
     "prepare:resources": "node scripts/prepare-resources.mjs",
     "desktop": "electron .",
     "desktop:dev": "node scripts/run-desktop.mjs dev",
-    "desktop:build": "npm run build && node scripts/copy-standalone-assets.mjs && node scripts/sanitize-standalone.mjs && node scripts/ensure-runtime-deps.mjs && node scripts/smoke-test-standalone.mjs && node scripts/prepare-resources.mjs && electron-builder --win && node scripts/verify-package.mjs",
+    "desktop:build": "npm run build && node scripts/check-extension.mjs && node scripts/copy-standalone-assets.mjs && node scripts/sanitize-standalone.mjs && node scripts/ensure-runtime-deps.mjs && node scripts/smoke-test-standalone.mjs && node scripts/prepare-resources.mjs && electron-builder --win && node scripts/verify-package.mjs",
     "smoke:standalone": "node scripts/smoke-test-standalone.mjs",
+    "check:extension": "node scripts/check-extension.mjs",
     "verify:package": "node scripts/verify-package.mjs",
     "shots": "node scripts/shots.mjs"
   },

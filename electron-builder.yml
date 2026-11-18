@@ -47,6 +47,11 @@ extraResources:
   # 见 src/lib/assets/sync.ts 与 scripts/prepare-resources.mjs 顶部注释。
   - from: "dist/app-resources"
     to: "app-resources"
+  # 浏览器扩展必须随包分发：多平台分发靠它把稿子填进各平台编辑器。
+  # 打成文件夹而不是 asar，是因为 Chrome/Edge 只认「加载已解压的扩展程序」，
+  # 用户要在扩展管理页里选中这个真实目录。路径由 GAOTAI_EXTENSION_DIR 传给后端。
+  - from: "extension"
+    to: "extension"
 
 # 原生二进制必须解压到文件系统，否则 require 会失败。
 # 路径要匹配产物里的真实位置：依赖位于 .next/standalone/node_modules/ 下。

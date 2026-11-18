@@ -13,7 +13,7 @@
 //   npm run shots -- --base=http://127.0.0.1:3060
 //   npm run shots -- --out=shots
 import { spawn, execSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import net from "node:net";
 import { fileURLToPath } from "node:url";

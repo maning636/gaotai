@@ -41,6 +41,7 @@ import "./license-client.test";
 import "./license-gate.test";
 import "./app-update.test";
 import "./assets-sync.test";
+import "./extension-info.test";
 import "./test-card-themes";
 import "./test-custom-css";
 import "./test-math";

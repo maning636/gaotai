@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import Link from "next/link";
 import styles from "./multi-platform.module.css";
 import {
   getAllPlatforms,
@@ -27,7 +28,7 @@ import {
 
 type Project = { id: string; title: string; stage: string };
 
-type BridgeStatus = { running: boolean; port: number; clients: number };
+type BridgeStatus = { running: boolean; port: number; clients: number; extensions?: number };
 
 type BridgeTaskStatus = "pending" | "delivered" | "done" | "failed";
 
@@ -98,11 +99,6 @@ const FEISHU_META: PlatformMeta = {
 
 const ALL_PLATFORMS: PlatformMeta[] = [...getAllPlatforms(), FEISHU_META];
 
-/** 取平台名称（结果表展示用）。 */
-function platformName(id: string): string {
-  return ALL_PLATFORMS.find((p) => p.id === id)?.name ?? id;
-}
-
 /** 卡片角标文字：取名称首字符（拉丁字母转大写）。 */
 function platformMark(name: string): string {
   const ch = name.trim().charAt(0);
@@ -116,6 +112,8 @@ export function MultiPlatformPanel() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState("");
   const [status, setStatus] = useState<BridgeStatus>({ running: false, port: 0, clients: 0 });
+  // 真正决定能不能发稿的是「有没有扩展会话」，不是后端连没连上桥。
+  const connected = (status.extensions ?? 0) > 0;
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<Results>({});
   const [error, setError] = useState("");
@@ -257,15 +255,18 @@ export function MultiPlatformPanel() {
         <span className={styles.status}>
           <span
             className={styles.statusDot}
-            style={{ background: status.running ? "var(--gt-green)" : "var(--gt-muted)" }}
+            style={{ background: connected ? "var(--gt-green)" : "var(--gt-yellow)" }}
           />
-          {status.running ? "已连接" : "请安装浏览器扩展"}
+          {connected ? "插件已连接" : "插件未连接"}
         </span>
         <span className={styles.statusMeta}>
-          {status.running && status.port
-            ? `端口 ${status.port} · ${status.clients} 客户端`
-            : "扩展连接后自动重连"}
+          {connected
+            ? `桥接端口 ${status.port} · ${status.extensions} 个扩展会话`
+            : "没有插件收不到稿子，先在「插件安装」装好并检测通过"}
         </span>
+        <Link href="/publish/extension" className={styles.guideLink}>
+          {connected ? "查看插件" : "去安装 / 检测 →"}
+        </Link>
       </div>
 
       {/* 顶部：搜索框 */}

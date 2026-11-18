@@ -286,6 +286,25 @@ function resolveDataDir() {
   return app.getPath("userData");
 }
 
+// 浏览器扩展所在目录。
+//
+// Chrome/Edge 只认「加载已解压的扩展程序」，所以这里必须给用户一个真实文件夹，
+// 不能是 asar 内部路径。打包态由 electron-builder 的 extraResources 落到
+// <安装目录>/resources/extension；开发态直接用项目里的 extension/。
+function resolveExtensionDir() {
+  if (!app.isPackaged) return path.join(app.getAppPath(), "extension");
+  return path.join(process.resourcesPath, "extension");
+}
+
+// 把扩展目录暴露给渲染进程，同时作为「打开文件夹」的动作入口。
+// 走 IPC 而不是网页接口：本机任意程序都能打 HTTP，但只有本应用窗口能触发 IPC。
+ipcMain.handle("gaotai:extension-dir", () => resolveExtensionDir());
+ipcMain.handle("gaotai:open-extension-dir", async () => {
+  const dir = resolveExtensionDir();
+  const error = await shell.openPath(dir);
+  return error ? { ok: false, error } : { ok: true, dir };
+});
+
 // 本机登录口令。
 //
 // 口令是首次运行时随机生成、随包自动登录的那一份，用户自己通常没看过。
@@ -438,6 +457,7 @@ async function startBackend() {
     ELECTRON_RUN_AS_NODE: "1",
     GAOTAI_DATA_DIR: resolveDataDir(),
     GAOTAI_RESOURCE_DIR: resolveResourceDir(),
+    GAOTAI_EXTENSION_DIR: resolveExtensionDir(),
     // 本次启动的令牌：后端用它接受「桌面客户端自动换取会话」的请求。
     GAOTAI_BOOT_TOKEN: bootToken,
     HOSTNAME: "127.0.0.1",
@@ -628,7 +648,26 @@ app.whenReady().then(async () => {
     // WS 桥必须先于 startBackend：桥绑定后把实际端口写入 GAOTAI_WS_PORT，
     // 后端子进程经 baseEnv 继承，前端才能读到「扩展连到哪个端口」。
     try {
-      await wsBridge.startWsBridge();
+      // 状态回调把「有几个扩展连着」落成文件，后端据此回答「插件装好了没」。
+      // 只在内存里记的话，后端子进程看不到主进程的会话表。
+      // 另外每 20 秒刷一次时间戳：主进程若意外挂掉，旧文件会一直停在
+      // extensions>0，后端靠时间戳判断状态已经过期，不会一直骗用户说「已连接」。
+      let lastState = { clients: 0, extensions: 0, tasks: 0, port: 0 };
+      const writeState = () => {
+        try {
+          fs.writeFileSync(
+            path.join(resolveDataDir(), "bridge-state.json"),
+            JSON.stringify({ ...lastState, updatedAt: Date.now() }),
+          );
+        } catch {
+          /* 状态文件写失败不该影响桥本身 */
+        }
+      };
+      await wsBridge.startWsBridge(undefined, (state) => {
+        lastState = state;
+        writeState();
+      });
+      setInterval(writeState, 20_000).unref();
       logLifecycle(`ws bridge listening on ${wsBridge.getWsBridgePort()}`);
     } catch (err) {
       // 桥起不来只影响多平台分发，不让整个应用退出——记日志继续跑。
