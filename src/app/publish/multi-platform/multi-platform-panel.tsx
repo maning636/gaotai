@@ -395,12 +395,19 @@ export function MultiPlatformPanel() {
         <button
           className="gt-btn gt-btn--primary gt-btn--lg"
           type="button"
-          disabled={busy || selected.size === 0 || !projectId}
+          disabled={busy || selected.size === 0 || !projectId || !connected}
           onClick={() => void push()}
         >
           {busy ? "同步中…" : `同步到选中平台（${selected.size}）`}
         </button>
       </div>
+
+      {/* 没连上插件就别让用户白点：点了也只会拿到一句「桥接未连接」。 */}
+      {!connected ? (
+        <div className={styles.error}>
+          插件还没连上，现在推送会失败。先去 <Link href="/publish/extension">插件安装</Link> 完成三步并点「检测连接」。
+        </div>
+      ) : null}
 
       {notice ? <div className={styles.notice}>{notice}</div> : null}
       {error ? <div className={styles.error}>{error}</div> : null}

@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { assertEqual, assertTrue, suite } from "./harness";
 import { readExtensionInfo } from "../lib/bridge/extension-info";
-import { isBridgeStateFresh } from "../lib/bridge/state";
+import { isBridgeStateFresh, readBridgeState } from "../lib/bridge/state";
+import { dataDir } from "../lib/paths";
 
 /**
  * 插件安装指导的判定逻辑。
@@ -72,6 +73,35 @@ suite("浏览器扩展信息", ({ test }) => {
         assertTrue(!readExtensionInfo().available, "manifest 解析失败应该降级为不可用");
       },
     );
+  });
+});
+
+suite("桥接状态文件", ({ test }) => {
+  test("能读回 Electron 主进程写入的状态字段", () => {
+    const file = path.join(dataDir(), "bridge-state.json");
+    writeFileSync(file, JSON.stringify({ clients: 1, extensions: 2, tasks: 3, port: 9530, updatedAt: Date.now() }));
+    try {
+      const state = readBridgeState();
+      // 字段名是主进程与后端之间的约定，改一处就会让「已连接」永远判成 false。
+      assertEqual(state.extensions, 2);
+      assertEqual(state.port, 9530);
+      assertEqual(state.tasks, 3);
+      assertTrue(isBridgeStateFresh(state), "刚写的状态应该是新鲜的");
+    } finally {
+      rmSync(file, { force: true });
+    }
+  });
+
+  test("状态文件损坏时降级为全零，而不是抛错", () => {
+    const file = path.join(dataDir(), "bridge-state.json");
+    writeFileSync(file, "{ 不是 JSON");
+    try {
+      const state = readBridgeState();
+      assertEqual(state.extensions, 0);
+      assertTrue(!isBridgeStateFresh(state), "读不出来就不能说已连接");
+    } finally {
+      rmSync(file, { force: true });
+    }
   });
 });
 
