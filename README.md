@@ -6,6 +6,19 @@
 桌面客户端（Windows / macOS）。数据、模型 Key、公众号凭据都在你自己的机器上：
 没有账号、不按字收费。软件**免费使用，但需要注册码激活**（一码一机）。
 
+<!-- brochure:start -->
+## 产品宣传彩页
+
+<a href="docs/brochure/gaotai-brochure-v0.6.3.pdf"><img src="docs/brochure/gaotai-brochure-cover.png" alt="稿台 产品宣传彩页封面" width="420"></a>
+
+**稿台** · 公众号写作工作台：四道工序 · 31 套排版包 · 六种图解 · 零上传
+
+A4 竖版 6 页（封面 / 核心能力 / 能力细节 ×2 / 工作流与部署 / 封底），全部使用真实界面截图。
+
+📄 [下载完整 PDF（v0.6.3）](docs/brochure/gaotai-brochure-v0.6.3.pdf)　·　🖼 [封面大图](docs/brochure/gaotai-brochure-cover.png)
+
+<!-- brochure:end -->
+
 ---
 
 ## 许可与激活
