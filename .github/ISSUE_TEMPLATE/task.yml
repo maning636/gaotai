@@ -1,0 +1,46 @@
+name: 开发任务
+description: 记录范围明确、可独立验收的工程或文档任务
+title: "[Task]: "
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: 任务目标
+      description: 要交付的结果，以及为什么现在做
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 范围与边界
+      description: 明确包含什么、不包含什么；列出禁止触碰的路径或行为
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 列出可执行、可核对的完成条件
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依赖与前置条件
+      description: 相关 Issue、ADR、分支、服务或环境
+  - type: textarea
+    id: validation
+    attributes:
+      label: 验证计划
+      description: 准备执行的测试、文档检查或 git 校验
+      placeholder: |
+        - npm run verify
+        - git diff --check
+        - 其他与本任务相关的检查
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: 风险与回滚
+      description: 影响面、回滚方式；无风险时明确写“无”
