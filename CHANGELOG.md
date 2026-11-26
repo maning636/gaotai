@@ -1,7 +1,17 @@
 # 更新日志
 
 本文件记录每个版本的用户可感知变化。格式约定：每条可溯源到 commit；
-禁止编造未实施的功能。
+禁止编造未实施的功能。历史版本条目保留当时的许可状态，不代表当前版本许可。
+
+## [Unreleased]
+
+### Changed
+- **主体许可迁移至 AGPL-3.0-only**：根 `LICENSE` 替换为规范 AGPL 原文；
+  Wechatsync 衍生组件继续按 GPL-3.0-only（GPLv3）分发，原文归档至
+  `THIRD_PARTY_LICENSES/GPL-3.0.txt`，不声称该组件已被重新许可。
+- `NOTICE.txt` / `SOURCE.txt` / README / 打包资源同步更新；human-writing、rico-md、
+  WeDraft 的 MIT 声明保留，`gaotai-longform` 既有 MIT 授权继续有效并与 AGPL 双许可并存。
+- Electron 安装包携带 LICENSE、NOTICE、SOURCE 与第三方许可归档，`verify-package` 增加缺失许可文件硬门。
 
 ## [0.2.1]
 

@@ -1,13 +1,18 @@
 # 稿台 · 上线与迁移清单（注册码激活制）
 
-本清单覆盖从 0.1.x（无激活、MIT）切换到 0.2.0（注册码激活、专有许可）的全部工作项。
+> **当前许可状态（2026-11-26）**：主体已迁移至 AGPL-3.0-only；Wechatsync 衍生组件
+> 保持 GPL-3.0-only（GPLv3），`gaotai-longform` 的既有 MIT 授权继续有效。
+> 本文件其余 0.1.x → 0.2.0 条目是历史迁移记录，当时的「专有许可 / EULA」描述
+> 不代表当前版本许可。当前协议以根 `LICENSE`、`NOTICE.txt` 与 `SOURCE.txt` 为准。
+
+本清单覆盖从 0.1.x（无激活、MIT）切换到 0.2.0（注册码激活、当时专有许可）的全部工作项。
 按「客户端」「服务端」「微信侧」「文档与法务」四栏组织，每条带**验收标准**（怎么算做完）。
 版本策略与 0.1.x 用户过渡见文末两节。
 
 > 配合阅读：
 > - 接口契约：[`docs/license-protocol.md`](license-protocol.md)
 > - 服务号对接：[`docs/wechat-oa-setup.md`](wechat-oa-setup.md)
-> - 许可协议：[`docs/eula-draft.md`](eula-draft.md)
+> - 当前许可协议：根 `LICENSE` / `NOTICE.txt` / `SOURCE.txt`
 
 ---
 
@@ -112,18 +117,19 @@
 
 ## 四、文档与法务
 
-- [x] `LICENSE` 由 MIT 替换为 EULA 内容（已并入根 `LICENSE`，原 `docs/eula-draft.md` 已删除，避免双副本）
-      - **验收**：`LICENSE` 文件内容为专有许可；MIT 仅对第三方组件保留（指向 `NOTICE.txt`）。
-- [x] `NOTICE.txt` 更新：第三方组件许可仍保留 MIT 等署名
-      - **验收**：human-writing / rico-md / WeDraft 的 LICENSE 与 SOURCE 仍随包；`NOTICE.txt` 列表完整。
-- [x] `README.md` 更新：「无账号、无激活」改为「免费但需激活，一码一机」；许可证段落指向 EULA
-      - **验收**：README 不再出现「没有激活码」；数据与安全段落与激活机制一致。
-- [x] `docs/spec.md` / `docs/使用手册.md` 加入激活章节
+- [x] **历史：0.2.0 将根 `LICENSE` 由 MIT 替换为当时的 EULA；当前已由 AGPL-3.0-only 取代**
+      - **当前验收**：根 `LICENSE` 为规范 AGPL 原文；Wechatsync 衍生组件的 GPLv3 原文归档于
+        `THIRD_PARTY_LICENSES/GPL-3.0.txt`；第三方 MIT 声明继续保留。
+- [x] `NOTICE.txt` 更新：AGPL 主体、GPLv3 组件边界与 human-writing / rico-md / WeDraft MIT 声明完整
+      - **验收**：对应 LICENSE 与 SOURCE 仍随包；`NOTICE.txt` 列表完整。
+- [x] `README.md` 更新：当前许可是 AGPL-3.0-only，注册码激活不限制 AGPL 权利
+      - **验收**：README 不再把当前版本描述为专有许可；数据与安全段落与激活机制一致。
+- [x] `docs/spec.md` / `docs/使用手册.md` 同步当前许可与激活章节
       - **验收**：spec §3 接口含 license/activate/refresh；使用手册有「激活与续期」一节。
 - [ ] `docs/license-protocol.md` 保持为唯一契约，与实现一致
       - **验收**：协议字段与代码实际请求/响应字段逐项核对一致。
-- [ ] `CHANGELOG.md` 写 0.2.0 破坏性变更条目
-      - **验收**：条目说明「需激活、一码一机、许可改专有」，标注迁移影响。
+- [x] `CHANGELOG.md` 增加当前 AGPL 迁移条目，并保留历史版本许可记录
+      - **验收**：Unreleased 说明 AGPL-3.0-only、GPLv3 组件边界与 MIT 授权保留。
 - [ ] 推广文案（产品介绍/官网）更新激活说明与 SmartScreen 提示
       - **验收**：文案含「免费领码」「关注服务号激活」；含「未签名→更多信息→仍要运行」提示。
 
@@ -131,7 +137,7 @@
 
 ## 五、版本策略
 
-### 5.1 本次应发 0.2.0（破坏性）
+### 5.1 历史版本决策：0.2.0（破坏性）
 
 - 0.2.0 是**破坏性变更**：引入激活门禁、许可由 MIT 改为专有。按语义化版本，破坏兼容性应升 minor（0.1.x → 0.2.0）。
 - CHANGELOG 的 0.2.0 条目应**置顶并明确标注 BREAKING**：
@@ -152,6 +158,7 @@
 - **无注册码的 0.1.x 用户升级到 0.2.0 后会卡在激活页**，需在推广文案与服务号自动回复里把领码路径讲清楚，
   避免升级后流失。
 - 0.1.x 的 MIT 许可副本继续随该版本安装包有效；我们不追溯收回已分发的 0.1.x。
+- 当前主仓库采用 AGPL-3.0-only；`gaotai-longform` 既有 MIT 授权继续有效并与其 AGPL 许可并存。
 
 ---
 

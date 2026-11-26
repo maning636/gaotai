@@ -1,19 +1,28 @@
 稿台（Gaotai）源码声明
 ======================
 
-本项目基于 GPL-3.0 协议开源。
+本项目主体基于 AGPL-3.0-only 协议发布（见根 LICENSE）。
+注册码激活不限制 AGPL-3.0 赋予的使用、修改和分发权利；若通过网络提供
+修改版本，应遵守 AGPL-3.0 第 13 条对应的源码提供义务。
 
 源码获取方式：
-1. GitHub 私有仓库（需邀请）：联系作者获取访问权限
-2. 随本安装包附带的源码 ZIP（如有）
+1. 随本安装包附带的源码 ZIP（如有）
+2. 联系作者获取对应版本的源码（微信群聊 / 飞书群聊）
 
-本项目融合了以下开源项目的代码：
-- Wechatsync (GPL-3.0): https://github.com/wechatsync/Wechatsync
-  用于多平台文章同步（知乎/掘金/CSDN等29+平台）
-- rico-md (MIT): https://github.com/ricocc/rico-md
-  用于公众号排版主题模板
+本项目包含或融合了以下开源项目的代码：
+- Wechatsync（GPL-3.0-only）：https://github.com/wechatsync/Wechatsync
+  用于多平台文章同步（知乎/掘金/CSDN 等平台）；该衍生组件保持 GPLv3，
+  不因主项目迁移至 AGPL-3.0-only 而被重新许可。GPLv3 原文见
+  THIRD_PARTY_LICENSES/GPL-3.0.txt。
+- rico-md（MIT）：https://github.com/ricocc/rico-md
+  用于公众号排版主题模板。
+- human-writing（MIT）：https://github.com/KKKKhazix/human-writing
+  用于通用中文写作技能包。
+- WeDraft（MIT）：https://github.com/pafa/WeDraft
+  用于公众号排版模板转换。
 
-各组件的版权声明保留在对应文件中。
+各组件的版权与许可声明保留在对应文件中；完整边界见 NOTICE.txt，
+第三方许可归档见 THIRD_PARTY_LICENSES/。
 
 作者：maning
 联系：微信群聊 / 飞书群聊

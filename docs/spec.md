@@ -172,7 +172,9 @@ MIT 版权与许可声明随包保留在 `resources/layout-packs/`（`LICENSE-we
 
 ### 3.1.1 授权（注册码激活）
 
-稿台按**专有许可**分发（见根 `LICENSE`），需激活后使用。契约见 `docs/license-protocol.md`：
+稿台主体按 **AGPL-3.0-only** 分发（见根 `LICENSE`），产品需激活后使用；激活不限制 AGPL-3.0
+赋予的权利。Wechatsync 衍生组件保持 GPL-3.0-only（GPLv3），边界见 `NOTICE.txt`。
+契约见 `docs/license-protocol.md`：
 
 - **首次启动引导激活**：进入 `src/app/license/` 授权页，输入 `GT-XXXX-XXXX-XXXX-XXXX` 注册码，
   客户端调授权服务器 `/v1/activate` 绑定机器并换取 30 天有效签名令牌。
@@ -420,7 +422,7 @@ resources/
   prompts/                 各阶段提示词（system/brief/angle/outline/article/style-profile/image-prompt）
   topics/<id>/             公开专题：meta.yaml + rules.md
   skills/                  写作技能卡
-    gaotai-longform/       稿台自带的公众号长文写作方法（专有许可）+ LICENSE/NOTICE
+    gaotai-longform/       稿台自带的公众号长文写作方法（AGPL-3.0-only 或 MIT 双许可）+ LICENSE/NOTICE
     gaotai-editorial/      成稿后的标题、开头、事实核查规则
     human-writing/         第三方通用中文写作技能（MIT）
   layout-packs/            随包分发的排版样式包（内置模板）+ LICENSE/SOURCE 溯源

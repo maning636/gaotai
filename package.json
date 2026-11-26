@@ -2,7 +2,7 @@
   "name": "gaotai",
   "version": "0.7.0",
   "private": true,
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0-only",
   "description": "稿台 —— 面向公众号创作者的本地写作工作台（桌面版）",
   "author": "maning636",
   "main": "electron/main.js",
