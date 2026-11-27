@@ -41,6 +41,15 @@ extraMetadata:
   main: "electron/main.js"
 
 extraResources:
+  # 许可与第三方声明必须随安装包分发。
+  - from: "LICENSE"
+    to: "LICENSE"
+  - from: "NOTICE.txt"
+    to: "NOTICE.txt"
+  - from: "SOURCE.txt"
+    to: "SOURCE.txt"
+  - from: "THIRD_PARTY_LICENSES"
+    to: "THIRD_PARTY_LICENSES"
   # 只读资源：由 scripts/prepare-resources.mjs 组装。
   # 四类核心资产（skills/prompts/topics/layout-packs）默认**不**随包——
   # 改为激活后从授权服务器加密下发、缓存到 <dataDir>/assets/root，

@@ -23,8 +23,8 @@ A4 竖版 6 页（封面 / 核心能力 / 能力细节 ×2 / 工作流与部署 
 
 ## 许可与激活
 
-- **免费使用，需要注册码。** 稿台免费发放，但按**专有许可**（见 [`LICENSE`](LICENSE)）分发，
-  需要激活后使用。注册码通过服务号或授权服务器领码页发放。
+- **免费使用，需要注册码。** 稿台按 [AGPL-3.0-only](LICENSE) 发布，可免费使用、修改和分发；
+  产品仍通过注册码激活后使用。注册码通过服务号或授权服务器领码页发放。
 - **首次启动引导激活。** 第一次打开会进入激活页，输入 `GT-XXXX-XXXX-XXXX-XXXX` 格式的注册码。
   激活后客户端持有 30 天有效令牌，剩余不足 7 天自动联网续期（`docs/license-protocol.md`）。
 - **未激活时锁住的功能。** 需要联网或调用模型的功能不可用：材料解读、选题、大纲、正文生成、
@@ -130,16 +130,23 @@ prepare-resources → electron-builder`。产物在 `release/`：
 
 ## License
 
-本项目采用 [GPL-3.0](./LICENSE) 协议（因融合了 Wechatsync 的 GPL-3.0 代码）。
+本项目主体采用 [AGPL-3.0-only](./LICENSE) 协议。注册码激活不限制 AGPL-3.0 赋予的使用、
+修改和分发权利；通过网络提供修改版本时，应履行 AGPL-3.0 第 13 条的源码提供义务。
 
-融合了以下开源项目：
-- [Wechatsync](https://github.com/wechatsync/Wechatsync) (GPL-3.0) — 多平台文章同步
-- [rico-md](https://github.com/ricocc/rico-md) (MIT) — 公众号排版主题
+组件许可边界：
+- [Wechatsync](https://github.com/wechatsync/Wechatsync) 衍生多平台同步组件保持
+  **GPL-3.0-only（GPLv3）**，不因主项目迁移至 AGPL-3.0-only 而被重新许可；
+  GPLv3 原文见 [`THIRD_PARTY_LICENSES/GPL-3.0.txt`](THIRD_PARTY_LICENSES/GPL-3.0.txt)。
+- [rico-md](https://github.com/ricocc/rico-md)（MIT）与 [WeDraft](https://github.com/pafa/WeDraft)
+  （MIT）的衍生排版模板保留上游版权与 MIT 许可。
 
-分发安装包时请同时提供本声明文件（[`SOURCE.txt`](SOURCE.txt)）。
+分发安装包时请同时提供本声明文件（[`SOURCE.txt`](SOURCE.txt)）、`NOTICE.txt` 与
+`THIRD_PARTY_LICENSES/`。
 
 ### 第三方组件清单
 
+- **Wechatsync 衍生同步组件**：GPL-3.0-only（GPLv3），许可边界与原文归档见
+  `THIRD_PARTY_LICENSES/GPL-3.0.txt` 与 [`NOTICE.txt`](NOTICE.txt)。
 - **随包技能包 `human-writing`**：原样引入自
   [KKKKhazix/human-writing](https://github.com/KKKKhazix/human-writing)（v1.1.0，commit
   `4fda173f3fef7fb808f3eba991eeb2528ea4b189`），MIT。许可证原文、版本与溯源随包保留在
@@ -148,8 +155,8 @@ prepare-resources → electron-builder`。产物在 `release/`：
   **翻译**而来的衍生作品（去 `!important`、去字体栈双引号、色值提取为变量、h2/h3/h4 拆成部件）。
   MIT 要求的版权与许可声明随包保留在 `resources/layout-packs/`
   （`LICENSE-rico-md` 原文 + `SOURCE.json` 逐条溯源）。
-  rico-md 另有 12 套 **AGPL-3.0-or-later** 主题（`gzh-design-skill`），稿台不以 AGPL 分发，
-  **那 12 套整套没有引入**。
+  rico-md 另有 12 套 **AGPL-3.0-or-later** 主题（`gzh-design-skill`），本次迁移后
+  **那 12 套仍整套没有引入**。
 - **7 套随包排版样式包（WeDraft）**：从 [pafa/WeDraft](https://github.com/pafa/WeDraft)（MIT，
   Copyright (c) 2026 pafa and WeDraft contributors）的 7 套模板翻译而来——`reading-editions.ts`
   的 5 套（素笺 / 墨刊 / 青岚 / 蓝图 / 朱砂）+ `default-business.json`（小哈公社）+
@@ -157,8 +164,10 @@ prepare-resources → electron-builder`。产物在 `release/`：
   按 ADR-0004 的映射表转换，装饰能力（`headingNumber` / `quoteMark` / `imageCaption` / `reference*`）
   第一版不引入，作为已知限制记录。MIT 版权与许可声明随包保留在 `resources/layout-packs/`
   （`LICENSE-wedraft` + `SOURCE-wedraft.json`）。
-- **`gaotai-longform` / `gaotai-editorial`**：本仓库自研，随主仓库按 GPL-3.0 发布（见 `LICENSE`）。
-  `gaotai-longform` 去掉了作者的个人偏好记忆，来路见 `resources/skills/gaotai-longform/NOTICE`。
+- **`gaotai-longform`**：本仓库自研，按 AGPL-3.0-only 或该技能包保留的 MIT 许可双许可提供；
+  既有 MIT 授权继续有效，不因主项目许可迁移而撤销。来路见
+  `resources/skills/gaotai-longform/NOTICE`。
+- **`gaotai-editorial`**：本仓库自研，按 AGPL-3.0-only 发布。
 - 其余第三方依赖以 npm 依赖引入，各自许可文本保留在安装后的 `node_modules` 内，不随仓库分发。
 
 汇总见 [`NOTICE.txt`](NOTICE.txt)。若后续要公开分发或商用，建议先请熟悉开源合规的人过一遍

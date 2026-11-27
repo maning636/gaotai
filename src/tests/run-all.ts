@@ -38,6 +38,7 @@ import "./deps-gate.test";
 import "./license-token.test";
 import "./license-machine.test";
 import "./license-client.test";
+import "./license-package.test";
 import "./license-gate.test";
 import "./app-update.test";
 import "./assets-sync.test";

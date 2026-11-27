@@ -18,7 +18,7 @@
   },
   "excluded": {
     "paths": ["assets/styles/themes/gzh/", "assets/styles/themes/gzh-design-skill.js"],
-    "reason": "这些文件是「gzh-design-skill 主题适配模块」，来自 isjiamu/gzh-design-skill（甲木 × 摸鱼小李），采用 AGPL-3.0-or-later。稿台不以 AGPL 分发，因此整套不引入。",
+    "reason": "这些文件是「gzh-design-skill 主题适配模块」，来自 isjiamu/gzh-design-skill（甲木 × 摸鱼小李），采用 AGPL-3.0-or-later。稿台当前虽采用 AGPL-3.0-only，但这 12 套仍整套未引入。",
     "license": "AGPL-3.0-or-later"
   },
   "included": [

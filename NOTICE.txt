@@ -1,29 +1,40 @@
 NOTICE —— 第三方组件归属与许可声明
 ====================================
 
-本仓库（稿台 / Gaotai）主体以**专有许可**发布（见 LICENSE，稿台软件许可协议，非开源许可）。
-以下第三方组件随包分发，版权与许可归属如下：
+本仓库（稿台 / Gaotai）主体以 **AGPL-3.0-only** 发布（见根 `LICENSE`）。
+注册码激活是产品功能门禁，不撤销或限制 AGPL-3.0 赋予的权利。
+以下第三方组件随包分发或与主项目组合，版权与许可归属如下：
 
-1. human-writing 写作技能包
+1. Wechatsync 衍生多平台同步组件
+   位置：extension/wechatsync-bridge.js、extension/platform-adapters/ 等
+   上游：https://github.com/wechatsync/Wechatsync
+   许可：GPL-3.0-only（GPLv3）
+   说明：该组件保持 GPLv3，不因主项目迁移至 AGPL-3.0-only 而被重新许可。
+   GPLv3 原文归档于 `THIRD_PARTY_LICENSES/GPL-3.0.txt`，相关义务继续适用。
+
+2. human-writing 写作技能包
    位置：resources/skills/human-writing/
    上游：https://github.com/KKKKhazix/human-writing
    提交：4fda173f3fef7fb808f3eba991eeb2528ea4b189（版本 1.1.0）
-   许可：MIT（原文见 resources/skills/human-writing/LICENSE）
+   许可：MIT（原文见 resources/skills/human-writing/LICENSE，
+       打包副本见 THIRD_PARTY_LICENSES/human-writing-MIT.txt）
    说明：随包原样分发，溯源见同目录 SOURCE.json。
 
-2. rico-md 排版主题（衍生翻译）
+3. rico-md 排版主题（衍生翻译）
    位置：resources/layout-packs/rico-*.json（21 套）
    上游：https://github.com/ricocc/rico-md（Rico, ricoui.com）
-   许可：MIT（原文见 resources/layout-packs/LICENSE-rico-md）
+   许可：MIT（原文见 resources/layout-packs/LICENSE-rico-md，
+       打包副本见 THIRD_PARTY_LICENSES/rico-md-MIT.txt）
    说明：上游主题为「选择器 → CSS 声明块」，本仓库将其按稿台
    「部件 key → HTML 模板」模型重新组装为衍生作品；MIT 要求的
    版权与许可声明随包保留，翻译方式与改动清单见同目录 SOURCE.json。
 
-3. WeDraft 排版模板（衍生转换）
+4. WeDraft 排版模板（衍生转换）
    位置：resources/layout-packs/wedraft-*.json（7 套）
    上游：https://github.com/pafa/WeDraft（提交 9663ce505c25d48c10ec6426ee1d106b8421ae06）
    许可：MIT（原文见 resources/layout-packs/LICENSE-wedraft，
-        Copyright (c) 2026 pafa and WeDraft contributors）
+       打包副本见 THIRD_PARTY_LICENSES/WeDraft-MIT.txt，
+       Copyright (c) 2026 pafa and WeDraft contributors）
    说明：上游模板为「元素选择器 → CSS 声明对象」，本仓库按稿台
    「部件 key → HTML 模板」模型重新组装为衍生作品；颜色提取成
    变量（accent/text/heading/muted/border/surface/codeBg/codeText），
@@ -31,12 +42,14 @@ NOTICE —— 第三方组件归属与许可声明
    见同目录 SOURCE-wedraft.json；转换脚本见
    scripts/convert-wedraft-templates.mts（可重复运行、幂等）。
 
-4. 自有技能包
+5. 自有技能包
    resources/skills/gaotai-longform/（含独立 LICENSE 与 NOTICE）
-   resources/skills/gaotai-editorial/
-   归稿台项目所有，随主仓库**专有许可**发布（见 LICENSE）。
+   归稿台项目所有，可按 AGPL-3.0-only 或该技能包保留的 MIT 许可使用；
+   既有 MIT 授权继续有效，不因主项目许可迁移而撤销。
+   MIT 原文同时归档于 THIRD_PARTY_LICENSES/gaotai-longform-MIT.txt。
+   resources/skills/gaotai-editorial/ 归稿台项目所有，按 AGPL-3.0-only 发布。
 
-4. 借鉴与致谢（非代码依赖，不随包分发其代码/资产）
+6. 借鉴与致谢（非代码依赖，不随包分发其代码/资产）
 
    - 图表选型与视觉原则参考了 lieflat-charts（作者：躺在废墟里，
      PolyForm Noncommercial License 1.0.0）。六种图型的数据形状分类与

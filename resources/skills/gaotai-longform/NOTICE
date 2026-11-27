@@ -1,6 +1,6 @@
 # 来源与授权
 
-`gaotai-longform` 是**稿台自带的写作方法**，随安装包分发，MIT 协议（见 `LICENSE`）。
+`gaotai-longform` 是**稿台自带的写作方法**，随安装包分发，按 **AGPL-3.0-only 或 MIT** 双许可提供（MIT 原文见 `LICENSE`）。
 
 ## 它从哪来
 
@@ -17,13 +17,14 @@
 
 ## 协议
 
-MIT。作者对自己创作的部分拥有著作权，可自由使用、修改与再分发。
-保留 `LICENSE` 与本文件是为了让使用者知道这份方法从哪来、以什么协议可用。
+AGPL-3.0-only 或 MIT，由使用者选择。作者对自己创作的部分拥有著作权；
+此前已经授予的 MIT 权利继续有效，不因主仓库迁移至 AGPL-3.0-only 而撤销或追回。
+保留 `LICENSE` 与本文件是为了让使用者知道这份方法从哪来、可以按哪些协议使用。
 
 ## 与其它技能包的关系
 
 | 技能包 | 来源 | 协议 | 定位 |
 | --- | --- | --- | --- |
-| `gaotai-longform` | 作者自建，整理而成 | MIT | 公众号长文怎么写 |
-| `gaotai-editorial` | 稿台自研 | MIT | 成稿之后的标题、开头、事实核查 |
+| `gaotai-longform` | 作者自建，整理而成 | AGPL-3.0-only 或 MIT | 公众号长文怎么写 |
+| `gaotai-editorial` | 稿台自研 | AGPL-3.0-only | 成稿之后的标题、开头、事实核查 |
 | `human-writing` | 第三方 `KKKKhazix/human-writing` | MIT | 通用中文写作，可按需勾选 |

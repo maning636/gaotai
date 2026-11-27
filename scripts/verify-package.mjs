@@ -67,10 +67,27 @@ function main() {
     }
   }
 
-  const resourceDir = path.join(APP_DIR, "resources", "app-resources");
-  if (existsSync(resourceDir)) {
+  const resourceDir = path.join(APP_DIR, "resources");
+  const requiredLicenseFiles = [
+    "LICENSE",
+    "NOTICE.txt",
+    "SOURCE.txt",
+    "THIRD_PARTY_LICENSES/GPL-3.0.txt",
+    "THIRD_PARTY_LICENSES/human-writing-MIT.txt",
+    "THIRD_PARTY_LICENSES/rico-md-MIT.txt",
+    "THIRD_PARTY_LICENSES/WeDraft-MIT.txt",
+    "THIRD_PARTY_LICENSES/gaotai-longform-MIT.txt",
+  ];
+  for (const relativePath of requiredLicenseFiles) {
+    if (!existsSync(path.join(resourceDir, relativePath))) {
+      problems.push(`缺少许可声明文件：resources/${relativePath}`);
+    }
+  }
+
+  const appResourceDir = path.join(resourceDir, "app-resources");
+  if (existsSync(appResourceDir)) {
     for (const name of MUST_NOT_SHIP_ASSETS) {
-      const target = path.join(resourceDir, name);
+      const target = path.join(appResourceDir, name);
       if (existsSync(target)) problems.push(`随包分发的资产（应由服务器下发）：app-resources/${name}`);
     }
   }
@@ -82,7 +99,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`[verify-package] 通过：扫描 ${entries.length} 个条目，未发现密钥、数据库、授权令牌或随包资产。`);
+  console.log(`[verify-package] 通过：扫描 ${entries.length} 个条目，未发现密钥、数据库、授权令牌、随包资产或缺失的许可声明。`);
 }
 
 main();
